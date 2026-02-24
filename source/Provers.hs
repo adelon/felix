@@ -13,11 +13,12 @@ import Report.Location
 
 import Control.Exception (evaluate)
 import Control.Monad.Logger
+import Data.IORef (atomicModifyIORef', newIORef, readIORef)
 import Data.Text qualified as Text
 import Data.Text.IO qualified as TextIO
 import Data.Time
 import System.Exit (ExitCode)
-import System.IO (hClose, hSetEncoding, utf8)
+import System.IO (Handle, hClose, hIsEOF, hSetEncoding, utf8)
 import System.Process (CreateProcess(..), StdStream(CreatePipe), createProcess, proc, waitForProcess)
 import TextBuilder
 import Text.Megaparsec
@@ -109,15 +110,21 @@ iprover _verbosity timeLimit _memoryLimit = Prover
     , proverWarnsContradiction = []
     }
 
--- | 'No', 'Uncertain', and 'ContradictoryAxioms' carry the 'Text'-encoded
--- TPTP problem that failed with them for debugging purposes. 'Error' simply
--- contains the error message of the prover verbatim.
+-- | 'Error' contains the error message of the prover verbatim.
 data ProverAnswer
     = Yes
     | No
     | ContradictoryAxioms
     | Uncertain
     | Error Text Text
+    deriving (Show, Eq)
+
+data VampireStatus
+    = VampireTheorem
+    | VampireCounterSatisfiable
+    | VampireTimeout
+    | VampireContradictoryAxioms
+    | VampireUnknownStatus Text
     deriving (Show, Eq)
 
 nominalDiffTimeToText :: NominalDiffTime -> Text
@@ -141,7 +148,13 @@ timeDifferenceToText startTime endTime = nominalDiffTimeToText (diffUTCTime endT
 runProver :: (MonadIO io, MonadLogger io) => ProverInstance -> Task -> io (Location, Formula, ProverAnswer)
 runProver prover@Prover{..} task = do
     startTime <- liftIO getCurrentTime
-    (_exitCode, answer, answerErr) <- liftIO (runProverProcess proverPath proverArgs task)
+    proverAnswer <- liftIO if
+        | proverName == "vampire" -> do
+            (_exitCode, answer) <- runVampireProcess prover task
+            pure answer
+        | otherwise -> do
+            (_exitCode, answer, answerErr) <- runProverProcess proverPath proverArgs task
+            pure (recognizeAnswer prover task answer answerErr)
     endTime <- liftIO getCurrentTime
     let duration = timeDifferenceToText startTime endTime
 
@@ -149,7 +162,7 @@ runProver prover@Prover{..} task = do
         let conjLine = encodeConjectureLine (taskConjectureLabel task) (taskLocation task) (taskDirectness task) (taskConjecture task)
         in  duration <> " " <> toText conjLine
 
-    pure (taskLocation task, taskConjecture task, recognizeAnswer prover task answer answerErr)
+    pure (taskLocation task, taskConjecture task, proverAnswer)
 
 runProverProcess :: FilePath -> [String] -> Task -> IO (ExitCode, Text, Text)
 runProverProcess path args task = do
@@ -168,6 +181,42 @@ runProverProcess path args task = do
     (out, err) <- concurrently (consumeStrict hout) (consumeStrict herr)
     exitCode <- waitForProcess ph
     pure (exitCode, out, err)
+
+
+runVampireProcess :: ProverInstance -> Task -> IO (ExitCode, ProverAnswer)
+runVampireProcess Prover{proverPath, proverArgs} task = do
+    (Just hin, Just hout, Just herr, ph) <-
+        createProcess (proc proverPath proverArgs){std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe}
+
+    hSetEncoding hin utf8
+    hSetEncoding hout utf8
+    hSetEncoding herr utf8
+    writeTask hin task
+    hClose hin
+
+    statusRef <- newIORef Nothing
+    let observeLine line = atomicModifyIORef' statusRef \currentStatus ->
+            case currentStatus of
+                Just _ -> (currentStatus, ())
+                Nothing -> (parseMaybe vampireStatusParser line, ())
+
+    (out, err) <- concurrently (consumeLines hout observeLine) (consumeLines herr observeLine)
+    exitCode <- waitForProcess ph
+    firstStatus <- readIORef statusRef
+    pure (exitCode, vampireStatusAnswer task out err firstStatus)
+
+
+consumeLines :: Handle -> (Text -> IO ()) -> IO Text
+consumeLines h onLine = go mempty
+    where
+        go builder = do
+            endOfHandle <- hIsEOF h
+            if endOfHandle then pure (toText builder)
+            else do
+                line <- TextIO.hGetLine h
+                onLine line
+                let builder' = builder <> text line <> char '\n'
+                builder' `seq` go builder'
 
 
 -- | Parse the answer of a prover based on the configured prefixes of responses.
@@ -193,21 +242,24 @@ recognizeAnswer prover@Prover{..} task answer answerErr =
 
 
 recognizeVampireAnswer :: ProverInstance -> Task -> Text -> Text -> ProverAnswer
-recognizeVampireAnswer Prover{..} task answer answerErr =
+recognizeVampireAnswer _prover task answer answerErr =
     let
-        statuses = [status | Just status <- parseMaybe vampireStatusParser <$> Text.lines (answer <> "\n" <> answerErr)]
-        statusLines = ("% SZS status " <>) <$> statuses
-        matches prefixes = any (\l -> any (`Text.isPrefixOf` l) prefixes) statusLines
-        saidYes = matches proverSaysYes
-        saidNo = matches proverSaysNo
-        doesNotKnow = matches proverDoesNotKnow
-        warned = matches proverWarnsContradiction
-    in if
-        | saidYes || (warned && isIndirect task) -> Yes
-        | saidNo -> No
-        | doesNotKnow -> Uncertain
-        | warned -> ContradictoryAxioms
-        | otherwise -> Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
+        firstStatus = firstJust (parseMaybe vampireStatusParser) (Text.lines answer <> Text.lines answerErr)
+    in vampireStatusAnswer task answer answerErr firstStatus
+
+
+vampireStatusAnswer :: Task -> Text -> Text -> Maybe VampireStatus -> ProverAnswer
+vampireStatusAnswer task answer answerErr mStatus = case mStatus of
+    Nothing ->
+        Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
+    Just status -> case status of
+        VampireTheorem -> Yes
+        VampireCounterSatisfiable -> No
+        VampireTimeout -> Uncertain
+        VampireContradictoryAxioms ->
+            if isIndirect task then Yes else ContradictoryAxioms
+        VampireUnknownStatus _ ->
+            Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
 
 
 -- | Parse a Vampire SZS status line.
@@ -216,7 +268,7 @@ recognizeVampireAnswer Prover{..} task answer answerErr =
 --   % SZS status Timeout for 123
 -- and lines prefixed by worker ids (seen with portfolio output), e.g.:
 --   % (2581105)SZS status Timeout for
-vampireStatusParser :: Parsec Void Text Text
+vampireStatusParser :: Parsec Void Text VampireStatus
 vampireStatusParser = do
     _ <- Char.char '%'
     Char.hspace
@@ -231,4 +283,13 @@ vampireStatusParser = do
     Char.hspace1
     status <- takeWhile1P (Just "SZS status") (\c -> c /= ' ' && c /= '\t')
     _ <- takeRest
-    pure status
+    pure (vampireStatusFromText status)
+
+
+vampireStatusFromText :: Text -> VampireStatus
+vampireStatusFromText = \case
+    "Theorem" -> VampireTheorem
+    "CounterSatisfiable" -> VampireCounterSatisfiable
+    "Timeout" -> VampireTimeout
+    "ContradictoryAxioms" -> VampireContradictoryAxioms
+    other -> VampireUnknownStatus other

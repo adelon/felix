@@ -73,20 +73,16 @@ run = do
                 VerificationFailure ((loc, _phi, proverAnswer) : _) -> case proverAnswer of
                     Yes ->
                         skip
-                    No tptp -> do
-                        putStrLn "Verification failed: prover found countermodel"
-                        Text.hPutStrLn stderr tptp
-                    ContradictoryAxioms tptp -> do
-                        Text.putStrLn $ "Verification failed: contradictory axioms" <> locationToText loc
-                        Text.hPutStrLn stderr tptp
-                    Uncertain tptp -> do
-                        putStrLn "Verification failed: out of resources"
-                        Text.hPutStrLn stderr tptp
-                    Error err tptp task -> do
-                        putStr "Error at:"
-                        Text.putStrLn $ "Task: " <> task
+                    No -> do
+                        Text.putStrLn $ "Verification failed: prover found countermodel at " <> locationToText loc
+                    ContradictoryAxioms -> do
+                        Text.putStrLn $ "Verification failed: contradictory axioms at " <> locationToText loc
+                    Uncertain -> do
+                        Text.putStrLn $ "Verification failed: out of resources at " <> locationToText loc
+                    Error label err -> do
+                        Text.putStrLn $ "Error at " <> locationToText loc <> ": "
+                        Text.putStrLn $ "Task: " <> label
                         Text.putStrLn $ "Error: " <> err
-                        Text.putStrLn tptp
 
 
 getExecutable :: MonadIO m => String -> String -> String -> m FilePath
