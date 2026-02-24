@@ -77,7 +77,6 @@ run = do
                         Text.putStrLn "(Failed TPTP task will be printed to stderr)"
                         Text.hPutStrLn stderr tptp
                         Text.putStrLn $ "Verification failed: prover found countermodel at " <> locationToText loc
-                        Text.hPutStrLn stderr tptp
                     ContradictoryAxioms tptp -> do
                         Text.putStrLn "(Failed TPTP task will be printed to stderr)"
                         Text.hPutStrLn stderr tptp
