@@ -19,13 +19,13 @@ unitTests :: TestTree
 unitTests = testGroup "Provers"
     [ testCase "vampireStatusParser parses canonical SZS status line" do
         parseMaybe vampireStatusParser "% SZS status ContradictoryAxioms for 2260"
-            `shouldBe` Just VampireContradictoryAxioms
+            `shouldBe` Just "ContradictoryAxioms"
     , testCase "vampireStatusParser parses worker-prefixed SZS status line" do
         parseMaybe vampireStatusParser "% (2581105)SZS status Timeout for "
-            `shouldBe` Just VampireTimeout
+            `shouldBe` Just "Timeout"
     , testCase "vampireStatusParser keeps unknown status as data" do
         parseMaybe vampireStatusParser "% SZS status ResourceOut for 2260"
-            `shouldBe` Just (VampireUnknownStatus "ResourceOut")
+            `shouldBe` Just "ResourceOut"
     , testCase "Vampire recognizer reads status from stderr too" do
         recognizeAnswer vampireProver directTask "" "% (2581105)SZS status Timeout for "
             `shouldBe` Uncertain

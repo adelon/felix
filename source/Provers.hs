@@ -119,14 +119,6 @@ data ProverAnswer
     | Error Text Text
     deriving (Show, Eq)
 
-data VampireStatus
-    = VampireTheorem
-    | VampireCounterSatisfiable
-    | VampireTimeout
-    | VampireContradictoryAxioms
-    | VampireUnknownStatus Text
-    deriving (Show, Eq)
-
 nominalDiffTimeToText :: NominalDiffTime -> Text
 nominalDiffTimeToText delta = TextBuilder.toText (nominalDiffTimeToTextBuilder delta)
 
@@ -248,17 +240,17 @@ recognizeVampireAnswer _prover task answer answerErr =
     in vampireStatusAnswer task answer answerErr firstStatus
 
 
-vampireStatusAnswer :: Task -> Text -> Text -> Maybe VampireStatus -> ProverAnswer
+vampireStatusAnswer :: Task -> Text -> Text -> Maybe Text -> ProverAnswer
 vampireStatusAnswer task answer answerErr mStatus = case mStatus of
     Nothing ->
         Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
     Just status -> case status of
-        VampireTheorem -> Yes
-        VampireCounterSatisfiable -> No
-        VampireTimeout -> Uncertain
-        VampireContradictoryAxioms ->
+        "Theorem" -> Yes
+        "CounterSatisfiable" -> No
+        "Timeout" -> Uncertain
+        "ContradictoryAxioms" ->
             if isIndirect task then Yes else ContradictoryAxioms
-        VampireUnknownStatus _ ->
+        _ ->
             Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
 
 
@@ -268,7 +260,7 @@ vampireStatusAnswer task answer answerErr mStatus = case mStatus of
 --   % SZS status Timeout for 123
 -- and lines prefixed by worker ids (seen with portfolio output), e.g.:
 --   % (2581105)SZS status Timeout for
-vampireStatusParser :: Parsec Void Text VampireStatus
+vampireStatusParser :: Parsec Void Text Text
 vampireStatusParser = do
     _ <- Char.char '%'
     Char.hspace
@@ -283,13 +275,4 @@ vampireStatusParser = do
     Char.hspace1
     status <- takeWhile1P (Just "SZS status") (\c -> c /= ' ' && c /= '\t')
     _ <- takeRest
-    pure (vampireStatusFromText status)
-
-
-vampireStatusFromText :: Text -> VampireStatus
-vampireStatusFromText = \case
-    "Theorem" -> VampireTheorem
-    "CounterSatisfiable" -> VampireCounterSatisfiable
-    "Timeout" -> VampireTimeout
-    "ContradictoryAxioms" -> VampireContradictoryAxioms
-    other -> VampireUnknownStatus other
+    pure status
