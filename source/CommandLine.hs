@@ -77,6 +77,7 @@ run = do
                         Text.putStrLn "(Failed TPTP task will be printed to stderr)"
                         Text.hPutStrLn stderr tptp
                         Text.putStrLn $ "Verification failed: prover found countermodel at " <> locationToText loc
+                        Text.putStrLn "This is often happens when an explicit justification with \\cref{...} is missing some references."
                     ContradictoryAxioms tptp -> do
                         Text.putStrLn "(Failed TPTP task will be printed to stderr)"
                         Text.hPutStrLn stderr tptp
