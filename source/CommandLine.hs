@@ -74,18 +74,19 @@ run = do
                     Yes ->
                         skip
                     CounterSatisfiable tptp -> do
+                        Text.putStrLn "(Failed TPTP task will be printed to stderr)"
+                        Text.hPutStrLn stderr tptp
                         Text.putStrLn $ "Verification failed: prover found countermodel at " <> locationToText loc
-                        Text.putStrLn "Prover output (TPTP format):"
                         Text.hPutStrLn stderr tptp
                     ContradictoryAxioms tptp -> do
+                        Text.putStrLn "(Failed TPTP task will be printed to stderr)"
+                        Text.hPutStrLn stderr tptp
                         Text.putStrLn ("Verification failed: contradictory axioms at " <> locationToText loc)
                         Text.putStrLn "This is usually caused by an incorrect axiom or a theorem that has its proof omitted. It can also be caused by bugs or by using unsafe features. If no warnings were printed during verification and you are certain that there are no contradictions in your axiomatic setup, please report this as a bug."
-                        Text.putStrLn "Prover output (TPTP format):"
-                        Text.hPutStrLn stderr tptp
                     Uncertain tptp -> do
-                        Text.putStrLn $ "Verification failed: out of resources at " <> locationToText loc
-                        Text.putStrLn "Prover output (TPTP format):"
+                        Text.putStrLn "(Failed TPTP task will be printed to stderr)"
                         Text.hPutStrLn stderr tptp
+                        Text.putStrLn $ "Verification failed: out of resources at " <> locationToText loc
                     Error label err -> do
                         Text.putStrLn $ "Error at " <> locationToText loc <> ": "
                         Text.putStrLn $ "Task: " <> label
