@@ -113,8 +113,8 @@ iprover _verbosity timeLimit _memoryLimit = Prover
 -- | 'Error' contains the error message of the prover verbatim.
 data ProverAnswer
     = Yes
-    | No
-    | ContradictoryAxioms
+    | CounterSatisfiable Text
+    | ContradictoryAxioms Text
     | Uncertain
     | Error Text Text
     deriving (Show, Eq)
@@ -225,9 +225,9 @@ recognizeAnswer prover@Prover{..} task answer answerErr =
                 warned             = matches proverWarnsContradiction
             in if
                 | saidYes || (warned && isIndirect task) -> Yes
-                | saidNo -> No
+                | saidNo -> CounterSatisfiable (encodeTaskText task)
                 | doesNotKnow -> Uncertain
-                | warned -> ContradictoryAxioms
+                | warned -> ContradictoryAxioms (encodeTaskText task)
                 | otherwise -> Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
 
 
@@ -246,10 +246,10 @@ vampireStatusAnswer task answer answerErr mStatus = case mStatus of
         Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
     Just status -> case status of
         "Theorem" -> Yes
-        "CounterSatisfiable" -> No
+        "CounterSatisfiable" -> CounterSatisfiable (encodeTaskText task)
         "Timeout" -> Uncertain
         "ContradictoryAxioms" ->
-            if isIndirect task then Yes else ContradictoryAxioms
+            if isIndirect task then Yes else ContradictoryAxioms (encodeTaskText task)
         _ ->
             Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
 
