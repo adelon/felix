@@ -20,6 +20,8 @@ import System.Exit (ExitCode)
 import System.IO (hClose, hSetEncoding, utf8)
 import System.Process (CreateProcess(..), StdStream(CreatePipe), createProcess, proc, waitForProcess)
 import TextBuilder
+import Text.Megaparsec
+import Text.Megaparsec.Char qualified as Char
 import UnliftIO.Async (concurrently)
 
 type Prover = Verbosity -> TimeLimit -> MemoryLimit -> ProverInstance
@@ -112,10 +114,10 @@ iprover _verbosity timeLimit _memoryLimit = Prover
 -- contains the error message of the prover verbatim.
 data ProverAnswer
     = Yes
-    | No Text
-    | ContradictoryAxioms Text
-    | Uncertain Text
-    | Error Text Text Text
+    | No
+    | ContradictoryAxioms
+    | Uncertain
+    | Error Text Text
     deriving (Show, Eq)
 
 nominalDiffTimeToText :: NominalDiffTime -> Text
@@ -170,16 +172,63 @@ runProverProcess path args task = do
 
 -- | Parse the answer of a prover based on the configured prefixes of responses.
 recognizeAnswer :: ProverInstance -> Task -> Text -> Text -> ProverAnswer
-recognizeAnswer Prover{..} task answer answerErr =
+recognizeAnswer prover@Prover{..} task answer answerErr =
+    if
+        | proverName == "vampire" -> recognizeVampireAnswer prover task answer answerErr
+        | otherwise ->
+            let
+                matches prefixes   = any (\l -> any (`Text.isPrefixOf` l) prefixes) (Text.lines answer)
+                saidYes            = matches proverSaysYes
+                saidNo             = matches proverSaysNo
+                doesNotKnow        = matches proverDoesNotKnow
+                warned             = matches proverWarnsContradiction
+            in if
+                | saidYes || (warned && isIndirect task) -> Yes
+                | saidNo -> No
+                | doesNotKnow -> Uncertain
+                | warned -> ContradictoryAxioms
+                | otherwise -> Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
+
+
+
+
+recognizeVampireAnswer :: ProverInstance -> Task -> Text -> Text -> ProverAnswer
+recognizeVampireAnswer Prover{..} task answer answerErr =
     let
-        matches prefixes   = any (\l -> any (`Text.isPrefixOf` l) prefixes) (Text.lines answer)
-        saidYes            = matches proverSaysYes
-        saidNo             = matches proverSaysNo
-        doesNotKnow        = matches proverDoesNotKnow
-        warned             = matches proverWarnsContradiction
+        statuses = [status | Just status <- parseMaybe vampireStatusParser <$> Text.lines (answer <> "\n" <> answerErr)]
+        statusLines = ("% SZS status " <>) <$> statuses
+        matches prefixes = any (\l -> any (`Text.isPrefixOf` l) prefixes) statusLines
+        saidYes = matches proverSaysYes
+        saidNo = matches proverSaysNo
+        doesNotKnow = matches proverDoesNotKnow
+        warned = matches proverWarnsContradiction
     in if
         | saidYes || (warned && isIndirect task) -> Yes
-        | saidNo -> No (encodeTaskText task)
-        | doesNotKnow -> Uncertain (encodeTaskText task)
-        | warned -> ContradictoryAxioms (encodeTaskText task)
-        | otherwise -> Error (answer <> answerErr) (encodeTaskText task) (Text.pack(show (taskConjectureLabel task)))
+        | saidNo -> No
+        | doesNotKnow -> Uncertain
+        | warned -> ContradictoryAxioms
+        | otherwise -> Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
+
+
+-- | Parse a Vampire SZS status line.
+--
+-- Recognizes both standard lines like:
+--   % SZS status Timeout for 123
+-- and lines prefixed by worker ids (seen with portfolio output), e.g.:
+--   % (2581105)SZS status Timeout for
+vampireStatusParser :: Parsec Void Text Text
+vampireStatusParser = do
+    _ <- Char.char '%'
+    Char.hspace
+    optional do
+        _ <- Char.char '('
+        _ <- some Char.digitChar
+        _ <- Char.char ')'
+        Char.hspace
+    _ <- chunk "SZS"
+    Char.hspace1
+    _ <- chunk "status"
+    Char.hspace1
+    status <- takeWhile1P (Just "SZS status") (\c -> c /= ' ' && c /= '\t')
+    _ <- takeRest
+    pure status
