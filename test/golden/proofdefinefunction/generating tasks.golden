@@ -239,7 +239,7 @@
                     ]
                 )
             )
-        , Hypothesis Marker "definefunctiontest4" TermSymbol
+        , Hypothesis Marker "_local_4" TermSymbol
             ( Location
                 { locFile = "test/examples/proofdefinefunction.tex"
                 , locLine = 26
@@ -263,7 +263,7 @@
             [ TermVar
                 ( NamedVar "f" )
             ]
-        , Hypothesis Marker "definefunctiontest3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/proofdefinefunction.tex"
                 , locLine = 26
@@ -283,7 +283,7 @@
             [ TermVar
                 ( NamedVar "f" )
             ]
-        , Hypothesis Marker "definefunctiontest2" Quantified Universally
+        , Hypothesis Marker "_local_2" Quantified Universally
             ( Scope
                 ( Connected Implication
                     ( TermSymbol
@@ -371,7 +371,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "definefunctiontest1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/proofdefinefunction.tex"
                 , locLine = 26

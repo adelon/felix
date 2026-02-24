@@ -109,7 +109,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set1" Not
+        , Hypothesis Marker "_local_1" Not
             ( Location
                 { locFile = "test/examples/russell.tex"
                 , locLine = 11
@@ -298,7 +298,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set3" Quantified Universally
+        , Hypothesis Marker "_local_3" Quantified Universally
             ( Scope
                 ( Connected Equivalence
                     ( TermSymbol
@@ -392,7 +392,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set2" Connected Conjunction ( PropositionalConstant IsTop )
+        , Hypothesis Marker "_local_2" Connected Conjunction ( PropositionalConstant IsTop )
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/russell.tex"
@@ -414,7 +414,7 @@
                     ( NamedVar "V" )
                 ]
             )
-        , Hypothesis Marker "no_universal_set1" Not
+        , Hypothesis Marker "_local_1" Not
             ( Location
                 { locFile = "test/examples/russell.tex"
                 , locLine = 11
@@ -628,7 +628,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set4" Connected Equivalence
+        , Hypothesis Marker "_local_4" Connected Equivalence
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/russell.tex"
@@ -679,7 +679,7 @@
                     ]
                 )
             )
-        , Hypothesis Marker "no_universal_set3" Quantified Universally
+        , Hypothesis Marker "_local_3" Quantified Universally
             ( Scope
                 ( Connected Equivalence
                     ( TermSymbol
@@ -773,7 +773,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set2" Connected Conjunction ( PropositionalConstant IsTop )
+        , Hypothesis Marker "_local_2" Connected Conjunction ( PropositionalConstant IsTop )
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/russell.tex"
@@ -795,7 +795,7 @@
                     ( NamedVar "V" )
                 ]
             )
-        , Hypothesis Marker "no_universal_set1" Not
+        , Hypothesis Marker "_local_1" Not
             ( Location
                 { locFile = "test/examples/russell.tex"
                 , locLine = 11
@@ -959,8 +959,8 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set5" PropositionalConstant IsBottom
-        , Hypothesis Marker "no_universal_set4" Connected Equivalence
+        , Hypothesis Marker "_local_5" PropositionalConstant IsBottom
+        , Hypothesis Marker "_local_4" Connected Equivalence
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/russell.tex"
@@ -1011,7 +1011,7 @@
                     ]
                 )
             )
-        , Hypothesis Marker "no_universal_set3" Quantified Universally
+        , Hypothesis Marker "_local_3" Quantified Universally
             ( Scope
                 ( Connected Equivalence
                     ( TermSymbol
@@ -1105,7 +1105,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "no_universal_set2" Connected Conjunction ( PropositionalConstant IsTop )
+        , Hypothesis Marker "_local_2" Connected Conjunction ( PropositionalConstant IsTop )
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/russell.tex"
@@ -1127,7 +1127,7 @@
                     ( NamedVar "V" )
                 ]
             )
-        , Hypothesis Marker "no_universal_set1" Not
+        , Hypothesis Marker "_local_1" Not
             ( Location
                 { locFile = "test/examples/russell.tex"
                 , locLine = 11

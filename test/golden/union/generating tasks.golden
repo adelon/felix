@@ -985,7 +985,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "union_assoc1" Quantified Universally
+        , Hypothesis Marker "_local_1" Quantified Universally
             ( Scope
                 ( Connected Implication
                     ( TermSymbol
@@ -1579,7 +1579,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "union_assoc2" Quantified Universally
+        , Hypothesis Marker "_local_2" Quantified Universally
             ( Scope
                 ( Connected Implication
                     ( TermSymbol
@@ -1734,7 +1734,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "union_assoc1" Quantified Universally
+        , Hypothesis Marker "_local_1" Quantified Universally
             ( Scope
                 ( Connected Implication
                     ( TermSymbol

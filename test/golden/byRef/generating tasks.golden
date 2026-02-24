@@ -300,7 +300,7 @@
                     ]
                 )
             )
-        , Hypothesis Marker "prop41" Quantified Universally
+        , Hypothesis Marker "_local_1" Quantified Universally
             ( Scope
                 ( TermSymbol
                     ( Location

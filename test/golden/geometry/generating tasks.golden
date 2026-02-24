@@ -2335,7 +2335,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "cong_refl2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 83
@@ -2359,7 +2359,7 @@
             [ TermVar
                 ( NamedVar "b" )
             ]
-        , Hypothesis Marker "cong_refl1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 83
@@ -4836,7 +4836,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "cong_sym5" TermSymbol
+        , Hypothesis Marker "_local_5" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 90
@@ -4855,7 +4855,7 @@
             , TermVar
                 ( NamedVar "d" )
             ]
-        , Hypothesis Marker "cong_sym4" TermSymbol
+        , Hypothesis Marker "_local_4" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 89
@@ -4879,7 +4879,7 @@
             [ TermVar
                 ( NamedVar "d" )
             ]
-        , Hypothesis Marker "cong_sym3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 89
@@ -4903,7 +4903,7 @@
             [ TermVar
                 ( NamedVar "c" )
             ]
-        , Hypothesis Marker "cong_sym2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 89
@@ -4927,7 +4927,7 @@
             [ TermVar
                 ( NamedVar "b" )
             ]
-        , Hypothesis Marker "cong_sym1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 89
@@ -7581,7 +7581,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "cong_transitive6" TermSymbol
+        , Hypothesis Marker "_local_6" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 96
@@ -7605,7 +7605,7 @@
             [ TermVar
                 ( NamedVar "f" )
             ]
-        , Hypothesis Marker "cong_transitive5" TermSymbol
+        , Hypothesis Marker "_local_5" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 96
@@ -7629,7 +7629,7 @@
             [ TermVar
                 ( NamedVar "e" )
             ]
-        , Hypothesis Marker "cong_transitive4" TermSymbol
+        , Hypothesis Marker "_local_4" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 96
@@ -7653,7 +7653,7 @@
             [ TermVar
                 ( NamedVar "d" )
             ]
-        , Hypothesis Marker "cong_transitive3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 96
@@ -7677,7 +7677,7 @@
             [ TermVar
                 ( NamedVar "c" )
             ]
-        , Hypothesis Marker "cong_transitive2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 96
@@ -7701,7 +7701,7 @@
             [ TermVar
                 ( NamedVar "b" )
             ]
-        , Hypothesis Marker "cong_transitive1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 96
@@ -10664,7 +10664,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "cong_shuffle_left4" TermSymbol
+        , Hypothesis Marker "_local_4" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 103
@@ -10688,7 +10688,7 @@
             [ TermVar
                 ( NamedVar "d" )
             ]
-        , Hypothesis Marker "cong_shuffle_left3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 103
@@ -10712,7 +10712,7 @@
             [ TermVar
                 ( NamedVar "c" )
             ]
-        , Hypothesis Marker "cong_shuffle_left2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 103
@@ -10736,7 +10736,7 @@
             [ TermVar
                 ( NamedVar "b" )
             ]
-        , Hypothesis Marker "cong_shuffle_left1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 103
@@ -13854,7 +13854,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "cong_shuffle_right4" TermSymbol
+        , Hypothesis Marker "_local_4" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 110
@@ -13878,7 +13878,7 @@
             [ TermVar
                 ( NamedVar "d" )
             ]
-        , Hypothesis Marker "cong_shuffle_right3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 110
@@ -13902,7 +13902,7 @@
             [ TermVar
                 ( NamedVar "c" )
             ]
-        , Hypothesis Marker "cong_shuffle_right2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 110
@@ -13926,7 +13926,7 @@
             [ TermVar
                 ( NamedVar "b" )
             ]
-        , Hypothesis Marker "cong_shuffle_right1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 110
@@ -17221,7 +17221,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "cong_zero2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 117
@@ -17245,7 +17245,7 @@
             [ TermVar
                 ( NamedVar "b" )
             ]
-        , Hypothesis Marker "cong_zero1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/geometry.tex"
                 , locLine = 117

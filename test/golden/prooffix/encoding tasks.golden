@@ -1,4 +1,4 @@
 fof(assumetest,conjecture,fx=fx,"test/examples/prooffix.tex 6:5").
 ------------------
 fof(assumetest,conjecture,fx=fx,"test/examples/prooffix.tex 7:1").
-fof(assumetest1,axiom,fx=fx).
+fof('_local_1',axiom,fx=fx).

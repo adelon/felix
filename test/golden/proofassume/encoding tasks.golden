@@ -1,17 +1,17 @@
 fof(assumetest,conjecture,elem(fx,fy),"test/examples/proofassume.tex 6:5").
-fof(assumetest1,axiom,elem(fx,fy)).
+fof('_local_1',axiom,elem(fx,fy)).
 ------------------
 fof(assumetest,conjecture,elem(fx,fy),"test/examples/proofassume.tex 7:1").
-fof(assumetest2,axiom,elem(fx,fy)).
-fof(assumetest1,axiom,elem(fx,fy)).
+fof('_local_2',axiom,elem(fx,fy)).
+fof('_local_1',axiom,elem(fx,fy)).
 ------------------
 fof(assumetesttwo,conjecture,elem(fx,fy),"test/examples/proofassume.tex 15:5").
 fof(assumetest,axiom,![Xx,Xy]:(elem(Xx,Xy)=>elem(Xx,Xy))).
-fof(assumetesttwo2,axiom,elem(fx,fy)).
-fof(assumetesttwo1,axiom,elem(fa,fb)).
+fof('_local_2',axiom,elem(fx,fy)).
+fof('_local_1',axiom,elem(fa,fb)).
 ------------------
 fof(assumetesttwo,conjecture,elem(fx,fy),"test/examples/proofassume.tex 16:1").
 fof(assumetest,axiom,![Xx,Xy]:(elem(Xx,Xy)=>elem(Xx,Xy))).
-fof(assumetesttwo3,axiom,elem(fx,fy)).
-fof(assumetesttwo2,axiom,elem(fx,fy)).
-fof(assumetesttwo1,axiom,elem(fa,fb)).
+fof('_local_3',axiom,elem(fx,fy)).
+fof('_local_2',axiom,elem(fx,fy)).
+fof('_local_1',axiom,elem(fa,fb)).

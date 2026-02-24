@@ -13,7 +13,7 @@ fof(prop4,conjecture,fe=fe,"test/examples/byRef.tex 21:1").
 fof(prop3,axiom,![Xc]:Xc=Xc).
 fof(prop2,axiom,![Xb]:Xb=Xb).
 fof(prop1,axiom,![Xa]:Xa=Xa).
-fof(prop41,axiom,![Xd]:Xd=Xd).
+fof('_local_1',axiom,![Xd]:Xd=Xd).
 ------------------
 fof(prop5,conjecture,ff=ff,"test/examples/byRef.tex 23:1").
 fof(prop4,axiom,![Xe]:Xe=Xe).

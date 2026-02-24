@@ -9,8 +9,8 @@ fof(cong_id,axiom,![Xa,Xb,Xc]:((point(Xa)&point(Xb)&point(Xc))=>('Cong'(Xa,Xb,Xc
 fof(cong_pseudotransitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>(('Cong'(Xc,Xd,Xa,Xb)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
 fof(cong_refl_swap,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xb,Xa))).
 fof(collinear,axiom,![Xa,Xb,Xc]:(collinear(Xa,Xb,Xc)<=>('Betw'(Xa,Xb,Xc)|'Betw'(Xb,Xc,Xa)|'Betw'(Xc,Xa,Xb)))).
-fof(cong_refl2,axiom,point(fb)).
-fof(cong_refl1,axiom,point(fa)).
+fof('_local_2',axiom,point(fb)).
+fof('_local_1',axiom,point(fa)).
 ------------------
 fof(cong_sym,conjecture,'Cong'(fc,fd,fa,fb),"test/examples/geometry.tex 88:1").
 fof(cong_refl,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xa,Xb))).
@@ -24,11 +24,11 @@ fof(cong_id,axiom,![Xa,Xb,Xc]:((point(Xa)&point(Xb)&point(Xc))=>('Cong'(Xa,Xb,Xc
 fof(cong_pseudotransitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>(('Cong'(Xc,Xd,Xa,Xb)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
 fof(cong_refl_swap,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xb,Xa))).
 fof(collinear,axiom,![Xa,Xb,Xc]:(collinear(Xa,Xb,Xc)<=>('Betw'(Xa,Xb,Xc)|'Betw'(Xb,Xc,Xa)|'Betw'(Xc,Xa,Xb)))).
-fof(cong_sym5,axiom,'Cong'(fa,fb,fc,fd)).
-fof(cong_sym4,axiom,point(fd)).
-fof(cong_sym3,axiom,point(fc)).
-fof(cong_sym2,axiom,point(fb)).
-fof(cong_sym1,axiom,point(fa)).
+fof('_local_5',axiom,'Cong'(fa,fb,fc,fd)).
+fof('_local_4',axiom,point(fd)).
+fof('_local_3',axiom,point(fc)).
+fof('_local_2',axiom,point(fb)).
+fof('_local_1',axiom,point(fa)).
 ------------------
 fof(cong_transitive,conjecture,('Cong'(fa,fb,fc,fd)&'Cong'(fc,fd,fe,ff))=>'Cong'(fa,fb,fe,ff),"test/examples/geometry.tex 95:1").
 fof(cong_sym,axiom,![Xa,Xb,Xc,Xd]:((point(Xa)&point(Xb)&point(Xc)&point(Xd)&'Cong'(Xa,Xb,Xc,Xd))=>'Cong'(Xc,Xd,Xa,Xb))).
@@ -43,12 +43,12 @@ fof(cong_id,axiom,![Xa,Xb,Xc]:((point(Xa)&point(Xb)&point(Xc))=>('Cong'(Xa,Xb,Xc
 fof(cong_pseudotransitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>(('Cong'(Xc,Xd,Xa,Xb)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
 fof(cong_refl_swap,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xb,Xa))).
 fof(collinear,axiom,![Xa,Xb,Xc]:(collinear(Xa,Xb,Xc)<=>('Betw'(Xa,Xb,Xc)|'Betw'(Xb,Xc,Xa)|'Betw'(Xc,Xa,Xb)))).
-fof(cong_transitive6,axiom,point(ff)).
-fof(cong_transitive5,axiom,point(fe)).
-fof(cong_transitive4,axiom,point(fd)).
-fof(cong_transitive3,axiom,point(fc)).
-fof(cong_transitive2,axiom,point(fb)).
-fof(cong_transitive1,axiom,point(fa)).
+fof('_local_6',axiom,point(ff)).
+fof('_local_5',axiom,point(fe)).
+fof('_local_4',axiom,point(fd)).
+fof('_local_3',axiom,point(fc)).
+fof('_local_2',axiom,point(fb)).
+fof('_local_1',axiom,point(fa)).
 ------------------
 fof(cong_shuffle_left,conjecture,'Cong'(fa,fb,fc,fd)=>'Cong'(fb,fa,fc,fd),"test/examples/geometry.tex 102:1").
 fof(cong_transitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd)&point(Xe)&point(Xf))=>(('Cong'(Xa,Xb,Xc,Xd)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
@@ -64,10 +64,10 @@ fof(cong_id,axiom,![Xa,Xb,Xc]:((point(Xa)&point(Xb)&point(Xc))=>('Cong'(Xa,Xb,Xc
 fof(cong_pseudotransitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>(('Cong'(Xc,Xd,Xa,Xb)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
 fof(cong_refl_swap,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xb,Xa))).
 fof(collinear,axiom,![Xa,Xb,Xc]:(collinear(Xa,Xb,Xc)<=>('Betw'(Xa,Xb,Xc)|'Betw'(Xb,Xc,Xa)|'Betw'(Xc,Xa,Xb)))).
-fof(cong_shuffle_left4,axiom,point(fd)).
-fof(cong_shuffle_left3,axiom,point(fc)).
-fof(cong_shuffle_left2,axiom,point(fb)).
-fof(cong_shuffle_left1,axiom,point(fa)).
+fof('_local_4',axiom,point(fd)).
+fof('_local_3',axiom,point(fc)).
+fof('_local_2',axiom,point(fb)).
+fof('_local_1',axiom,point(fa)).
 ------------------
 fof(cong_shuffle_right,conjecture,'Cong'(fa,fb,fc,fd)=>'Cong'(fb,fa,fd,fc),"test/examples/geometry.tex 109:1").
 fof(cong_shuffle_left,axiom,![Xa,Xb,Xc,Xd]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>('Cong'(Xa,Xb,Xc,Xd)=>'Cong'(Xb,Xa,Xc,Xd)))).
@@ -84,10 +84,10 @@ fof(cong_id,axiom,![Xa,Xb,Xc]:((point(Xa)&point(Xb)&point(Xc))=>('Cong'(Xa,Xb,Xc
 fof(cong_pseudotransitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>(('Cong'(Xc,Xd,Xa,Xb)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
 fof(cong_refl_swap,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xb,Xa))).
 fof(collinear,axiom,![Xa,Xb,Xc]:(collinear(Xa,Xb,Xc)<=>('Betw'(Xa,Xb,Xc)|'Betw'(Xb,Xc,Xa)|'Betw'(Xc,Xa,Xb)))).
-fof(cong_shuffle_right4,axiom,point(fd)).
-fof(cong_shuffle_right3,axiom,point(fc)).
-fof(cong_shuffle_right2,axiom,point(fb)).
-fof(cong_shuffle_right1,axiom,point(fa)).
+fof('_local_4',axiom,point(fd)).
+fof('_local_3',axiom,point(fc)).
+fof('_local_2',axiom,point(fb)).
+fof('_local_1',axiom,point(fa)).
 ------------------
 fof(cong_zero,conjecture,'Cong'(fa,fa,fb,fb),"test/examples/geometry.tex 116:1").
 fof(cong_shuffle_right,axiom,![Xa,Xb,Xc,Xd]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>('Cong'(Xa,Xb,Xc,Xd)=>'Cong'(Xb,Xa,Xd,Xc)))).
@@ -105,5 +105,5 @@ fof(cong_id,axiom,![Xa,Xb,Xc]:((point(Xa)&point(Xb)&point(Xc))=>('Cong'(Xa,Xb,Xc
 fof(cong_pseudotransitive,axiom,![Xa,Xb,Xc,Xd,Xe,Xf]:((point(Xa)&point(Xb)&point(Xc)&point(Xd))=>(('Cong'(Xc,Xd,Xa,Xb)&'Cong'(Xc,Xd,Xe,Xf))=>'Cong'(Xa,Xb,Xe,Xf)))).
 fof(cong_refl_swap,axiom,![Xa,Xb]:((point(Xa)&point(Xb))=>'Cong'(Xa,Xb,Xb,Xa))).
 fof(collinear,axiom,![Xa,Xb,Xc]:(collinear(Xa,Xb,Xc)<=>('Betw'(Xa,Xb,Xc)|'Betw'(Xb,Xc,Xa)|'Betw'(Xc,Xa,Xb)))).
-fof(cong_zero2,axiom,point(fb)).
-fof(cong_zero1,axiom,point(fa)).
+fof('_local_2',axiom,point(fb)).
+fof('_local_1',axiom,point(fa)).

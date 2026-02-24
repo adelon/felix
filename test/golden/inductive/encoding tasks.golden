@@ -27,7 +27,7 @@ fof(times,axiom,![XA,XB]:times(XA,XB)=emptyset).
 fof(cons,axiom,![Xa,XB]:cons(Xa,XB)=emptyset).
 fof(pow,axiom,![XA]:pow(XA)=emptyset).
 fof(subseteq,axiom,![XA,XB]:(subseteq(XA,XB)<=>XA=XB)).
-fof(fin_mono1,axiom,subseteq(fA,fB)).
+fof('_local_1',axiom,subseteq(fA,fB)).
 ------------------
 fof(tracl,conjecture,elem(fw,fR)=>elem(fw,times(fld(fR),fld(fR))),"test/examples/inductive.tex 45:1").
 fof(fin_mono,axiom,![XA,XB]:(subseteq(XA,XB)=>subseteq(fin(XA),fin(XB)))).

@@ -1,7 +1,7 @@
 [ Task
     { taskDirectness = Direct
     , taskHypotheses =
-        [ Hypothesis Marker "assumetest1" TermSymbol
+        [ Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 5
@@ -52,7 +52,7 @@
 , Task
     { taskDirectness = Direct
     , taskHypotheses =
-        [ Hypothesis Marker "assumetest2" TermSymbol
+        [ Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 6
@@ -72,7 +72,7 @@
             , TermVar
                 ( NamedVar "y" )
             ]
-        , Hypothesis Marker "assumetest1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 5
@@ -178,7 +178,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "assumetesttwo2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 14
@@ -198,7 +198,7 @@
             , TermVar
                 ( NamedVar "y" )
             ]
-        , Hypothesis Marker "assumetesttwo1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 13
@@ -304,7 +304,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "assumetesttwo3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 15
@@ -324,7 +324,7 @@
             , TermVar
                 ( NamedVar "y" )
             ]
-        , Hypothesis Marker "assumetesttwo2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 14
@@ -344,7 +344,7 @@
             , TermVar
                 ( NamedVar "y" )
             ]
-        , Hypothesis Marker "assumetesttwo1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/proofassume.tex"
                 , locLine = 13

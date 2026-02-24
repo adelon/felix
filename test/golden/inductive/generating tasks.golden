@@ -1738,7 +1738,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "fin_mono1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/inductive.tex"
                 , locLine = 41

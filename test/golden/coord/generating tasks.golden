@@ -200,7 +200,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "nouns2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/coord.tex"
                 , locLine = 14
@@ -224,7 +224,7 @@
             [ TermVar
                 ( NamedVar "y" )
             ]
-        , Hypothesis Marker "nouns1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "test/examples/coord.tex"
                 , locLine = 14
@@ -564,7 +564,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "adj_nouns2" Connected Conjunction
+        , Hypothesis Marker "_local_2" Connected Conjunction
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/coord.tex"
@@ -611,7 +611,7 @@
                     ( NamedVar "y" )
                 ]
             )
-        , Hypothesis Marker "adj_nouns1" Connected Conjunction
+        , Hypothesis Marker "_local_1" Connected Conjunction
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/coord.tex"
@@ -1110,7 +1110,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "nouns_suchthat3" TermSymbol
+        , Hypothesis Marker "_local_3" TermSymbol
             ( Location
                 { locFile = "test/examples/coord.tex"
                 , locLine = 25
@@ -1134,7 +1134,7 @@
             [ TermVar
                 ( NamedVar "y" )
             ]
-        , Hypothesis Marker "nouns_suchthat2" TermSymbol
+        , Hypothesis Marker "_local_2" TermSymbol
             ( Location
                 { locFile = "test/examples/coord.tex"
                 , locLine = 25
@@ -1158,7 +1158,7 @@
             [ TermVar
                 ( NamedVar "x" )
             ]
-        , Hypothesis Marker "nouns_suchthat1" Connected Conjunction
+        , Hypothesis Marker "_local_1" Connected Conjunction
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/coord.tex"
@@ -3257,7 +3257,7 @@
                     )
                 )
             )
-        , Hypothesis Marker "are_nouns2" Connected Conjunction
+        , Hypothesis Marker "_local_2" Connected Conjunction
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/coord.tex"
@@ -3304,7 +3304,7 @@
                     ( NamedVar "y" )
                 ]
             )
-        , Hypothesis Marker "are_nouns1" Connected Conjunction
+        , Hypothesis Marker "_local_1" Connected Conjunction
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/coord.tex"

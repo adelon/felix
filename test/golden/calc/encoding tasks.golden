@@ -13,7 +13,7 @@ fof(trivial,axiom,![Xx]:Xx=Xx).
 fof(alsotrivial,conjecture,fy=fy,"test/examples/calc.tex 20:1").
 fof(irrelevant,axiom,![Xz]:Xz=Xz).
 fof(trivial,axiom,![Xx]:Xx=Xx).
-fof(alsotrivial1,axiom,fy=fy).
+fof('_local_1',axiom,fy=fy).
 ------------------
 fof(trivial_biconditionals,conjecture,fy=fy,"test/examples/calc.tex 26:5").
 fof(alsotrivial,axiom,![Xy]:Xy=Xy).
@@ -27,4 +27,4 @@ fof(trivial_biconditionals,conjecture,fy=fy,"test/examples/calc.tex 33:1").
 fof(alsotrivial,axiom,![Xy]:Xy=Xy).
 fof(irrelevant,axiom,![Xz]:Xz=Xz).
 fof(trivial,axiom,![Xx]:Xx=Xx).
-fof(trivial_biconditionals1,axiom,fy=fy<=>fy=fy).
+fof('_local_1',axiom,fy=fy<=>fy=fy).

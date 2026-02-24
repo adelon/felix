@@ -3,7 +3,7 @@ fof(relation,axiom,![Xf]:(relation(Xf)<=>Xf=Xf)).
 fof(rightunique,axiom,![Xf]:(rightunique(Xf)<=>Xf=Xf)).
 fof(dom,axiom,![Xf]:dom(Xf)=Xf).
 fof(apply,axiom,![Xf,Xx]:apply(Xf,Xx)=Xx).
-fof(definefunctiontest4,axiom,relation(ff)).
-fof(definefunctiontest3,axiom,rightunique(ff)).
-fof(definefunctiontest2,axiom,![Xz]:(elem(Xz,fx)=>apply(ff,Xz)=Xz)).
-fof(definefunctiontest1,axiom,dom(ff)=fx).
+fof('_local_4',axiom,relation(ff)).
+fof('_local_3',axiom,rightunique(ff)).
+fof('_local_2',axiom,![Xz]:(elem(Xz,fx)=>apply(ff,Xz)=Xz)).
+fof('_local_1',axiom,dom(ff)=fx).

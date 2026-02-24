@@ -244,8 +244,7 @@ nextHypothesisMarker :: CheckingM Marker
 nextHypothesisMarker = do
     st <- get
     let next = checkingHypothesisCounter st + 1
-    let Marker m = blockLabel st
-    let marker = Marker (m <> Text.pack (show next))
+    let marker = Marker ("_local_" <> Text.pack (show next))
     put st{checkingHypothesisCounter = next}
     pure marker
 

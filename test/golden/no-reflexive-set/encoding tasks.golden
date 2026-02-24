@@ -1,2 +1,2 @@
 fof(in_irrefl,conjecture,~elem(fA,fA),"test/examples/no-reflexive-set.tex 10:5").
-fof(in_irrefl1,axiom,![XIndAntecedent]:(elem(XIndAntecedent,fA)=>~elem(XIndAntecedent,XIndAntecedent))).
+fof('_local_1',axiom,![XIndAntecedent]:(elem(XIndAntecedent,fA)=>~elem(XIndAntecedent,XIndAntecedent))).

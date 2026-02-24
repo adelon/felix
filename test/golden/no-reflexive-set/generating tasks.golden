@@ -1,7 +1,7 @@
 [ Task
     { taskDirectness = Direct
     , taskHypotheses =
-        [ Hypothesis Marker "in_irrefl1" Quantified Universally
+        [ Hypothesis Marker "_local_1" Quantified Universally
             ( Scope
                 ( Connected Implication
                     ( TermSymbol

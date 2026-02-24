@@ -2,16 +2,16 @@ fof(nouns,conjecture,fx=fx,"test/examples/coord.tex 13:1").
 fof(baz,axiom,![Xx]:(baz(Xx)<=>Xx=Xx)).
 fof(foo,axiom,![Xx]:(foo(Xx)<=>Xx=Xx)).
 fof(bar,axiom,![Xx]:(bar(Xx)<=>Xx=Xx)).
-fof(nouns2,axiom,bar(fy)).
-fof(nouns1,axiom,bar(fx)).
+fof('_local_2',axiom,bar(fy)).
+fof('_local_1',axiom,bar(fx)).
 ------------------
 fof(adj_nouns,conjecture,fx=fx,"test/examples/coord.tex 18:1").
 fof(nouns,axiom,![Xx,Xy]:((bar(Xx)&bar(Xy))=>Xx=Xx)).
 fof(baz,axiom,![Xx]:(baz(Xx)<=>Xx=Xx)).
 fof(foo,axiom,![Xx]:(foo(Xx)<=>Xx=Xx)).
 fof(bar,axiom,![Xx]:(bar(Xx)<=>Xx=Xx)).
-fof(adj_nouns2,axiom,bar(fy)&foo(fy)).
-fof(adj_nouns1,axiom,bar(fx)&foo(fx)).
+fof('_local_2',axiom,bar(fy)&foo(fy)).
+fof('_local_1',axiom,bar(fx)&foo(fx)).
 ------------------
 fof(nouns_suchthat,conjecture,fx=fx,"test/examples/coord.tex 24:1").
 fof(adj_nouns,axiom,![Xx,Xy]:((bar(Xx)&foo(Xx)&bar(Xy)&foo(Xy))=>Xx=Xx)).
@@ -19,9 +19,9 @@ fof(nouns,axiom,![Xx,Xy]:((bar(Xx)&bar(Xy))=>Xx=Xx)).
 fof(baz,axiom,![Xx]:(baz(Xx)<=>Xx=Xx)).
 fof(foo,axiom,![Xx]:(foo(Xx)<=>Xx=Xx)).
 fof(bar,axiom,![Xx]:(bar(Xx)<=>Xx=Xx)).
-fof(nouns_suchthat3,axiom,bar(fy)).
-fof(nouns_suchthat2,axiom,bar(fx)).
-fof(nouns_suchthat1,axiom,foo(fx)&baz(fy)).
+fof('_local_3',axiom,bar(fy)).
+fof('_local_2',axiom,bar(fx)).
+fof('_local_1',axiom,foo(fx)&baz(fy)).
 ------------------
 fof(noun_verb,conjecture,fx=fy<=>(bar(fx)&fx=fy),"test/examples/coord.tex 30:1").
 fof(nouns_suchthat,axiom,![Xx,Xy]:((foo(Xx)&baz(Xy)&bar(Xx)&bar(Xy))=>Xx=Xx)).
@@ -49,5 +49,5 @@ fof(nouns,axiom,![Xx,Xy]:((bar(Xx)&bar(Xy))=>Xx=Xx)).
 fof(baz,axiom,![Xx]:(baz(Xx)<=>Xx=Xx)).
 fof(foo,axiom,![Xx]:(foo(Xx)<=>Xx=Xx)).
 fof(bar,axiom,![Xx]:(bar(Xx)<=>Xx=Xx)).
-fof(are_nouns2,axiom,bar(fy)&foo(fy)).
-fof(are_nouns1,axiom,bar(fx)&foo(fx)).
+fof('_local_2',axiom,bar(fy)&foo(fy)).
+fof('_local_1',axiom,bar(fx)&foo(fx)).

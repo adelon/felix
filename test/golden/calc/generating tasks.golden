@@ -292,7 +292,7 @@
                     ]
                 )
             )
-        , Hypothesis Marker "alsotrivial1" TermSymbol
+        , Hypothesis Marker "_local_1" TermSymbol
             ( Location
                 { locFile = "<nowhere>"
                 , locLine = -1
@@ -601,7 +601,7 @@
                     ]
                 )
             )
-        , Hypothesis Marker "trivial_biconditionals1" Connected Equivalence
+        , Hypothesis Marker "_local_1" Connected Equivalence
             ( TermSymbol
                 ( Location
                     { locFile = "test/examples/calc.tex"
