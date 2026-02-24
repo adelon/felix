@@ -17,7 +17,6 @@ import UnliftIO
 import UnliftIO.Directory
 import UnliftIO.Environment (lookupEnv)
 import System.FilePath.Posix
-import qualified Control.Monad.RWS as Text
 
 runCommandLine :: IO ()
 runCommandLine = do
@@ -77,14 +76,16 @@ run = do
                     CounterSatisfiable tptp -> do
                         Text.putStrLn $ "Verification failed: prover found countermodel at " <> locationToText loc
                         Text.putStrLn "Prover output (TPTP format):"
-                        Text.putStrLn tptp
+                        Text.hPutStrLn stderr tptp
                     ContradictoryAxioms tptp -> do
                         Text.putStrLn ("Verification failed: contradictory axioms at " <> locationToText loc)
                         Text.putStrLn "This is usually caused by an incorrect axiom or a theorem that has its proof omitted. It can also be caused by bugs or by using unsafe features. If no warnings were printed during verification and you are certain that there are no contradictions in your axiomatic setup, please report this as a bug."
                         Text.putStrLn "Prover output (TPTP format):"
-                        Text.putStrLn tptp
-                    Uncertain -> do
+                        Text.hPutStrLn stderr tptp
+                    Uncertain tptp -> do
                         Text.putStrLn $ "Verification failed: out of resources at " <> locationToText loc
+                        Text.putStrLn "Prover output (TPTP format):"
+                        Text.hPutStrLn stderr tptp
                     Error label err -> do
                         Text.putStrLn $ "Error at " <> locationToText loc <> ": "
                         Text.putStrLn $ "Task: " <> label

@@ -115,7 +115,7 @@ data ProverAnswer
     = Yes
     | CounterSatisfiable Text
     | ContradictoryAxioms Text
-    | Uncertain
+    | Uncertain Text
     | Error Text Text
     deriving (Show, Eq)
 
@@ -226,7 +226,7 @@ recognizeAnswer prover@Prover{..} task answer answerErr =
             in if
                 | saidYes || (warned && isIndirect task) -> Yes
                 | saidNo -> CounterSatisfiable (encodeTaskText task)
-                | doesNotKnow -> Uncertain
+                | doesNotKnow -> Uncertain (encodeTaskText task)
                 | warned -> ContradictoryAxioms (encodeTaskText task)
                 | otherwise -> Error (Text.pack(show (taskConjectureLabel task))) (answer <> answerErr)
 
@@ -247,7 +247,7 @@ vampireStatusAnswer task answer answerErr mStatus = case mStatus of
     Just status -> case status of
         "Theorem" -> Yes
         "CounterSatisfiable" -> CounterSatisfiable (encodeTaskText task)
-        "Timeout" -> Uncertain
+        "Timeout" -> Uncertain (encodeTaskText task)
         "ContradictoryAxioms" ->
             if isIndirect task then Yes else ContradictoryAxioms (encodeTaskText task)
         _ ->

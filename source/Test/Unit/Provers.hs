@@ -6,6 +6,7 @@ import Base
 import Provers
 import Report.Location (pattern Nowhere)
 import Syntax.Internal (Directness(..), Marker(..), Task(..), pattern Top)
+import Encoding (encodeTaskText)
 
 import Data.Text qualified as Text
 import Test.Tasty
@@ -28,7 +29,7 @@ unitTests = testGroup "Provers"
             `shouldBe` Just "ResourceOut"
     , testCase "Vampire recognizer reads status from stderr too" do
         recognizeAnswer vampireProver directTask "" "% (2581105)SZS status Timeout for "
-            `shouldBe` Uncertain
+            `shouldBe` Uncertain (encodeTaskText directTask)
     , testCase "ContradictoryAxioms counts as Yes for indirect goals" do
         recognizeAnswer vampireProver indirectTask "" "% (2581105)SZS status ContradictoryAxioms for "
             `shouldBe` Yes
@@ -39,7 +40,7 @@ unitTests = testGroup "Provers"
                 , "% SZS status Theorem for 1"
                 ]
         recognizeAnswer vampireProver directTask out ""
-            `shouldBe` Uncertain
+            `shouldBe` Uncertain (encodeTaskText directTask)
     ]
 
 directTask :: Task
