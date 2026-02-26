@@ -19,7 +19,7 @@ import Data.Text.IO qualified as TextIO
 import Data.Time
 import System.Exit (ExitCode)
 import System.IO (Handle, hClose, hIsEOF, hSetEncoding, utf8)
-import System.Process (CreateProcess(..), StdStream(CreatePipe), createProcess, proc, waitForProcess)
+import System.Process (CreateProcess(..), StdStream(CreatePipe), proc, waitForProcess, withCreateProcess)
 import TextBuilder
 import Text.Megaparsec
 import Text.Megaparsec.Char qualified as Char
@@ -158,44 +158,48 @@ runProver prover@Prover{..} task = do
 
 runProverProcess :: FilePath -> [String] -> Task -> IO (ExitCode, Text, Text)
 runProverProcess path args task = do
-    (Just hin, Just hout, Just herr, ph) <-
-        createProcess (proc path args){std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe}
+    withCreateProcess (proc path args){std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe} \mIn mOut mErr ph -> do
+        (hin, hout, herr) <- case (mIn, mOut, mErr) of
+            (Just hin, Just hout, Just herr) -> pure (hin, hout, herr)
+            _ -> impossible "runProverProcess: expected CreatePipe handles"
 
-    hSetEncoding hin utf8
-    hSetEncoding hout utf8
-    hSetEncoding herr utf8
-    writeTask hin task
-    hClose hin
-    let consumeStrict h = do
-            txt <- TextIO.hGetContents h
-            _ <- evaluate (Text.length txt)
-            pure txt
-    (out, err) <- concurrently (consumeStrict hout) (consumeStrict herr)
-    exitCode <- waitForProcess ph
-    pure (exitCode, out, err)
+        hSetEncoding hin utf8
+        hSetEncoding hout utf8
+        hSetEncoding herr utf8
+        writeTask hin task
+        hClose hin
+        let consumeStrict h = do
+                txt <- TextIO.hGetContents h
+                _ <- evaluate (Text.length txt)
+                pure txt
+        (out, err) <- concurrently (consumeStrict hout) (consumeStrict herr)
+        exitCode <- waitForProcess ph
+        pure (exitCode, out, err)
 
 
 runVampireProcess :: ProverInstance -> Task -> IO (ExitCode, ProverAnswer)
 runVampireProcess Prover{proverPath, proverArgs} task = do
-    (Just hin, Just hout, Just herr, ph) <-
-        createProcess (proc proverPath proverArgs){std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe}
+    withCreateProcess (proc proverPath proverArgs){std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe} \mIn mOut mErr ph -> do
+        (hin, hout, herr) <- case (mIn, mOut, mErr) of
+            (Just hin, Just hout, Just herr) -> pure (hin, hout, herr)
+            _ -> impossible "runVampireProcess: expected CreatePipe handles"
 
-    hSetEncoding hin utf8
-    hSetEncoding hout utf8
-    hSetEncoding herr utf8
-    writeTask hin task
-    hClose hin
+        hSetEncoding hin utf8
+        hSetEncoding hout utf8
+        hSetEncoding herr utf8
+        writeTask hin task
+        hClose hin
 
-    statusRef <- newIORef Nothing
-    let observeLine line = atomicModifyIORef' statusRef \currentStatus ->
-            case currentStatus of
-                Just _ -> (currentStatus, ())
-                Nothing -> (parseMaybe vampireStatusParser line, ())
+        statusRef <- newIORef Nothing
+        let observeLine line = atomicModifyIORef' statusRef \currentStatus ->
+                case currentStatus of
+                    Just _ -> (currentStatus, ())
+                    Nothing -> (parseMaybe vampireStatusParser line, ())
 
-    (out, err) <- concurrently (consumeLines hout observeLine) (consumeLines herr observeLine)
-    exitCode <- waitForProcess ph
-    firstStatus <- readIORef statusRef
-    pure (exitCode, vampireStatusAnswer task out err firstStatus)
+        (out, err) <- concurrently (consumeLines hout observeLine) (consumeLines herr observeLine)
+        exitCode <- waitForProcess ph
+        firstStatus <- readIORef statusRef
+        pure (exitCode, vampireStatusAnswer task out err firstStatus)
 
 
 consumeLines :: Handle -> (Text -> IO ()) -> IO Text
