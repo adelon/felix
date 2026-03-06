@@ -19,6 +19,7 @@ dependencies:
     - Earley
     - filepath
     - hashable >= 1.3.1.0 # 1.3.1.0 provides Hashable1 for NonEmpty
+    - lucid2
     - megaparsec
     - monad-logger
     - mtl
