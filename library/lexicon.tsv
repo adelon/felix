@@ -1,0 +1,6 @@
+relation	elem	2	<x1/><mo>∈</mo><x2/>
+relation	notelem	2	<x1/><mo>∉</mo><x2/>
+relation	eq	2	<x1/><mo>=</mo><x2/>
+operator	setminus	2	<x1/><mo>∖</mo><x2/>
+operator	pow	1	<mi mathvariant="normal">P</mi><mo>(</mo><x1/><mo>)</mo>
+operator	abs	1	<mo>|</mo><x1/><mo>|</mo>

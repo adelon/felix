@@ -107,8 +107,8 @@ grammar lexicon@Lexicon{..} = mdo
     chain          <- rule $ chainCons <|> chainBase
 
     formulaPredicate <- rule $ asum
-        [ (\loc es -> FormulaPredicate loc symb es) <$> command c <*> bracedArgs1 ar expr
-        | (symb@(PrefixPredicate c ar), _marker) <- lexiconPrefixPredicates
+        [ (\loc es -> FormulaPredicate loc symb marker es) <$> command c <*> bracedArgs1 ar expr
+        | (symb@(PrefixPredicate c ar), marker) <- lexiconPrefixPredicates
         ]
     formulaChain <- rule $ FormulaChain <$> chain
     formulaBottom <- rule $ PropositionalConstant <$> command "bot" <*> pure IsBottom <?> "\"\\bot\""
@@ -306,7 +306,7 @@ grammar lexicon@Lexicon{..} = mdo
 
     axiom <- rule $ Axiom <$> asms <* optional _then <*> stmt <* _dot
 
-    lemma <- rule $ Lemma <$> asms <* optional _then <*> stmt <* _dot
+    claim <- rule $ (,) <$> asms <* optional _then <*> stmt <* _dot
 
     defnAdj <- rule $ DefnAdj <$> optional (_an *> nounPhrase) <*> var <* _is <*> adjVar
     defnVerb <- rule $ DefnVerb <$> optional (_an *> nounPhrase) <*> var <*> verbVar
@@ -443,16 +443,16 @@ grammar lexicon@Lexicon{..} = mdo
     proof            <- rule $ asum [byContradiction, byCases, bySetInduction, byOrdInduction, calc, subclaim, assume, fix, take, have, suffices, define, defineFunction, qed]
 
 
-    blockAxiom  <- rule $ uncurry3 BlockAxiom     <$> envPos  "axiom" axiom
-    blockLemma  <- rule $ uncurry3 BlockLemma     <$> lemmaEnv lemma
+    blockAxiom  <- rule $ (\(p, title, m, a) -> BlockAxiom p title m a) <$> envPos  "axiom" axiom
+    blockClaim  <- rule $ claimEnv claim
     blockProof  <- rule $ uncurry3 BlockProof     <$> envStartEndLocation "proof" proof
-    blockDefn   <- rule $ uncurry3 BlockDefn      <$> envPos "definition" defn
-    blockAbbr   <- rule $ uncurry3 BlockAbbr      <$> envPos "abbreviation" abbreviation
+    blockDefn   <- rule $ (\(p, title, m, d) -> BlockDefn p title m d) <$> envPos "definition" defn
+    blockAbbr   <- rule $ (\(p, title, m, a) -> BlockAbbr p title m a) <$> envPos "abbreviation" abbreviation
     blockData   <- rule $ uncurry  BlockData      <$> envPos_ "datatype" datatype
-    blockInd    <- rule $ uncurry3 BlockInductive <$> envPos "inductive" inductive
-    blockSig    <- rule $ (\(p, m, (a, s)) -> BlockSig p m a s) <$> envPos "signature" signature
-    blockStruct <- rule $ uncurry3 BlockStruct    <$> envPos "struct" structDefn
-    block       <- rule $ asum [blockAxiom, blockLemma, blockDefn, blockAbbr, blockData, blockInd, blockSig, blockStruct, blockProof]
+    blockInd    <- rule $ (\(p, title, m, i) -> BlockInductive p title m i) <$> envPos "inductive" inductive
+    blockSig    <- rule $ (\(p, title, m, (a, s)) -> BlockSig p title m a s) <$> envPos "signature" signature
+    blockStruct <- rule $ (\(p, title, m, s) -> BlockStruct p title m s) <$> envPos "struct" structDefn
+    block       <- rule $ asum [blockAxiom, blockClaim, blockDefn, blockAbbr, blockData, blockInd, blockSig, blockStruct, blockProof]
 
     -- Starting category.
     pure block
@@ -464,15 +464,16 @@ proofBy method = bracket do
     a <- method
     pure (pos, a)
 
-lemmaEnv :: Prod r Text (Located Token) a -> Prod r Text (Located Token) (Location, Marker, a)
-lemmaEnv content = asum
-    [ envPos "theorem" content
-    , envPos "lemma" content
-    , envPos "corollary" content
-    , envPos "claim" content
-    , envPos "proposition" content
+claimEnv :: Prod r Text (Located Token) (([Asm], Stmt)) -> Prod r Text (Located Token) Block
+claimEnv content = asum
+    [ make Theorem <$> envPos "theorem" content
+    , make Lemma <$> envPos "lemma" content
+    , make Corollary <$> envPos "corollary"  content
+    , make PlainClaim <$> envPos "claim" content
+    , make Proposition <$> envPos "proposition" content
     ]
-
+    where
+        make kind = (\ (loc, title, m, (asms, stmt)) -> BlockClaim kind loc title m (Claim asms stmt))
 
 -- | A disjunctive list with at least two items:
 -- * 'a or b'
@@ -813,14 +814,13 @@ begin kind = tokenPos (BeginEnv kind) <?> ("\"\\begin{" <> kind <> "}\"")
 end kind   = tokenPos (EndEnv kind) <?> ("\"\\end{" <> kind <> "}\"")
 
 -- | Surround a production rule @body@ with an environment of a certain @kind@ requiring a marker specified in a @\\label@.
--- Ignores the optional title after the beginning of the environment.
-envPos :: Text -> Prod r Text (Located Token) a -> Prod r Text (Located Token) (Location, Marker, a)
+envPos :: Text -> Prod r Text (Located Token) a -> Prod r Text (Located Token) (Location, Maybe [Token], Marker, a)
 envPos kind body = do
     p <- begin kind <?> ("start of a \"" <> kind <> "\" environment")
-    optional title
+    mt <- optional title
     m <- label
     a <- body <* end kind
-    pure (p, m, a)
+    pure (p, mt, m, a)
     where
         title :: Prod r Text (Located Token) [Token]
         title = bracket (many (unLocated <$> satisfy (\ltok -> unLocated ltok /= BracketR)))

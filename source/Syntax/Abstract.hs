@@ -321,7 +321,7 @@ data Sign = Positive | Negative deriving (Show, Eq, Ord)
 
 data Formula
     = FormulaChain Chain
-    | FormulaPredicate Location PrefixPredicate (NonEmpty Expr)
+    | FormulaPredicate Location PrefixPredicate Marker (NonEmpty Expr)
     | Connected Location Connective Formula Formula
     | FormulaNeg Location Formula
     | FormulaQuantified Location Quantifier (NonEmpty VarSymbol) Bound Formula
@@ -331,7 +331,7 @@ data Formula
 instance Locatable Formula where
     locate = \case
         FormulaChain chain -> locate chain
-        FormulaPredicate l _ _ -> l
+        FormulaPredicate l _ _ _ -> l
         Connected l _ _ _ -> l
         FormulaNeg l _ -> l
         FormulaQuantified l _ _ _ _ -> l
@@ -586,7 +586,7 @@ data Asm
 data Axiom = Axiom [Asm] Stmt
     deriving (Show, Eq, Ord)
 
-data Lemma = Lemma [Asm] Stmt
+data Claim = Claim [Asm] Stmt
     deriving (Show, Eq, Ord)
 
 -- | The head of the definition describes the part before the /@iff@/,
@@ -751,14 +751,24 @@ deriving newtype instance Hashable Marker
 instance IsString Marker where
     fromString str = Marker (Text.pack str)
 
+type BlockTitle = [Token]
+
+data ClaimKind
+    = Proposition
+    | Theorem
+    | Lemma
+    | Corollary
+    | PlainClaim
+    deriving (Show, Eq, Ord)
+
 data Block
-    = BlockAxiom Location Marker Axiom
-    | BlockLemma Location Marker Lemma
+    = BlockAxiom Location (Maybe BlockTitle) Marker Axiom
+    | BlockClaim ClaimKind Location (Maybe BlockTitle) Marker Claim
     | BlockProof Location Proof Location -- ^ Proof start and ending location.
-    | BlockDefn Location Marker Defn
-    | BlockAbbr Location Marker Abbreviation
+    | BlockDefn Location (Maybe BlockTitle) Marker Defn
+    | BlockAbbr Location (Maybe BlockTitle) Marker Abbreviation
     | BlockData Location Datatype
-    | BlockInductive Location Marker Inductive
-    | BlockSig Location Marker [Asm] Signature
-    | BlockStruct Location Marker StructDefn
+    | BlockInductive Location (Maybe BlockTitle) Marker Inductive
+    | BlockSig Location (Maybe BlockTitle) Marker [Asm] Signature
+    | BlockStruct Location (Maybe BlockTitle) Marker StructDefn
     deriving (Show, Eq, Ord)

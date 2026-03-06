@@ -19,6 +19,7 @@ module Api
     , dumpTask
     , verify, verifyStreaming, ProverAnswer(..), VerificationResult(..)
     , exportMegalodon
+    , exportHtml
     , WithCache(..)
     , WithFilter(..)
     , WithOmissions(..)
@@ -27,6 +28,7 @@ module Api
     , WithLogging(..)
     , WithDump(..)
     , WithMegalodon(..)
+    , WithHtml(..)
     , pattern WithoutDump
     , WithParseOnly(..)
     , Options(..)
@@ -42,12 +44,13 @@ import Filter(filterTask)
 import Meaning (GlossError(..), glossStep, initialGlossState)
 import Megalodon qualified
 import Provers
+import Render.Html qualified as Html
 import Report.Location
 import Syntax.Abstract qualified as Raw
 import Syntax.Adapt (adaptChunks, scanChunk, ScannedLexicalItem)
 import Syntax.Concrete
 import Syntax.Internal qualified as Internal
-import Syntax.Lexicon (builtins)
+import Syntax.Lexicon (Lexicon, builtins)
 import Syntax.Token
 import TheoryGraph (TheoryGraph, Precedes(..))
 import TheoryGraph qualified
@@ -153,7 +156,26 @@ parse file = do
     reverse <$> liftIO (readIORef blocksRef)
 
 parseWith :: MonadIO io => FilePath -> (Raw.Block -> IO ()) -> io ()
-parseWith file emitBlock = do
+parseWith file emitBlock =
+    withTheoryLexicon file \lexicon chunksByFile -> do
+        let parseChunk :: [Located Token] -> ([Raw.Block], Report Text [Located Token])
+            parseChunk = fullParses (parser (grammar lexicon))
+
+            parseChunks = \case
+                [] -> skip
+                toks : restChunks -> do
+                    blocks <- parseChunkResult (parseChunk toks)
+                    liftIO (traverse_ emitBlock blocks)
+                    parseChunks restChunks
+
+        traverse_ (parseChunks . snd) chunksByFile
+
+withTheoryLexicon
+    :: MonadIO io
+    => FilePath
+    -> (Lexicon -> [(FilePath, [[Located Token]])] -> io a)
+    -> io a
+withTheoryLexicon file action = do
     -- We need to consider the entire theory graph here already
     -- since we can use vocabulary of imported theories.
     theoryGraph <- constructTheoryGraph file
@@ -165,30 +187,13 @@ parseWith file emitBlock = do
             -- and parsing.
             chunksByFile <- traverse tokenizeChunks theoryChain
             let chunksByFileList = toList chunksByFile
+                theoryFiles = toList theoryChain
+                chunksWithFiles = zip theoryFiles chunksByFileList
 
             -- Build the final lexicon strictly so parsing does not force a retained
             -- adaptation thunk over the entire chunk cache.
             let lexicon = foldl' (flip adaptChunks) builtins chunksByFileList
-
-            let parseChunk :: [Located Token] -> ([Raw.Block], Report Text [Located Token])
-                parseChunk = fullParses (parser (grammar lexicon))
-
-            -- Consume cached chunks left-to-right so processed prefixes can be
-            -- garbage collected as we advance.
-            let parseFiles = \case
-                    [] -> skip
-                    chunks : restFiles -> do
-                        parseChunks chunks
-                        parseFiles restFiles
-
-                parseChunks = \case
-                    [] -> skip
-                    toks : restChunks -> do
-                        blocks <- parseChunkResult (parseChunk toks)
-                        liftIO (traverse_ emitBlock blocks)
-                        parseChunks restChunks
-
-            lexicon `seq` parseFiles chunksByFileList
+            lexicon `seq` action lexicon chunksWithFiles
 
 parseChunkResult :: MonadIO io => ([Raw.Block], Report Text [Located Token]) -> io [Raw.Block]
 parseChunkResult result = case result of
@@ -524,6 +529,25 @@ exportMegalodon file = do
     blocks <- gloss file
     pure (Megalodon.encodeBlocks blocks)
 
+exportHtml :: MonadUnliftIO io => FilePath -> io Text
+exportHtml file = do
+    hints <- findAndReadFile "lexicon.tsv"
+    blocks <- parseRootBlocks file
+    pure (Html.renderDocument file hints blocks)
+
+parseRootBlocks :: MonadIO io => FilePath -> io [Raw.Block]
+parseRootBlocks file =
+    withTheoryLexicon file \lexicon chunksByFile -> do
+        rootChunks <- case [chunks | (path, chunks) <- chunksByFile, path == file] of
+            [chunks] -> pure chunks
+            _ -> error ("parseRootBlocks: could not find token chunks for " <> file)
+
+        let parseChunk :: [Located Token] -> ([Raw.Block], Report Text [Located Token])
+            parseChunk = fullParses (parser (grammar lexicon))
+
+        fmap concat $ for rootChunks \toks ->
+            parseChunkResult (parseChunk toks)
+
 -- | Should we use caching?
 data WithCache = WithoutCache | WithCache deriving (Show, Eq)
 
@@ -546,6 +570,9 @@ newtype WithDump = WithDump FilePath deriving (Show, Eq)
 -- | Should we export to Megalodon?
 data WithMegalodon = WithMegalodon | WithoutMegalodon deriving (Show, Eq)
 
+-- | Should we export to HTML?
+data WithHtml = WithHtml | WithoutHtml deriving (Show, Eq)
+
 pattern WithoutDump :: WithDump
 pattern WithoutDump = WithDump ""
 
@@ -564,5 +591,6 @@ data Options = Options
     , withTimeLimit :: Provers.TimeLimit
     , withVersion :: WithVersion
     , withMegalodon :: WithMegalodon
+    , withHtml :: WithHtml
     , withDumpPremselTraining :: WithDumpPremselTraining
     }

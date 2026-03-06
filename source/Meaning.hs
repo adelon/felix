@@ -215,7 +215,7 @@ glossFormula = \case
         glossConnective conn <*> glossFormula phi <*> glossFormula psi
     Raw.FormulaNeg loc f ->
         Sem.Not loc <$> glossFormula f
-    Raw.FormulaPredicate loc predi es ->
+    Raw.FormulaPredicate loc predi _marker es ->
         Sem.Atomic loc <$> glossPrefixPredicate predi <*> glossExpr `each` toList es
     Raw.PropositionalConstant _loc c ->
         pure $ Sem.PropositionalConstant c
@@ -553,8 +553,8 @@ glossAxiom :: Raw.Axiom -> Gloss Sem.Axiom
 glossAxiom (Raw.Axiom asms f) = Sem.Axiom <$> glossAsms asms <*> glossStmt f
 
 
-glossLemma :: Raw.Lemma -> Gloss Sem.Lemma
-glossLemma (Raw.Lemma asms f) = Sem.Lemma <$> glossAsms asms <*> glossStmt f
+glossLemma :: Raw.Claim -> Gloss Sem.Lemma
+glossLemma (Raw.Claim asms f) = Sem.Lemma <$> glossAsms asms <*> glossStmt f
 
 
 glossDefn :: Raw.Defn -> Gloss Sem.Defn
@@ -784,25 +784,25 @@ glossInductive (Raw.Inductive (Raw.SymbolPattern symbol args) domain rules) =
 
 glossBlock :: Raw.Block -> Gloss Sem.Block
 glossBlock = \case
-    Raw.BlockAxiom loc marker axiom ->
+    Raw.BlockAxiom loc _title marker axiom ->
         Sem.BlockAxiom loc marker <$> glossAxiom axiom
-    Raw.BlockLemma loc marker lemma ->
+    Raw.BlockClaim _claimKind loc _title marker lemma ->
         Sem.BlockLemma loc marker <$> glossLemma lemma
     Raw.BlockProof startLoc proof endLoc ->
         Sem.BlockProof startLoc endLoc <$> glossProof proof
-    Raw.BlockDefn loc marker defn -> do
+    Raw.BlockDefn loc _title marker defn -> do
         defn' <- glossDefn defn
         whenLeft (isWellformedDefn defn') (\err -> throwError (GlossDefnError loc err marker))
         pure $ Sem.BlockDefn loc marker defn'
-    Raw.BlockAbbr loc marker abbr ->
+    Raw.BlockAbbr loc _title marker abbr ->
         Sem.BlockAbbr loc marker <$> glossAbbreviation abbr
-    Raw.BlockSig loc marker asms sig ->
+    Raw.BlockSig loc _title marker asms sig ->
         Sem.BlockSig loc marker <$> glossAsms asms <*> glossSignature sig
-    Raw.BlockStruct loc m structDefn ->
+    Raw.BlockStruct loc _title m structDefn ->
         Sem.BlockStruct loc m <$> glossStructDefn structDefn
     Raw.BlockData _pos _ ->
         _TODO "glossBlock datatype definitions"
-    Raw.BlockInductive loc marker ind ->
+    Raw.BlockInductive loc _title marker ind ->
         Sem.BlockInductive loc marker <$> glossInductive ind
 
 

@@ -46,16 +46,21 @@ run = do
             createDirectoryIfMissing True dir
             forM_ [(dir </> show n <.> "p", task) | (n, task) <- tasks] (uncurry dumpTask)
             liftIO (Text.putStrLn "\ESC[35mDump ready.\ESC[0m")
-    case (withParseOnly opts, withMegalodon opts) of
-        (WithParseOnly, _) -> do
+    case (withParseOnly opts, withMegalodon opts, withHtml opts) of
+        (WithParseOnly, _, _) -> do
             _ast <- parse (inputPath opts)
             skip
-        (_, WithMegalodon) -> do
+        (_, WithMegalodon, _) -> do
             megalodon <- exportMegalodon (inputPath opts)
             let outputFile = "megalodon" </> replaceExtension (inputPath opts) "mg"
             createDirectoryIfMissing True (takeDirectory outputFile)
             liftIO (Text.writeFile outputFile megalodon)
-        (WithoutParseOnly, WithoutMegalodon) -> do
+        (WithoutParseOnly, WithoutMegalodon, WithHtml) -> do
+            html <- exportHtml (inputPath opts)
+            let outputFile = "html" </> replaceExtension (inputPath opts) "html"
+            createDirectoryIfMissing True (takeDirectory outputFile)
+            liftIO (Text.writeFile outputFile html)
+        (WithoutParseOnly, WithoutMegalodon, WithoutHtml) -> do
             liftIO (Text.putStrLn "\ESC[1;96mStart of verification.\ESC[0m")
             prover <- case withProver opts of
                     WithEprover -> do
@@ -122,6 +127,7 @@ parseOptions = do
     withTimeLimit <- withTimeLimitParser
     withVersion <- withVersionParser
     withMegalodon <- withMegalodonParser
+    withHtml <- withHtmlParser
     withDumpPremselTraining <- withDumpPremselTrainingParser
     pure Options{..}
 
@@ -179,3 +185,7 @@ withDumpPremselTrainingParser = flag' WithDumpPremselTraining (long "premseldump
 withMegalodonParser :: Parser WithMegalodon
 withMegalodonParser = flag' WithMegalodon (long "megalodon" <> help "Export to Megalodon (experimental).")
     <|> pure WithoutMegalodon
+
+withHtmlParser :: Parser WithHtml
+withHtmlParser = flag' WithHtml (long "html" <> help "Export to HTML (experimental).")
+    <|> pure WithoutHtml
