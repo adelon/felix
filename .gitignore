@@ -43,3 +43,4 @@ stack.yaml.lock
 *.svg
 check/
 *.ps
+html/
