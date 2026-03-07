@@ -312,7 +312,9 @@ grammar lexicon@Lexicon{..} = mdo
     defnVerb <- rule $ DefnVerb <$> optional (_an *> nounPhrase) <*> var <*> verbVar
     defnNoun <- rule $ DefnNoun <$> var <* _is <* _an <*> nounVar
     defnRel <- rule $ DefnRel <$> (beginMath *> varSymbol) <*> relator <*> many (group varSymbol) <*> varSymbol <* endMath
-    defnSymbolicPredicate <- rule $ math $ asum $ prefixPredicateOf DefnSymbolicPredicate varSymbol <$> (fst <$> lexiconPrefixPredicates)
+    defnSymbolicPredicate <- rule $ math $ asum $ do
+        (predi, marker) <- lexiconPrefixPredicates
+        pure (prefixPredicateOf (\predi' args -> DefnSymbolicPredicate predi' marker args) varSymbol predi)
     defnHead <- rule $ optional _write *> asum [defnAdj, defnVerb, defnNoun, defnRel, defnSymbolicPredicate]
 
     defnIf <- rule $ Defn <$> asms <*> defnHead <* (_iff <|> _if) <*> stmt <* _dot

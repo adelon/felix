@@ -603,7 +603,7 @@ data DefnHead
     = DefnAdj (Maybe (NounPhrase Maybe)) VarSymbol (AdjOf VarSymbol)
     | DefnVerb (Maybe (NounPhrase Maybe)) VarSymbol (VerbOf VarSymbol)
     | DefnNoun VarSymbol (NounOf VarSymbol)
-    | DefnSymbolicPredicate PrefixPredicate (NonEmpty VarSymbol)
+    | DefnSymbolicPredicate PrefixPredicate Marker (NonEmpty VarSymbol)
     | DefnRel VarSymbol RelationSymbol [VarSymbol] VarSymbol
     -- ^ E.g.: /@$x \subseteq y$ iff [...@/
     deriving (Show, Eq, Ord)

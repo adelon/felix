@@ -592,7 +592,7 @@ glossDefnHead = \case
                     p : ps -> p :| (ps <> [v1, v2])
                     [] -> v1 :| [v2]
             in Sem.DefnPredicate asms (Sem.PredicateRelation rel) args f
-    Raw.DefnSymbolicPredicate (Raw.PrefixPredicate symb _ar) vs ->
+    Raw.DefnSymbolicPredicate (Raw.PrefixPredicate symb _ar) _marker vs ->
         pure $ \asms f -> Sem.DefnPredicate asms (Sem.PredicateSymbol symb) vs f
 
 

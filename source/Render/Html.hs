@@ -506,8 +506,9 @@ collectMissingHints hints = foldMap collectBlock
                 foldMap collectNounPhraseMaybe maybeNp
             DefnNoun _var noun ->
                 collectVarNoun noun
-            DefnSymbolicPredicate{} ->
-                mempty
+            DefnSymbolicPredicate _predi marker vars ->
+                noteMissingHint PredicateHint marker
+                    <> foldMap (collectExpr . ExprVar) vars
             DefnRel _x rel _params _y ->
                 noteMissingHint RelationHint (relationSymbolMarker rel)
 
@@ -1175,8 +1176,15 @@ renderDefnHead hints = \case
         renderVarInline var
         toHtml (" is a " :: Text)
         renderNounInline False renderVarInline noun
-    DefnSymbolicPredicate predi vars ->
-        inlineMath (renderPrefixPredicateFallback predi (renderVarMath <$> toList vars))
+    DefnSymbolicPredicate predi marker vars ->
+        inlineMath
+            ( renderHintedMath
+                hints
+                PredicateHint
+                marker
+                (ExprVar <$> toList vars)
+                (renderPrefixPredicateFallback predi (renderVarMath <$> toList vars))
+            )
     DefnRel x rel params y ->
         inlineMath (renderRelationApplication hints Positive [ExprVar x] (Relation Nowhere rel [ExprVar p | p <- params]) [ExprVar y])
 
