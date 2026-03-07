@@ -1199,9 +1199,10 @@ renderDefn hints = \case
             toHtml ("." :: Text)
     DefnOp symb expr ->
         do
-            renderSymbolPatternInline hints symb
-            toHtml (" is defined as " :: Text)
-            inlineMath (renderExprMathRow hints expr)
+            inlineMath do
+                renderSymbolPatternMath hints symb
+                moText "="
+                renderExprMathRow hints expr
             toHtml ("." :: Text)
 
 renderDefnHead :: HintMap -> DefnHead -> Html ()
@@ -2502,8 +2503,12 @@ renderBoundPhraseMath hints vars = \case
         renderRelationApplication hints sign (ExprVar <$> toList vars) rel [expr]
 
 renderSymbolPatternInline :: HintMap -> SymbolPattern -> Html ()
-renderSymbolPatternInline hints (SymbolPattern symbol vars) =
-    inlineMath (renderHintedMathRow hints OperatorHint (mixfixMarker symbol) (ExprVar <$> vars) (renderPatternFallback (mixfixPattern symbol) (renderVarMath <$> vars)))
+renderSymbolPatternInline hints =
+    inlineMath . renderSymbolPatternMath hints
+
+renderSymbolPatternMath :: HintMap -> SymbolPattern -> Html ()
+renderSymbolPatternMath hints (SymbolPattern symbol vars) =
+    renderHintedMathRow hints OperatorHint (mixfixMarker symbol) (ExprVar <$> vars) (renderPatternFallback (mixfixPattern symbol) (renderVarMath <$> vars))
 
 renderJustification :: AnchorMap -> Justification -> Html ()
 renderJustification anchors = \case
