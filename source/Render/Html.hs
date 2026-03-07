@@ -2128,11 +2128,20 @@ renderNamedVariableMath rawName =
         VariableDisplay baseText Nothing ->
             miText baseText
         VariableDisplay baseText (Just (VariableTicks tickCount)) ->
-            miText (baseText <> Text.replicate tickCount "'")
+            msup_ do
+                miText baseText
+                renderPrimeSuperscript tickCount
         VariableDisplay baseText (Just (VariableSubscript subscriptText)) ->
             msub_ do
                 miText baseText
                 renderVariableSubscriptMath subscriptText
+
+renderPrimeSuperscript :: Int -> Html ()
+renderPrimeSuperscript tickCount
+    | tickCount <= 1 =
+        moText "′"
+    | otherwise =
+        mrow_ (foldMap (const (moText "′")) [1 .. tickCount])
 
 renderVariableSubscriptMath :: Text -> Html ()
 renderVariableSubscriptMath subscriptText
