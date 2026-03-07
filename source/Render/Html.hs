@@ -237,13 +237,13 @@ pageStyles = Text.unlines
     , "  margin: 0 0 1rem;"
     , "  scroll-margin-top: 1rem;"
     , "}"
-    , "block-head {"
+    , "head- {"
     , "  font-weight: 700;"
     , "}"
-    , "block-title {"
+    , "title- {"
     , "  font-weight: 400;"
     , "}"
-    , "block-id,"
+    , "id-,"
     , "main a[href^=\"#\"] {"
     , "  display: inline-block;"
     , "  padding: 0.02rem 0.35rem;"
@@ -255,7 +255,7 @@ pageStyles = Text.unlines
     , "  font-size: 0.82em;"
     , "  text-decoration: none;"
     , "}"
-    , "block-head > block-id {"
+    , "head- > id- {"
     , "  margin-left: 0.45rem;"
     , "}"
     , "main a[href^=\"#\"]:hover,"
@@ -263,11 +263,11 @@ pageStyles = Text.unlines
     , "  text-decoration: underline;"
     , "}"
     , "main > *[id] > div,"
-    , "proof-block > details > div {"
+    , "proof- > details > div {"
     , "  display: contents;"
     , "}"
-    , "proof-block > div > p:first-child,"
-    , "proof-block > details > div > p:first-child {"
+    , "proof- > div > p:first-child,"
+    , "proof- > details > div > p:first-child {"
     , "  display: inline;"
     , "  margin: 0;"
     , "}"
@@ -277,20 +277,20 @@ pageStyles = Text.unlines
     , "  padding-left: 0.75rem;"
     , "  border-left: 1px solid var(--rule-color);"
     , "}"
-    , "proof-block > details {"
+    , "proof- > details {"
     , "  margin: 0;"
     , "}"
-    , "proof-block > details > summary {"
+    , "proof- > details > summary {"
     , "  cursor: pointer;"
     , "  font-weight: 700;"
     , "}"
-    , "proof-block > details > summary block-title {"
+    , "proof- > details > summary title- {"
     , "  font-weight: 400;"
     , "}"
-    , "proof-block > details > :not(summary) {"
+    , "proof- > details > :not(summary) {"
     , "  margin-top: 0.5rem;"
     , "}"
-    , "math-block {"
+    , "math- {"
     , "  display: block;"
     , "  margin: 0.5rem 0;"
     , "}"
@@ -987,23 +987,23 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
 renderBlock :: HintMap -> AnchorMap -> BlockRenderInfo -> Html ()
 renderBlock hints anchors (_index, block, blockId) = case block of
     BlockAxiom _loc title marker axiom ->
-        renderCustomBlock blockId "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
+        renderCustomBlock blockId "axiom-" "Axiom" (Just marker) title (renderAxiom hints axiom)
     BlockClaim kind _loc title marker claim ->
         renderCustomBlock blockId (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
         renderProofBlock hints anchors proof
     BlockDefn _loc title marker defn ->
-        renderCustomBlock blockId "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
+        renderCustomBlock blockId "definition-" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
-        renderCustomBlock blockId "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
+        renderCustomBlock blockId "abbreviation-" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
     BlockData _loc datatype ->
-        renderCustomBlock blockId "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
+        renderCustomBlock blockId "datatype-" "Datatype" Nothing Nothing (renderDatatype hints datatype)
     BlockInductive _loc title marker ind ->
-        renderCustomBlock blockId "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
+        renderCustomBlock blockId "inductive-" "Inductive" (Just marker) title (renderInductive hints ind)
     BlockSig _loc title marker asms sig ->
-        renderCustomBlock blockId "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
+        renderCustomBlock blockId "signature-" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
     BlockStruct _loc title marker structDefn ->
-        renderCustomBlock blockId "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
+        renderCustomBlock blockId "struct-" "Structure" (Just marker) title (renderStructDefn hints structDefn)
 
 renderTocEntry :: (Int, Text, Block) -> Html ()
 renderTocEntry (index, blockId, block) =
@@ -1031,12 +1031,12 @@ renderCustomBlock blockId name prefix mmarker mtitle body =
 renderProofBlock :: HintMap -> AnchorMap -> Proof -> Html ()
 renderProofBlock hints anchors proof
     | proofStepCount proof >= proofCollapseThreshold =
-        term "proof-block" do
+        term "proof-" do
             details_ do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
                 div_ (renderProof hints anchors proof)
     | otherwise =
-        term "proof-block" do
+        term "proof-" do
             renderBlockLead "Proof" Nothing Nothing True
             div_ (renderProof hints anchors proof)
 
@@ -1098,18 +1098,18 @@ blockNeedsIndexLabel block = case (formatMarker (blockMarkerOf block), formatBlo
 
 renderBlockLead :: Text -> Maybe Marker -> Maybe BlockTitle -> Bool -> Html ()
 renderBlockLead prefix mmarker mtitle withTrailingSpace =
-    term "block-head" do
+    term "head-" do
         toHtml prefix
         case formatMarker mmarker of
             Nothing -> skip
             Just marker ->
-                term "block-id" (toHtml marker)
+                term "id-" (toHtml marker)
         case formatBlockTitle mtitle of
             Nothing ->
                 toHtml ("." <> suffix)
             Just title -> do
                 toHtml (" (" :: Text)
-                term "block-title" (toHtml title)
+                term "title-" (toHtml title)
                 toHtml (")." <> suffix)
     where
         suffix :: Text
@@ -1141,11 +1141,11 @@ capitalizeTitle text = case Text.uncons text of
 
 claimKindElement :: ClaimKind -> Text
 claimKindElement = \case
-    Proposition -> "proposition-block"
-    Theorem -> "theorem-block"
-    Lemma -> "lemma-block"
-    Corollary -> "corollary-block"
-    PlainClaim -> "claim-block"
+    Proposition -> "proposition-"
+    Theorem -> "theorem-"
+    Lemma -> "lemma-"
+    Corollary -> "corollary-"
+    PlainClaim -> "claim-"
 
 claimKindPrefix :: ClaimKind -> Text
 claimKindPrefix = \case
@@ -1600,7 +1600,7 @@ renderCalc hints anchors maybeQuant calc = do
                 toHtml (" for " :: Text)
                 renderCalcQuantifierInline hints quant
         toHtml ("." :: Text)
-    term "math-block" (blockMath (renderCalcMath hints calc))
+    term "math-" (blockMath (renderCalcMath hints calc))
     let justifications = calcJustifications calc
     when (not (null justifications)) do
         ul_ do
