@@ -14,3 +14,12 @@ relation	notelem	0	<mo>∉</mo>
 relation	subset	0	<mo>⊂</mo>
 relation	subseteq	0	<mo>⊆</mo>
 relation	supseteq	0	<mo>⊇</mo>
+operator	inter	2	<x1/><mo>∩</mo><x2/>
+operator	union	2	<x1/><mo>∪</mo><x2/>
+operator	cons	2	<mo>{</mo><x1/><mo>}</mo><mo>∪</mo><x2/>
+operator	pair	2	<mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	times	2	<x1/><mo>×</mo><x2/>
+operator	fst	1	<mi>fst</mi><mo>(</mo><x1/><mo>)</mo>
+operator	snd	1	<mi>snd</mi><mo>(</mo><x1/><mo>)</mo>
+operator	unions	1	<mo>∪</mo><x1/>
+operator	inters	1	<mo>∩</mo><x1/>
