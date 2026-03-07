@@ -103,7 +103,7 @@ renderDocument inputPath hintsSource blocks =
                 title_ (toHtml (Text.pack inputPath))
                 style_ pageStyles
             body_ do
-                div_ [class_ "layout"] do
+                div_ do
                     aside_ [class_ "toc-column"] do
                         nav_ [class_ "toc"] do
                             h2_ [class_ "toc-heading"] "Contents"
@@ -115,7 +115,7 @@ renderDocument inputPath hintsSource blocks =
                                 ]
                             ol_ [class_ "toc-list"] do
                                 traverse_ renderTocEntry tocBlocks
-                    main_ [class_ "content"] do
+                    main_ do
                         h1_ (toHtml (Text.pack inputPath))
                         traverse_ (renderBlock hintMap anchors) blockInfos
                 script_ [type_ "text/javascript"] (toHtmlRaw tocScript)
@@ -151,7 +151,7 @@ pageStyles = Text.unlines
     , "  background: var(--page-bg);"
     , "  color: var(--page-fg);"
     , "}"
-    , ".layout {"
+    , "body > div {"
     , "  display: grid;"
     , "  grid-template-columns: minmax(16rem, 24rem) minmax(0, 1fr);"
     , "  grid-template-rows: minmax(0, 1fr);"
@@ -202,10 +202,10 @@ pageStyles = Text.unlines
     , "  margin: 0;"
     , "  padding: 0 0.5rem 0 0;"
     , "}"
-    , ".toc-item {"
+    , ".toc-list > li {"
     , "  margin: 0 0 0.8rem;"
     , "}"
-    , ".toc-link {"
+    , ".toc-list > li > a {"
     , "  display: block;"
     , "  margin: -0.15rem -0.35rem;"
     , "  padding: 0.15rem 0.35rem;"
@@ -214,49 +214,48 @@ pageStyles = Text.unlines
     , "  text-decoration: none;"
     , "  transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;"
     , "}"
-    , ".toc-link:hover,"
-    , ".toc-link:focus-visible {"
+    , ".toc-list > li > a:hover,"
+    , ".toc-list > li > a:focus-visible {"
     , "  text-decoration: underline;"
     , "}"
-    , ".toc-link.is-active {"
+    , ".toc-list > li > a.is-active {"
     , "  background: var(--toc-active-bg);"
     , "  box-shadow: inset 0.2rem 0 0 var(--toc-active-accent);"
     , "  color: var(--toc-active-fg);"
     , "}"
-    , ".toc-link.is-active .toc-marker {"
+    , ".toc-list > li > a.is-active > code {"
     , "  color: var(--toc-active-fg);"
     , "}"
-    , ".toc-prefix {"
+    , ".toc-list > li > a > span:first-child {"
     , "  display: block;"
     , "  font-weight: 700;"
     , "}"
-    , ".toc-marker {"
+    , ".toc-list > li > a > code {"
     , "  display: block;"
     , "  margin-top: 0.15rem;"
     , "  color: var(--muted-fg);"
-    , "  font-family: \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;"
     , "  font-size: 0.9em;"
     , "  overflow-wrap: anywhere;"
     , "}"
-    , ".content {"
+    , "main {"
     , "  display: block;"
     , "  min-width: 0;"
     , "  min-height: 0;"
     , "  overflow-y: auto;"
     , "}"
-    , ".block {"
+    , "main > *[id] {"
     , "  display: block;"
     , "  margin: 0 0 1rem;"
     , "  scroll-margin-top: 1rem;"
     , "}"
-    , ".block-header {"
+    , "block-head {"
     , "  font-weight: 700;"
     , "}"
-    , ".block-title {"
+    , "block-title {"
     , "  font-weight: 400;"
     , "}"
-    , ".block-marker,"
-    , ".marker-link {"
+    , "marker-badge,"
+    , "main a[href^=\"#\"] {"
     , "  display: inline-block;"
     , "  padding: 0.02rem 0.35rem;"
     , "  border: 1px solid var(--badge-border);"
@@ -267,40 +266,43 @@ pageStyles = Text.unlines
     , "  font-size: 0.82em;"
     , "  text-decoration: none;"
     , "}"
-    , ".block-marker {"
+    , "block-head > marker-badge {"
     , "  margin-left: 0.45rem;"
     , "}"
-    , ".marker-link:hover,"
-    , ".marker-link:focus-visible {"
+    , "main a[href^=\"#\"]:hover,"
+    , "main a[href^=\"#\"]:focus-visible {"
     , "  text-decoration: underline;"
     , "}"
-    , ".block-body,"
-    , ".proof-body {"
+    , "main > *[id] > div,"
+    , "proof-block > details > div {"
     , "  display: contents;"
     , "}"
-    , ".proof-body > p:first-child {"
+    , "proof-block > div > p:first-child,"
+    , "proof-block > details > div > p:first-child {"
     , "  display: inline;"
     , "  margin: 0;"
     , "}"
-    , ".proof-nested {"
+    , "proof-nested {"
+    , "  display: block;"
     , "  margin: 0.5rem 0 0.5rem 1rem;"
     , "  padding-left: 0.75rem;"
     , "  border-left: 1px solid var(--rule-color);"
     , "}"
-    , ".proof-details {"
+    , "proof-block > details {"
     , "  margin: 0;"
     , "}"
-    , ".proof-details > summary {"
+    , "proof-block > details > summary {"
     , "  cursor: pointer;"
     , "  font-weight: 700;"
     , "}"
-    , ".proof-details > summary .block-title {"
+    , "proof-block > details > summary block-title {"
     , "  font-weight: 400;"
     , "}"
-    , ".proof-details > :not(summary) {"
+    , "proof-block > details > :not(summary) {"
     , "  margin-top: 0.5rem;"
     , "}"
-    , ".math-block {"
+    , "math-block {"
+    , "  display: block;"
     , "  margin: 0.5rem 0;"
     , "}"
     , "merror {"
@@ -329,7 +331,7 @@ pageStyles = Text.unlines
     , "    height: auto;"
     , "    overflow: auto;"
     , "  }"
-    , "  .layout {"
+    , "  body > div {"
     , "    grid-template-columns: 1fr;"
     , "    grid-template-rows: auto;"
     , "    gap: 1.5rem;"
@@ -338,7 +340,7 @@ pageStyles = Text.unlines
     , "  .toc-column {"
     , "    display: none;"
     , "  }"
-    , "  .content {"
+    , "  main {"
     , "    min-height: auto;"
     , "    overflow: visible;"
     , "  }"
@@ -352,16 +354,16 @@ tocScript = Text.unlines
     , "  const toc = document.querySelector('.toc');"
     , "  const tocList = toc ? toc.querySelector('.toc-list') : null;"
     , "  const filterInput = toc ? toc.querySelector('.toc-filter') : null;"
-    , "  const content = document.querySelector('main.content');"
+    , "  const content = document.querySelector('main');"
     , "  if (!toc || !tocList || !content) return;"
-    , "  const links = Array.from(toc.querySelectorAll('.toc-link[data-toc-target]'));"
-    , "  const blocks = Array.from(content.querySelectorAll('.block[data-toc-target]'));"
+    , "  const links = Array.from(tocList.querySelectorAll(':scope > li > a[href^=\"#\"]'));"
+    , "  const blocks = Array.from(content.querySelectorAll(':scope > *[id]'));"
     , "  if (!links.length || !blocks.length) return;"
-    , "  const linkByTarget = new Map(links.map((link) => [link.dataset.tocTarget, link]));"
+    , "  const linkByTarget = new Map(links.map((link) => [decodeURIComponent(link.hash.slice(1)), link]));"
     , "  const tocEntries = links.map((link) => ({"
-    , "    item: link.closest('.toc-item'),"
+    , "    item: link.parentElement,"
     , "    link,"
-    , "    label: (link.dataset.tocLabel || '').toLowerCase()"
+    , "    label: ((link.querySelector('code') || link.lastElementChild || link).textContent || '').trim().toLowerCase()"
     , "  }));"
     , "  let activeTarget = null;"
     , "  let rafId = 0;"
@@ -369,7 +371,7 @@ tocScript = Text.unlines
     , ""
     , "  const keepActiveLinkVisible = (link) => {"
     , "    if (!link || performance.now() < suspendUntil) return;"
-    , "    const item = link.closest('.toc-item');"
+    , "    const item = link.parentElement;"
     , "    if (item && item.hidden) return;"
     , "    const tocRect = tocList.getBoundingClientRect();"
     , "    const linkRect = link.getBoundingClientRect();"
@@ -406,13 +408,14 @@ tocScript = Text.unlines
     , "    keepActiveLinkVisible(next);"
     , "  };"
     , ""
-    , "  const firstTarget = blocks[0].dataset.tocTarget;"
+    , "  const blockTarget = (block) => block.dataset.tocTarget || block.id;"
+    , "  const firstTarget = blockTarget(blocks[0]);"
     , ""
     , "  const findActiveTarget = () => {"
     , "    const contentRect = content.getBoundingClientRect();"
     , "    const topSnapThreshold = 40;"
     , "    for (const block of blocks) {"
-    , "      const target = block.dataset.tocTarget;"
+    , "      const target = blockTarget(block);"
     , "      if (!target) continue;"
     , "      const rect = block.getBoundingClientRect();"
     , "      if (rect.top >= contentRect.top - 4 && rect.top <= contentRect.top + topSnapThreshold) {"
@@ -422,7 +425,7 @@ tocScript = Text.unlines
     , "    const activationLine = contentRect.top + contentRect.height * 0.22;"
     , "    let candidate = firstTarget;"
     , "    for (const block of blocks) {"
-    , "      const target = block.dataset.tocTarget;"
+    , "      const target = blockTarget(block);"
     , "      if (!target) continue;"
     , "      if (block.getBoundingClientRect().top <= activationLine) {"
     , "        candidate = target;"
@@ -467,9 +470,9 @@ tocScript = Text.unlines
     , "  }"
     , ""
     , "  toc.addEventListener('click', (event) => {"
-    , "    const link = event.target.closest('.toc-link[data-toc-target]');"
-    , "    if (!link) return;"
-    , "    const targetId = link.dataset.tocTarget;"
+    , "    const link = event.target.closest('a[href^=\"#\"]');"
+    , "    if (!link || !tocList.contains(link)) return;"
+    , "    const targetId = decodeURIComponent(link.hash.slice(1));"
     , "    if (!scrollToTarget(targetId)) return;"
     , "    event.preventDefault();"
     , "    suspendUntil = 0;"
@@ -504,9 +507,6 @@ tocScript = Text.unlines
 
 dataTocTarget_ :: Text -> Attributes
 dataTocTarget_ = data_ "toc-target"
-
-dataTocLabel_ :: Text -> Attributes
-dataTocLabel_ = data_ "toc-label"
 
 
 collectMissingHints :: HintMap -> [Block] -> MissingHintMap
@@ -1025,17 +1025,15 @@ renderBlock hints anchors (_index, block, blockId, tocTarget) = case block of
 
 renderTocEntry :: (Int, Text, Block) -> Html ()
 renderTocEntry (index, blockId, block) =
-    li_ [class_ "toc-item"] do
-        a_ [class_ "toc-link", href_ ("#" <> blockId), dataTocTarget_ blockId, dataTocLabel_ tocLabel] do
-            span_ [class_ "toc-prefix"] (toHtml (blockPrefixText block))
+    li_ do
+        a_ [href_ ("#" <> blockId)] do
+            span_ (toHtml (blockPrefixText block))
             case formatMarker (blockMarkerOf block) of
                 Nothing ->
                     when (blockNeedsIndexLabel block) do
-                        span_ [class_ "toc-marker"] (toHtml (Text.pack (show index)))
+                        code_ (toHtml (Text.pack (show index)))
                 Just marker ->
-                    span_ [class_ "toc-marker"] (toHtml marker)
-    where
-        tocLabel = fromMaybe "" (formatMarker (blockMarkerOf block))
+                    code_ (toHtml marker)
 
 includeInToc :: Block -> Bool
 includeInToc = \case
@@ -1044,27 +1042,25 @@ includeInToc = \case
 
 renderCustomBlock :: Text -> Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
 renderCustomBlock blockId tocTarget name prefix mmarker mtitle body =
-    term name [id_ blockId, class_ "block", dataTocTarget_ tocTarget] do
-        span_ [class_ "block-header"] (renderBlockLead prefix mmarker mtitle True)
-        div_ [class_ "block-body"] body
+    term name [id_ blockId, if tocTarget == blockId then mempty else dataTocTarget_ tocTarget] do
+        renderBlockLead prefix mmarker mtitle True
+        div_ body
 
 renderProofBlock :: Text -> Text -> HintMap -> AnchorMap -> Proof -> Html ()
 renderProofBlock blockId tocTarget hints anchors proof
     | proofStepCount proof >= proofCollapseThreshold =
-        term "proof-block" [id_ blockId, class_ "block", dataTocTarget_ tocTarget] do
-            details_ [class_ "proof-details"] do
+        term "proof-block" [id_ blockId, if tocTarget == blockId then mempty else dataTocTarget_ tocTarget] do
+            details_ do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
-                div_ [class_ "proof-body"] (renderProof hints anchors proof)
+                div_ (renderProof hints anchors proof)
     | otherwise =
-        renderCustomBlock blockId tocTarget "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints anchors proof))
+        renderCustomBlock blockId tocTarget "proof-block" "Proof" Nothing Nothing (div_ (renderProof hints anchors proof))
 
 blockAnchorId :: Int -> Block -> Text
 blockAnchorId index block =
-    "block-" <> Text.pack (show index) <> "-" <> sanitizeIdFragment raw
-    where
-        raw = case formatMarker (blockMarkerOf block) of
-            Nothing -> blockPrefixText block
-            Just marker -> marker
+    case formatMarker (blockMarkerOf block) of
+        Just marker -> marker
+        Nothing -> sanitizeIdFragment (Text.toLower (blockPrefixText block) <> "-" <> Text.pack (show index))
 
 sanitizeIdFragment :: Text -> Text
 sanitizeIdFragment =
@@ -1117,19 +1113,20 @@ blockNeedsIndexLabel block = case (formatMarker (blockMarkerOf block), formatBlo
     _ -> False
 
 renderBlockLead :: Text -> Maybe Marker -> Maybe BlockTitle -> Bool -> Html ()
-renderBlockLead prefix mmarker mtitle withTrailingSpace = do
-    span_ [class_ "block-prefix"] (toHtml prefix)
-    case formatMarker mmarker of
-        Nothing -> skip
-        Just marker ->
-            span_ [class_ "block-marker"] (toHtml marker)
-    case formatBlockTitle mtitle of
-        Nothing ->
-            toHtml ("." <> suffix)
-        Just title -> do
-            toHtml (" (" :: Text)
-            span_ [class_ "block-title"] (toHtml title)
-            toHtml (")." <> suffix)
+renderBlockLead prefix mmarker mtitle withTrailingSpace =
+    term "block-head" do
+        toHtml prefix
+        case formatMarker mmarker of
+            Nothing -> skip
+            Just marker ->
+                term "marker-badge" (toHtml marker)
+        case formatBlockTitle mtitle of
+            Nothing ->
+                toHtml ("." <> suffix)
+            Just title -> do
+                toHtml (" (" :: Text)
+                term "block-title" (toHtml title)
+                toHtml (")." <> suffix)
     where
         suffix :: Text
         suffix
@@ -1225,7 +1222,7 @@ renderDefn hints = \case
         do
             renderSymbolPatternInline hints symb
             toHtml (" is defined as " :: Text)
-            inlineMath (renderExprMath hints expr)
+            inlineMath (renderExprMathRow hints expr)
             toHtml ("." :: Text)
 
 renderDefnHead :: HintMap -> DefnHead -> Html ()
@@ -1244,7 +1241,7 @@ renderDefnHead hints = \case
         renderNounInline False renderVarInline noun
     DefnSymbolicPredicate predi marker vars ->
         inlineMath
-            ( renderHintedMath
+            ( renderHintedMathRow
                 hints
                 PredicateHint
                 marker
@@ -1305,7 +1302,7 @@ renderAbbreviation hints = \case
         do
             renderSymbolPatternInline hints symb
             toHtml (" stands for " :: Text)
-            inlineMath (renderExprMath hints expr)
+            inlineMath (renderExprMathRow hints expr)
             toHtml ("." :: Text)
 
 renderDatatype :: HintMap -> Datatype -> Html ()
@@ -1324,7 +1321,7 @@ renderInductive hints Inductive{..} = do
     toHtml ("Inductive definition of " :: Text)
     renderSymbolPatternInline hints inductiveSymbolPattern
     toHtml (" over " :: Text)
-    inlineMath (renderExprMath hints inductiveDomain)
+    inlineMath (renderExprMathRow hints inductiveDomain)
     toHtml ("." :: Text)
     ul_ do
         traverse_ renderIntro (toList inductiveIntros)
@@ -1411,10 +1408,10 @@ renderProof hints anchors = \case
         renderProofTerminal mloc justification
     ByCase _loc cases -> do
         p_ "Proof by cases."
-        div_ [class_ "proof-nested"] (traverse_ (renderCase hints anchors) cases)
+        term "proof-nested" (traverse_ (renderCase hints anchors) cases)
     ByContradiction _loc proof -> do
         p_ "Proof by contradiction."
-        div_ [class_ "proof-nested"] (renderProof hints anchors proof)
+        term "proof-nested" (renderProof hints anchors proof)
     BySetInduction _loc maybeTerm proof -> do
         p_ do
             toHtml ("Proof by set induction" :: Text)
@@ -1424,10 +1421,10 @@ renderProof hints anchors = \case
                     toHtml (" on " :: Text)
                     renderTermInline hints targetTerm
             toHtml ("." :: Text)
-        div_ [class_ "proof-nested"] (renderProof hints anchors proof)
+        term "proof-nested" (renderProof hints anchors proof)
     ByOrdInduction _loc proof -> do
         p_ "Proof by ordinal induction."
-        div_ [class_ "proof-nested"] (renderProof hints anchors proof)
+        term "proof-nested" (renderProof hints anchors proof)
     Assume _loc stmt proof -> do
         p_ do
             toHtml ("Assume " :: Text)
@@ -1500,14 +1497,14 @@ renderProof hints anchors = \case
             toHtml ("Show " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        div_ [class_ "proof-nested"] (renderProof hints anchors subproof)
+        term "proof-nested" (renderProof hints anchors subproof)
         renderProofContinuation hints anchors proof
     Define _loc var expr proof -> do
         p_ do
             toHtml ("Let " :: Text)
             renderVarInline var
             toHtml (" = " :: Text)
-            inlineMath (renderExprMath hints expr)
+            inlineMath (renderExprMathRow hints expr)
             toHtml ("." :: Text)
         renderProofContinuation hints anchors proof
     DefineFunction _loc fun arg value boundVar boundExpr proof -> do
@@ -1517,11 +1514,11 @@ renderProof hints anchors = \case
             toHtml ("(" :: Text)
             renderVarInline arg
             toHtml (") = " :: Text)
-            inlineMath (renderExprMath hints value)
+            inlineMath (renderExprMathRow hints value)
             toHtml (" for " :: Text)
             renderVarInline boundVar
             toHtml (" in " :: Text)
-            inlineMath (renderExprMath hints boundExpr)
+            inlineMath (renderExprMathRow hints boundExpr)
             toHtml ("." :: Text)
         renderProofContinuation hints anchors proof
     DefineFunctionLocal _loc fun arg _target domVar codVar rules proof -> do
@@ -1537,7 +1534,7 @@ renderProof hints anchors = \case
             toHtml ("." :: Text)
         ul_ do
             for_ (toList rules) \(ruleTerm, formula) -> li_ do
-                inlineMath (renderExprMath hints ruleTerm)
+                inlineMath (renderExprMathRow hints ruleTerm)
                 toHtml (" if " :: Text)
                 inlineMath (renderFormulaMath hints formula)
                 toHtml ("." :: Text)
@@ -1602,7 +1599,7 @@ calcStepCount = \case
 
 renderCase :: HintMap -> AnchorMap -> Case -> Html ()
 renderCase hints anchors Case{..} =
-    div_ [class_ "proof-nested"] do
+    term "proof-nested" do
         p_ do
             toHtml ("Case " :: Text)
             renderStmtInline hints caseOf
@@ -1619,7 +1616,7 @@ renderCalc hints anchors maybeQuant calc = do
                 toHtml (" for " :: Text)
                 renderCalcQuantifierInline hints quant
         toHtml ("." :: Text)
-    div_ [class_ "math-block"] (blockMath (renderCalcMath hints calc))
+    term "math-block" (blockMath (renderCalcMath hints calc))
     let justifications = calcJustifications calc
     when (not (null justifications)) do
         ul_ do
@@ -1644,18 +1641,16 @@ renderCalcQuantifierInline hints (CalcQuantifier vars bound maybeStmt) = do
 
 renderCalcMath :: HintMap -> Calc -> Html ()
 renderCalcMath hints = \case
-    Equation expr steps ->
-        mrow_ do
-            renderExprMath hints expr
-            for_ (toList steps) \(nextExpr, _jst) -> do
-                moText "="
-                renderExprMath hints nextExpr
-    Biconditionals phi steps ->
-        mrow_ do
-            renderFormulaMath hints phi
-            for_ (toList steps) \(nextPhi, _jst) -> do
-                moText "⇔"
-                renderFormulaMath hints nextPhi
+    Equation expr steps -> do
+        renderExprMathRow hints expr
+        for_ (toList steps) \(nextExpr, _jst) -> do
+            moText "="
+            renderExprMathRow hints nextExpr
+    Biconditionals phi steps -> do
+        renderFormulaMath hints phi
+        for_ (toList steps) \(nextPhi, _jst) -> do
+            moText "⇔"
+            renderFormulaMath hints nextPhi
 
 calcJustifications :: Calc -> [(Int, Justification)]
 calcJustifications = \case
@@ -1747,7 +1742,7 @@ renderAsm hints = \case
     AsmLetIn vars expr -> do
         renderVarListInline vars
         toHtml (" be in " :: Text)
-        inlineMath (renderExprMath hints expr)
+        inlineMath (renderExprMathRow hints expr)
     AsmLetThe var fun -> do
         renderVarInline var
         toHtml (" be " :: Text)
@@ -1756,7 +1751,7 @@ renderAsm hints = \case
     AsmLetEq var expr -> do
         renderVarInline var
         toHtml (" = " :: Text)
-        inlineMath (renderExprMath hints expr)
+        inlineMath (renderExprMathRow hints expr)
     AsmLetStruct var structPhrase -> do
         renderVarInline var
         toHtml (" be a " :: Text)
@@ -1766,7 +1761,7 @@ renderAsm hints = \case
 renderTermInline :: HintMap -> Term -> Html ()
 renderTermInline hints = \case
     TermExpr expr ->
-        inlineMath (renderExprMath hints expr)
+        inlineMath (renderExprMathRow hints expr)
     TermFun fun -> do
         toHtml ("the " :: Text)
         renderFunInline (renderTermInline hints) fun
@@ -2006,7 +2001,7 @@ quantPhraseMathFragments hints (QuantPhrase quant np) =
 termMathFragments :: HintMap -> Term -> StmtMathFragments
 termMathFragments hints = \case
     TermExpr expr ->
-        stmtMathNode (renderExprMath hints expr)
+        stmtMathNode (renderExprMathRow hints expr)
     TermFun fun -> do
         stmtMathProse "the "
             <> funMathFragments (termMathFragments hints) fun
@@ -2138,25 +2133,22 @@ patternStmtMathFragments renderArg patternParts args =
 renderFormulaMath :: HintMap -> Formula -> Html ()
 renderFormulaMath hints = \case
     FormulaChain chain ->
-        renderChainMath hints chain
+        renderChainMathRow hints chain
     FormulaPredicate _loc predi marker exprs ->
-        renderHintedMath hints PredicateHint marker (toList exprs) (renderPrefixPredicateFallback predi (renderExprMath hints <$> toList exprs))
-    Connected _loc conn phi psi ->
-        mrow_ do
-            renderFormulaMath hints phi
-            moText (connectiveSymbol conn)
-            renderFormulaMath hints psi
-    FormulaNeg _loc phi ->
-        mrow_ do
-            moText "¬"
-            renderFormulaMath hints phi
-    FormulaQuantified _loc quant vars bound phi ->
-        mrow_ do
-            moText (quantifierSymbol quant)
-            renderVarListMath vars
-            renderBoundMath hints vars bound
-            moText "."
-            renderFormulaMath hints phi
+        renderHintedMathRow hints PredicateHint marker (toList exprs) (renderPrefixPredicateFallback predi (renderExprMath hints <$> toList exprs))
+    Connected _loc conn phi psi -> do
+        renderFormulaMath hints phi
+        moText (connectiveSymbol conn)
+        renderFormulaMath hints psi
+    FormulaNeg _loc phi -> do
+        moText "¬"
+        renderFormulaMath hints phi
+    FormulaQuantified _loc quant vars bound phi -> do
+        moText (quantifierSymbol quant)
+        renderVarListMath vars
+        renderBoundMath hints vars bound
+        moText "."
+        renderFormulaMath hints phi
     PropositionalConstant _loc pc ->
         moText (propositionalConstantSymbol pc)
 
@@ -2180,8 +2172,8 @@ propositionalConstantSymbol = \case
     IsBottom -> "⊥"
     IsTop -> "⊤"
 
-renderChainMath :: HintMap -> Chain -> Html ()
-renderChainMath hints chain =
+renderChainMathRow :: HintMap -> Chain -> Html ()
+renderChainMathRow hints chain =
     joinHtml (moText "∧") (renderLink <$> splatChain chain)
     where
         renderLink (lhs, sign, rel, rhs) =
@@ -2210,26 +2202,24 @@ renderRelationApplication hints sign lhs rel rhs =
 applySign :: Sign -> Html () -> Html ()
 applySign sign html = case sign of
     Positive -> html
-    Negative -> mrow_ do
+    Negative -> do
         mo_ "¬"
         html
 
 renderRelationCore :: HintMap -> [Expr] -> Relation -> [Expr] -> Html ()
 renderRelationCore hints lhs rel rhs = case rel of
-    Relation _loc symbol relParams ->
-        mrow_ do
-            renderExprListMath hints lhs
-            renderRelationSymbolCore hints symbol relParams
-            renderExprListMath hints rhs
-    RelationExpr _loc expr ->
-        mrow_ do
-            renderExprListMath hints lhs
-            renderExprMath hints expr
-            renderExprListMath hints rhs
+    Relation _loc symbol relParams -> do
+        renderExprListMath hints lhs
+        renderRelationSymbolCore hints symbol relParams
+        renderExprListMath hints rhs
+    RelationExpr _loc expr -> do
+        renderExprListMath hints lhs
+        renderExprMath hints expr
+        renderExprListMath hints rhs
 
 renderRelationSymbolCore :: HintMap -> RelationSymbol -> [Expr] -> Html ()
 renderRelationSymbolCore hints symbol relParams =
-    renderHintedMath
+    renderHintedMathRow
         hints
         RelationHint
         (relationSymbolMarker symbol)
@@ -2263,7 +2253,7 @@ renderRelationToken = \case
 
 
 renderExprMath :: HintMap -> Expr -> Html ()
-renderExprMath hints = \case
+renderExprMath hints expr = case expr of
     ExprVar var ->
         renderVarMath var
     ExprInteger _loc n ->
@@ -2274,48 +2264,66 @@ renderExprMath hints = \case
         let marker = structMarker symb
             args = maybeToList maybeExpr
         in renderHintedMath hints StructOpHint marker args (renderStructFallback symb (renderExprMath hints <$> args))
+    ExprFiniteSet{} ->
+        mrow_ (renderExprMathRow hints expr)
+    ExprSep{} ->
+        mrow_ (renderExprMathRow hints expr)
+    ExprReplace{} ->
+        mrow_ (renderExprMathRow hints expr)
+    ExprReplacePred{} ->
+        mrow_ (renderExprMathRow hints expr)
+
+renderExprMathRow :: HintMap -> Expr -> Html ()
+renderExprMathRow hints = \case
+    ExprVar var ->
+        renderVarMath var
+    ExprInteger _loc n ->
+        mnText (Text.pack (show n))
+    ExprOp _loc item args ->
+        renderHintedMathRow hints OperatorHint (mixfixMarker item) args (renderPatternFallback (mixfixPattern item) (renderExprMath hints <$> args))
+    ExprStructOp _loc symb maybeExpr ->
+        let marker = structMarker symb
+            args = maybeToList maybeExpr
+        in renderHintedMathRow hints StructOpHint marker args (renderStructFallback symb (renderExprMath hints <$> args))
     ExprFiniteSet _loc exprs ->
         renderFiniteSetMath hints (toList exprs)
-    ExprSep _loc var bound stmt ->
-        mrow_ do
-            moText "{"
-            renderVarMath var
-            moText "∈"
-            renderExprMath hints bound
+    ExprSep _loc var bound stmt -> do
+        moText "{"
+        renderVarMath var
+        moText "∈"
+        renderExprMathRow hints bound
+        moText "|"
+        renderStmtMath hints stmt
+        moText "}"
+    ExprReplace _loc expr bounds maybeStmt -> do
+        moText "{"
+        renderExprMathRow hints expr
+        moText "|"
+        renderReplaceBoundsMath hints (toList bounds)
+        for_ maybeStmt \stmt -> do
             moText "|"
             renderStmtMath hints stmt
-            moText "}"
-    ExprReplace _loc expr bounds maybeStmt ->
-        mrow_ do
-            moText "{"
-            renderExprMath hints expr
-            moText "|"
-            renderReplaceBoundsMath hints (toList bounds)
-            for_ maybeStmt \stmt -> do
-                moText "|"
-                renderStmtMath hints stmt
-            moText "}"
-    ExprReplacePred _loc rangeVar domVar domExpr stmt ->
-        mrow_ do
-            moText "{"
-            renderVarMath rangeVar
-            moText "|"
-            moText "∃"
-            renderVarMath domVar
-            moText "∈"
-            renderExprMath hints domExpr
-            moText "."
-            renderStmtMath hints stmt
-            moText "}"
+        moText "}"
+    ExprReplacePred _loc rangeVar domVar domExpr stmt -> do
+        moText "{"
+        renderVarMath rangeVar
+        moText "|"
+        moText "∃"
+        renderVarMath domVar
+        moText "∈"
+        renderExprMathRow hints domExpr
+        moText "."
+        renderStmtMath hints stmt
+        moText "}"
 
 renderReplaceBoundsMath :: HintMap -> [(VarSymbol, Expr)] -> Html ()
 renderReplaceBoundsMath hints =
     joinHtml (moText ",") . fmap renderBound
     where
-        renderBound (var, expr) = mrow_ do
+        renderBound (var, expr) = do
             renderVarMath var
             moText "∈"
-            renderExprMath hints expr
+            renderExprMathRow hints expr
 
 renderExprListMath :: HintMap -> [Expr] -> Html ()
 renderExprListMath hints =
@@ -2323,7 +2331,7 @@ renderExprListMath hints =
 
 renderFiniteSetMath :: HintMap -> [Expr] -> Html ()
 renderFiniteSetMath hints exprs =
-    mrow_ do
+    do
         moText "{"
         renderExprListMath hints exprs
         moText "}"
@@ -2337,16 +2345,36 @@ renderHintedMath hints category marker args fallback =
             | renderHintArity /= length args ->
                 error ("Render hint arity mismatch for " <> show category <> " " <> show marker <> ": expected " <> show renderHintArity <> ", got " <> show (length args))
             | otherwise ->
-                renderTemplate renderHintTemplate
+                renderTemplateAsNode renderHintTemplate
     where
         renderedArgs = renderExprMath hints <$> args
 
-        renderTemplate :: [TemplatePiece] -> Html ()
-        renderTemplate = \case
+        renderTemplateAsNode :: [TemplatePiece] -> Html ()
+        renderTemplateAsNode = \case
             [piece] ->
                 renderPiece piece
             pieces ->
                 mrow_ (traverse_ renderPiece pieces)
+
+        renderPiece :: TemplatePiece -> Html ()
+        renderPiece = \case
+            Literal text -> toHtmlRaw text
+            Slot ix -> case nth (ix - 1) renderedArgs of
+                Just html -> html
+                Nothing -> error ("Render hint slot out of bounds for " <> show marker <> ": <x" <> show ix <> "/>")
+
+renderHintedMathRow :: HintMap -> HintCategory -> Marker -> [Expr] -> Html () -> Html ()
+renderHintedMathRow hints category marker args fallback =
+    case Map.lookup (category, marker) hints of
+        Nothing ->
+            fallback
+        Just RenderHint{..}
+            | renderHintArity /= length args ->
+                error ("Render hint arity mismatch for " <> show category <> " " <> show marker <> ": expected " <> show renderHintArity <> ", got " <> show (length args))
+            | otherwise ->
+                traverse_ renderPiece renderHintTemplate
+    where
+        renderedArgs = renderExprMath hints <$> args
 
         renderPiece :: TemplatePiece -> Html ()
         renderPiece = \case
@@ -2361,7 +2389,7 @@ renderPatternFallback patternParts renderedArgs =
 
 renderPatternMath :: Pattern -> [Html ()] -> Html ()
 renderPatternMath patternParts renderedArgs =
-    mrow_ (traverse_ id (go patternParts renderedArgs))
+    traverse_ id (go patternParts renderedArgs)
     where
         go End [] = []
         go End (_ : _) = error "renderPatternMath: too many arguments"
@@ -2415,7 +2443,7 @@ renderMathToken = \case
 
 
 inlineMath :: Html () -> Html ()
-inlineMath inner = math_ [displayinline_] inner
+inlineMath inner = math_ inner
 
 blockMath :: Html () -> Html ()
 blockMath inner = math_ [displayblock_] inner
@@ -2481,7 +2509,7 @@ renderBoundPhraseMath hints vars = \case
 
 renderSymbolPatternInline :: HintMap -> SymbolPattern -> Html ()
 renderSymbolPatternInline hints (SymbolPattern symbol vars) =
-    inlineMath (renderHintedMath hints OperatorHint (mixfixMarker symbol) (ExprVar <$> vars) (renderPatternFallback (mixfixPattern symbol) (renderVarMath <$> vars)))
+    inlineMath (renderHintedMathRow hints OperatorHint (mixfixMarker symbol) (ExprVar <$> vars) (renderPatternFallback (mixfixPattern symbol) (renderVarMath <$> vars)))
 
 renderJustification :: AnchorMap -> Justification -> Html ()
 renderJustification anchors = \case
@@ -2507,7 +2535,7 @@ renderMarkerLink anchors marker =
         Nothing ->
             toHtml (markerText marker)
         Just anchor ->
-            a_ [class_ "marker-link", href_ ("#" <> anchor)] (toHtml (markerText marker))
+            a_ [href_ ("#" <> anchor)] (toHtml (markerText marker))
 
 
 markerText :: Marker -> Text
