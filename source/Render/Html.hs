@@ -271,7 +271,7 @@ pageStyles = Text.unlines
     , "  display: inline;"
     , "  margin: 0;"
     , "}"
-    , "proof-nested {"
+    , "proof- proof- {"
     , "  display: block;"
     , "  margin: 0.5rem 0 0.5rem 1rem;"
     , "  padding-left: 0.75rem;"
@@ -290,7 +290,7 @@ pageStyles = Text.unlines
     , "proof- > details > :not(summary) {"
     , "  margin-top: 0.5rem;"
     , "}"
-    , "math- {"
+    , "math[display=\"block\"] {"
     , "  display: block;"
     , "  margin: 0.5rem 0;"
     , "}"
@@ -1392,10 +1392,10 @@ renderProof hints anchors = \case
         renderProofTerminal mloc justification
     ByCase _loc cases -> do
         p_ "Proof by cases."
-        term "proof-nested" (traverse_ (renderCase hints anchors) cases)
+        term "proof-" (traverse_ (renderCase hints anchors) cases)
     ByContradiction _loc proof -> do
         p_ "Proof by contradiction."
-        term "proof-nested" (renderProof hints anchors proof)
+        term "proof-" (renderProof hints anchors proof)
     BySetInduction _loc maybeTerm proof -> do
         p_ do
             toHtml ("Proof by set induction" :: Text)
@@ -1405,10 +1405,10 @@ renderProof hints anchors = \case
                     toHtml (" on " :: Text)
                     renderTermInline hints targetTerm
             toHtml ("." :: Text)
-        term "proof-nested" (renderProof hints anchors proof)
+        term "proof-" (renderProof hints anchors proof)
     ByOrdInduction _loc proof -> do
         p_ "Proof by ordinal induction."
-        term "proof-nested" (renderProof hints anchors proof)
+        term "proof-" (renderProof hints anchors proof)
     Assume _loc stmt proof -> do
         p_ do
             toHtml ("Assume " :: Text)
@@ -1481,7 +1481,7 @@ renderProof hints anchors = \case
             toHtml ("Show " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        term "proof-nested" (renderProof hints anchors subproof)
+        term "proof-" (renderProof hints anchors subproof)
         renderProofContinuation hints anchors proof
     Define _loc var expr proof -> do
         p_ do
@@ -1583,7 +1583,7 @@ calcStepCount = \case
 
 renderCase :: HintMap -> AnchorMap -> Case -> Html ()
 renderCase hints anchors Case{..} =
-    term "proof-nested" do
+    term "proof-" do
         p_ do
             toHtml ("Case " :: Text)
             renderStmtInline hints caseOf
@@ -1600,7 +1600,7 @@ renderCalc hints anchors maybeQuant calc = do
                 toHtml (" for " :: Text)
                 renderCalcQuantifierInline hints quant
         toHtml ("." :: Text)
-    term "math-" (blockMath (renderCalcMath hints calc))
+    blockMath (renderCalcMath hints calc)
     let justifications = calcJustifications calc
     when (not (null justifications)) do
         ul_ do
