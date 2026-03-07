@@ -45,6 +45,12 @@ type HintMap = Map (HintCategory, Marker) RenderHint
 type AnchorMap = Map Marker Text
 type BlockRenderInfo = (Int, Block, Text, Text)
 
+data StmtMathFragment
+    = StmtMathProse Text
+    | StmtMathNode (Html ())
+
+type StmtMathFragments = [StmtMathFragment]
+
 newtype MissingHintMap = MissingHintMap
     { unMissingHintMap :: Map HintCategory (Set Marker)
     } deriving (Show, Eq)
@@ -1839,6 +1845,235 @@ renderPatternInline renderArg patternParts args =
         go (Nothing : _) [] = error "renderPatternInline: not enough arguments"
         go (Just tok : rest) restArgs = tokenTextHtml tok : go rest restArgs
 
+renderStmtMath :: HintMap -> Stmt -> Html ()
+renderStmtMath hints =
+    renderStmtMathFragments . stmtMathFragments hints
+
+renderStmtMathFragments :: StmtMathFragments -> Html ()
+renderStmtMathFragments =
+    go ""
+    where
+        go :: Text -> StmtMathFragments -> Html ()
+        go pending = \case
+            [] ->
+                flush pending
+            StmtMathProse text : rest ->
+                go (pending <> text) rest
+            StmtMathNode node : rest -> do
+                flush pending
+                node
+                go "" rest
+
+        flush :: Text -> Html ()
+        flush text =
+            let renderedText = preserveBoundarySpaces text
+            in unless (Text.null renderedText) (mtextText renderedText)
+
+        preserveBoundarySpaces :: Text -> Text
+        preserveBoundarySpaces text =
+            Text.replicate leadingCount nbsp
+                <> middleText
+                <> Text.replicate trailingCount nbsp
+            where
+                leadingCount = Text.length (Text.takeWhile (== ' ') text)
+                textAfterLeading = Text.drop leadingCount text
+                trailingCount = Text.length (Text.takeWhileEnd (== ' ') textAfterLeading)
+                middleText = Text.dropEnd trailingCount textAfterLeading
+                nbsp = Text.singleton '\160'
+
+stmtMathProse :: Text -> StmtMathFragments
+stmtMathProse text
+    | Text.null text = []
+    | otherwise = [StmtMathProse text]
+
+stmtMathNode :: Html () -> StmtMathFragments
+stmtMathNode html =
+    [StmtMathNode html]
+
+joinStmtMathFragments :: StmtMathFragments -> [StmtMathFragments] -> StmtMathFragments
+joinStmtMathFragments _ [] = []
+joinStmtMathFragments separator (first : rest) =
+    first <> foldMap (separator <>) rest
+
+stmtMathFragments :: HintMap -> Stmt -> StmtMathFragments
+stmtMathFragments hints = \case
+    StmtFormula phi ->
+        stmtMathNode (renderFormulaMath hints phi)
+    StmtVerbPhrase ts vp -> do
+        termListMathFragments hints ts
+            <> stmtMathProse " "
+            <> verbPhraseMathFragments hints (length ts > 1) vp
+    StmtNoun ts np -> do
+        termListMathFragments hints ts
+            <> stmtMathProse (if length ts > 1 then " are a " else " is a ")
+            <> nounPhraseMaybeMathFragments hints np
+    StmtStruct t structPhrase -> do
+        termMathFragments hints t
+            <> stmtMathProse " is a "
+            <> structPhraseMathFragments structPhrase
+    StmtNeg _loc stmt -> do
+        stmtMathProse "it is not the case that "
+            <> stmtMathFragments hints stmt
+    StmtExists _loc np -> do
+        stmtMathProse "there exists "
+            <> nounPhraseListMathFragments hints np
+    StmtConnected conn _loc stmt1 stmt2 -> do
+        stmtMathFragments hints stmt1
+            <> stmtMathProse (" " <> connectiveWord conn <> " ")
+            <> stmtMathFragments hints stmt2
+    StmtQuantPhrase _loc qp stmt -> do
+        quantPhraseMathFragments hints qp
+            <> stmtMathProse " "
+            <> stmtMathFragments hints stmt
+    SymbolicQuantified _loc quant vars bound suchThat stmt -> do
+        stmtMathProse (quantifierWord quant <> " ")
+            <> stmtMathNode (renderVarListMath vars)
+            <> stmtMathNode (renderBoundMath hints vars bound)
+            <> foldMap
+                ( \suchStmt ->
+                    stmtMathProse " such that "
+                        <> stmtMathFragments hints suchStmt
+                )
+                suchThat
+            <> stmtMathProse " we have "
+            <> stmtMathFragments hints stmt
+
+quantPhraseMathFragments :: HintMap -> QuantPhrase -> StmtMathFragments
+quantPhraseMathFragments hints (QuantPhrase quant np) =
+    stmtMathProse (quantifierWord quant <> " ")
+        <> nounPhraseListMathFragments hints np
+
+termMathFragments :: HintMap -> Term -> StmtMathFragments
+termMathFragments hints = \case
+    TermExpr expr ->
+        stmtMathNode (renderExprMath hints expr)
+    TermFun fun -> do
+        stmtMathProse "the "
+            <> funMathFragments (termMathFragments hints) fun
+    TermIota _loc var stmt -> do
+        stmtMathProse "the "
+            <> stmtMathNode (renderVarMath var)
+            <> stmtMathProse " such that "
+            <> stmtMathFragments hints stmt
+    TermQuantified quant _loc np -> do
+        stmtMathProse (termQuantifierWord quant <> " ")
+            <> nounPhraseMaybeMathFragments hints np
+
+termListMathFragments :: HintMap -> NonEmpty Term -> StmtMathFragments
+termListMathFragments hints =
+    joinStmtMathFragments (stmtMathProse " and ") . fmap (termMathFragments hints) . toList
+
+nounPhraseMaybeMathFragments :: HintMap -> NounPhrase Maybe -> StmtMathFragments
+nounPhraseMaybeMathFragments hints (NounPhrase ls noun maybeName rs maybeSuchThat) =
+    adjListMathFragments renderTermMath' ls
+        <> nounMathFragments False renderTermMath' noun
+        <> foldMap (\name -> stmtMathProse " " <> stmtMathNode (renderVarMath name)) maybeName
+        <> adjRListMathFragments hints rs
+        <> foldMap (\stmt -> stmtMathProse " such that " <> stmtMathFragments hints stmt) maybeSuchThat
+    where
+        renderTermMath' = termMathFragments hints
+
+nounPhraseListMathFragments :: HintMap -> NounPhrase [] -> StmtMathFragments
+nounPhraseListMathFragments hints (NounPhrase ls noun names rs maybeSuchThat) =
+    adjListMathFragments renderTermMath' ls
+        <> nounMathFragments (length names > 1) renderTermMath' noun
+        <> if null names
+            then []
+            else stmtMathProse " " <> stmtMathNode (renderVarListMath (NonEmpty.fromList names))
+        <> adjRListMathFragments hints rs
+        <> foldMap (\stmt -> stmtMathProse " such that " <> stmtMathFragments hints stmt) maybeSuchThat
+    where
+        renderTermMath' = termMathFragments hints
+
+adjListMathFragments :: (a -> StmtMathFragments) -> [AdjLOf a] -> StmtMathFragments
+adjListMathFragments renderArg adjs =
+    if null adjs
+        then []
+        else joinStmtMathFragments (stmtMathProse " ") (renderAdjLMathFragments renderArg <$> adjs)
+            <> stmtMathProse " "
+
+adjRListMathFragments :: HintMap -> [AdjROf Term] -> StmtMathFragments
+adjRListMathFragments hints adjs =
+    if null adjs
+        then []
+        else stmtMathProse " "
+            <> joinStmtMathFragments (stmtMathProse " and ") (renderAdjRMathFragments hints <$> adjs)
+
+renderAdjLMathFragments :: (a -> StmtMathFragments) -> AdjLOf a -> StmtMathFragments
+renderAdjLMathFragments renderArg (AdjL _loc item args) =
+    lexicalItemStmtMathFragments renderArg item args
+
+renderAdjRMathFragments :: HintMap -> AdjROf Term -> StmtMathFragments
+renderAdjRMathFragments hints = \case
+    AdjR _loc item args ->
+        lexicalItemStmtMathFragments (termMathFragments hints) item args
+    AttrRThat verbPhrase ->
+        stmtMathProse "that "
+            <> verbPhraseMathFragments hints False verbPhrase
+
+adjMathFragments :: (a -> StmtMathFragments) -> AdjOf a -> StmtMathFragments
+adjMathFragments renderArg (Adj _loc item args) =
+    lexicalItemStmtMathFragments renderArg item args
+
+verbMathFragments :: Bool -> (a -> StmtMathFragments) -> VerbOf a -> StmtMathFragments
+verbMathFragments isPlural renderArg (Verb _loc item args) =
+    lexicalItemSgPlStmtMathFragments isPlural renderArg item args
+
+verbPhraseMathFragments :: HintMap -> Bool -> VerbPhrase -> StmtMathFragments
+verbPhraseMathFragments hints isPlural = \case
+    VPVerb verb ->
+        verbMathFragments isPlural (termMathFragments hints) verb
+    VPAdj adjs ->
+        stmtMathProse (if isPlural then "are " else "is ")
+            <> joinStmtMathFragments (stmtMathProse " and ") (adjMathFragments (termMathFragments hints) <$> toList adjs)
+    VPVerbNot verb ->
+        stmtMathProse (if isPlural then "do not " else "does not ")
+            <> verbMathFragments True (termMathFragments hints) verb
+    VPAdjNot adjs ->
+        stmtMathProse (if isPlural then "are not " else "is not ")
+            <> joinStmtMathFragments (stmtMathProse " and ") (adjMathFragments (termMathFragments hints) <$> toList adjs)
+
+nounMathFragments :: Bool -> (a -> StmtMathFragments) -> NounOf a -> StmtMathFragments
+nounMathFragments isPlural renderArg (Noun _loc item args) =
+    lexicalItemSgPlStmtMathFragments isPlural renderArg item args
+
+funMathFragments :: (a -> StmtMathFragments) -> FunOf a -> StmtMathFragments
+funMathFragments renderArg Fun{phrase, funArgs} =
+    lexicalItemSgPlStmtMathFragments False renderArg phrase funArgs
+
+structPhraseMathFragments :: StructPhrase -> StmtMathFragments
+structPhraseMathFragments item =
+    lexicalItemSgPlStmtMathFragments False termMathPlaceholderFragments item []
+
+termMathPlaceholderFragments :: a -> StmtMathFragments
+termMathPlaceholderFragments _ =
+    stmtMathProse "?"
+
+lexicalItemStmtMathFragments :: (a -> StmtMathFragments) -> LexicalItem -> [a] -> StmtMathFragments
+lexicalItemStmtMathFragments renderArg item args =
+    patternStmtMathFragments renderArg (lexicalItemPhrase item) args
+
+lexicalItemSgPlStmtMathFragments :: Bool -> (a -> StmtMathFragments) -> LexicalItemSgPl -> [a] -> StmtMathFragments
+lexicalItemSgPlStmtMathFragments isPlural renderArg item args =
+    patternStmtMathFragments renderArg phrase args
+    where
+        phrase = if isPlural then pl (lexicalItemSgPlPhrase item) else sg (lexicalItemSgPlPhrase item)
+
+patternStmtMathFragments :: (a -> StmtMathFragments) -> [Maybe Token] -> [a] -> StmtMathFragments
+patternStmtMathFragments renderArg patternParts args =
+    joinStmtMathFragments (stmtMathProse " ") (go patternParts args)
+    where
+        go [] [] = []
+        go [] (_ : _) = error "renderPatternStmtMath: too many arguments"
+        go (Nothing : rest) (arg : restArgs) = renderArg arg : go rest restArgs
+        go (Nothing : _) [] = error "renderPatternStmtMath: not enough arguments"
+        go (Just tok : rest) restArgs = renderStmtToken tok : go rest restArgs
+
+        renderStmtToken :: Token -> StmtMathFragments
+        renderStmtToken = \case
+            Word w -> stmtMathProse w
+            tok -> stmtMathNode (renderMathToken tok)
+
 
 renderFormulaMath :: HintMap -> Formula -> Html ()
 renderFormulaMath hints = \case
@@ -1991,9 +2226,7 @@ renderExprMath hints = \case
             moText "∈"
             renderExprMath hints bound
             moText "|"
-            case stmt of
-                StmtFormula phi -> renderFormulaMath hints phi
-                _ -> mtextText "condition"
+            renderStmtMath hints stmt
             moText "}"
     ExprReplace _loc expr bounds maybeStmt ->
         mrow_ do
@@ -2003,9 +2236,7 @@ renderExprMath hints = \case
             renderReplaceBoundsMath hints (toList bounds)
             for_ maybeStmt \stmt -> do
                 moText "|"
-                case stmt of
-                    StmtFormula phi -> renderFormulaMath hints phi
-                    _ -> mtextText "condition"
+                renderStmtMath hints stmt
             moText "}"
     ExprReplacePred _loc rangeVar domVar domExpr stmt ->
         mrow_ do
@@ -2017,9 +2248,7 @@ renderExprMath hints = \case
             moText "∈"
             renderExprMath hints domExpr
             moText "."
-            case stmt of
-                StmtFormula phi -> renderFormulaMath hints phi
-                _ -> mtextText "condition"
+            renderStmtMath hints stmt
             moText "}"
 
 renderReplaceBoundsMath :: HintMap -> [(VarSymbol, Expr)] -> Html ()
