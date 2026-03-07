@@ -227,7 +227,6 @@ pageStyles = Text.unlines
     , "  overflow-wrap: anywhere;"
     , "}"
     , "main {"
-    , "  display: block;"
     , "  min-width: 0;"
     , "  min-height: 0;"
     , "  overflow-y: auto;"
@@ -262,12 +261,8 @@ pageStyles = Text.unlines
     , "main a[href^=\"#\"]:focus-visible {"
     , "  text-decoration: underline;"
     , "}"
-    , "main > *[id] > div,"
-    , "proof- > details > div {"
-    , "  display: contents;"
-    , "}"
-    , "proof- > div > p:first-child,"
-    , "proof- > details > div > p:first-child {"
+    , "proof- > p:first-child,"
+    , "proof- > details > summary + p {"
     , "  display: inline;"
     , "  margin: 0;"
     , "}"
@@ -1026,7 +1021,7 @@ renderCustomBlock :: Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle ->
 renderCustomBlock blockId name prefix mmarker mtitle body =
     term name [id_ blockId] do
         renderBlockLead prefix mmarker mtitle True
-        div_ body
+        body
 
 renderProofBlock :: HintMap -> AnchorMap -> Proof -> Html ()
 renderProofBlock hints anchors proof
@@ -1034,11 +1029,11 @@ renderProofBlock hints anchors proof
         term "proof-" do
             details_ do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
-                div_ (renderProof hints anchors proof)
+                renderProof hints anchors proof
     | otherwise =
         term "proof-" do
             renderBlockLead "Proof" Nothing Nothing True
-            div_ (renderProof hints anchors proof)
+            renderProof hints anchors proof
 
 blockAnchorId :: Int -> Block -> Text
 blockAnchorId index block =
@@ -1373,7 +1368,7 @@ renderStructDefn hints StructDefn{..} = do
     when (not (null structFixes)) do
         p_ do
             toHtml ("Fixes: " :: Text)
-            joinHtml (toHtml (", " :: Text)) (inlineMath . renderStructSymbolName <$> structFixes)
+            inlineMath (joinHtml (moText ",") (renderStructSymbolName <$> structFixes))
             toHtml ("." :: Text)
     when (not (null structAssumes)) do
         ul_ do
@@ -1486,19 +1481,13 @@ renderProof hints anchors = \case
     Define _loc var expr proof -> do
         p_ do
             toHtml ("Let " :: Text)
-            renderVarInline var
-            toHtml (" = " :: Text)
-            inlineMath (renderExprMathRow hints expr)
+            renderVarEqInline hints var expr
             toHtml ("." :: Text)
         renderProofContinuation hints anchors proof
     DefineFunction _loc fun arg value boundVar boundExpr proof -> do
         p_ do
             toHtml ("Let " :: Text)
-            renderVarInline fun
-            toHtml ("(" :: Text)
-            renderVarInline arg
-            toHtml (") = " :: Text)
-            inlineMath (renderExprMathRow hints value)
+            renderFunctionEqInline hints fun arg value
             toHtml (" for " :: Text)
             renderVarInline boundVar
             toHtml (" in " :: Text)
@@ -1508,10 +1497,8 @@ renderProof hints anchors = \case
     DefineFunctionLocal _loc fun arg _target domVar codVar rules proof -> do
         p_ do
             toHtml ("Let " :: Text)
-            renderVarInline fun
-            toHtml ("(" :: Text)
-            renderVarInline arg
-            toHtml (") be locally defined from " :: Text)
+            renderFunctionCallInline fun arg
+            toHtml (" be locally defined from " :: Text)
             renderVarInline domVar
             toHtml (" to " :: Text)
             renderVarInline codVar
@@ -1733,9 +1720,7 @@ renderAsm hints = \case
         renderFunInline renderTermInline' fun
             where renderTermInline' = renderTermInline hints
     AsmLetEq var expr -> do
-        renderVarInline var
-        toHtml (" = " :: Text)
-        inlineMath (renderExprMathRow hints expr)
+        renderVarEqInline hints var expr
     AsmLetStruct var structPhrase -> do
         renderVarInline var
         toHtml (" be a " :: Text)
@@ -2470,9 +2455,34 @@ renderVariableSubscriptMath subscriptText
     | otherwise =
         miText subscriptText
 
+renderVarEqInline :: HintMap -> VarSymbol -> Expr -> Html ()
+renderVarEqInline hints var expr =
+    inlineMath do
+        renderVarMath var
+        moText "="
+        renderExprMathRow hints expr
+
+renderFunctionCallInline :: VarSymbol -> VarSymbol -> Html ()
+renderFunctionCallInline fun arg =
+    inlineMath (renderFunctionCallMath fun arg)
+
+renderFunctionEqInline :: HintMap -> VarSymbol -> VarSymbol -> Expr -> Html ()
+renderFunctionEqInline hints fun arg expr =
+    inlineMath do
+        renderFunctionCallMath fun arg
+        moText "="
+        renderExprMathRow hints expr
+
+renderFunctionCallMath :: VarSymbol -> VarSymbol -> Html ()
+renderFunctionCallMath fun arg = do
+    renderVarMath fun
+    moText "("
+    renderVarMath arg
+    moText ")"
+
 renderVarListInline :: NonEmpty VarSymbol -> Html ()
 renderVarListInline vars =
-    joinHtml (toHtml (", " :: Text)) (renderVarInline <$> toList vars)
+    inlineMath (renderVarListMath vars)
 
 renderVarListMath :: NonEmpty VarSymbol -> Html ()
 renderVarListMath vars =
