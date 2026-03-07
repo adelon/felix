@@ -2215,10 +2215,7 @@ renderExprMath hints = \case
             args = maybeToList maybeExpr
         in renderHintedMath hints StructOpHint marker args (renderStructFallback symb (renderExprMath hints <$> args))
     ExprFiniteSet _loc exprs ->
-        mrow_ do
-            moText "{"
-            renderExprListMath hints (toList exprs)
-            moText "}"
+        renderFiniteSetMath hints (toList exprs)
     ExprSep _loc var bound stmt ->
         mrow_ do
             moText "{"
@@ -2264,6 +2261,13 @@ renderExprListMath :: HintMap -> [Expr] -> Html ()
 renderExprListMath hints =
     joinHtml (moText ",") . fmap (renderExprMath hints)
 
+renderFiniteSetMath :: HintMap -> [Expr] -> Html ()
+renderFiniteSetMath hints exprs =
+    mrow_ do
+        moText "{"
+        renderExprListMath hints exprs
+        moText "}"
+
 renderHintedMath :: HintMap -> HintCategory -> Marker -> [Expr] -> Html () -> Html ()
 renderHintedMath hints category marker args fallback =
     case Map.lookup (category, marker) hints of
@@ -2273,9 +2277,16 @@ renderHintedMath hints category marker args fallback =
             | renderHintArity /= length args ->
                 error ("Render hint arity mismatch for " <> show category <> " " <> show marker <> ": expected " <> show renderHintArity <> ", got " <> show (length args))
             | otherwise ->
-                mrow_ (traverse_ renderPiece renderHintTemplate)
+                renderTemplate renderHintTemplate
     where
         renderedArgs = renderExprMath hints <$> args
+
+        renderTemplate :: [TemplatePiece] -> Html ()
+        renderTemplate = \case
+            [piece] ->
+                renderPiece piece
+            pieces ->
+                mrow_ (traverse_ renderPiece pieces)
 
         renderPiece :: TemplatePiece -> Html ()
         renderPiece = \case

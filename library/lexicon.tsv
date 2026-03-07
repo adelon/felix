@@ -1,5 +1,5 @@
 operator	abs	1	<mo>|</mo><x1/><mo>|</mo>
-operator	emptyset	0	<mo>∅</mo>
+operator	emptyset	0	<mi>∅</mi>
 operator	intersect	2	<x1/><mo>∩</mo><x2/>
 operator	pow	1	<mi mathvariant="normal">P</mi><mo>(</mo><x1/><mo>)</mo>
 operator	setminus	2	<x1/><mo>∖</mo><x2/>
