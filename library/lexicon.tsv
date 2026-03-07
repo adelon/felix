@@ -23,3 +23,136 @@ operator	fst	1	<mi>fst</mi><mo>(</mo><x1/><mo>)</mo>
 operator	snd	1	<mi>snd</mi><mo>(</mo><x1/><mo>)</mo>
 operator	unions	1	<mo>∪</mo><x1/>
 operator	inters	1	<mo>∩</mo><x1/>
+operator	add	2	<x1/><mo>+</mo><x2/>
+operator	apply	2	<x1/><mo>(</mo><x2/><mo>)</mo>
+operator	between_rel	4	<msubsup><mi>bet</mi><x1/><x2/></msubsup><mo>(</mo><x3/><mo>,</mo><x4/><mo>)</mo>
+operator	bijections	2	<mi>Bij</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	bounded_metric	1	<mover><x1/><mo>¯</mo></mover>
+operator	box_basis	2	<mi>BoxBasis</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	box_topology	2	<mi>BoxTop</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	circ	2	<x1/><mo>∘</mo><x2/>
+operator	closedray_left	3	<msubsup><mrow><mo>(</mo><mo>←</mo><mo>,</mo><x3/><mo>]</mo></mrow><x1/><x2/></msubsup>
+operator	closedray_right	3	<msubsup><mrow><mo>[</mo><x3/><mo>,</mo><mo>→</mo><mo>)</mo></mrow><x1/><x2/></msubsup>
+operator	closure	3	<msubsup><mi>cl</mi><x2/><x3/></msubsup><mo>(</mo><x1/><mo>)</mo>
+operator	closure_family	3	<mi>ClFam</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	component_relation	2	<msubsup><mo>∼</mo><mi>c</mi><mrow><x1/><mo>,</mo><x2/></mrow></msubsup>
+operator	converse_relation	1	<msup><x1/><mrow><mo>−</mo><mn>1</mn></mrow></msup>
+operator	coord_diff_sequence	3	<msub><mi>coordDiff</mi><x1/></msub><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	coord_diff_set	3	<msub><mi>coordDiffSet</mi><x1/></msub><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	coord_product_sequence	3	<msub><mi>coordProd</mi><x1/></msub><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	coord_scalar_sequence	3	<msub><mi>coordScal</mi><x1/></msub><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	coord_square_sequence	2	<msub><mi>coordSq</mi><x1/></msub><mo>(</mo><x2/><mo>)</mo>
+operator	coord_square_sequence_mul	2	<msub><mi>coordSqMul</mi><x1/></msub><mo>(</mo><x2/><mo>)</mo>
+operator	coord_sum_sequence	3	<msub><mi>coordSum</mi><x1/></msub><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	countable_complement_topology	1	<msub><mi>τ</mi><mi>cc</mi></msub><mo>(</mo><x1/><mo>)</mo>
+operator	discrete_metric	1	<msub><mi>d</mi><mi>discr</mi></msub><mo>(</mo><x1/><mo>)</mo>
+operator	discrete_topology	1	<msub><mi>τ</mi><mi>discr</mi></msub><mo>(</mo><x1/><mo>)</mo>
+operator	dom	1	<mi>dom</mi><mo>(</mo><x1/><mo>)</mo>
+operator	downward_closure	2	<msub><mo>↓</mo><x1/></msub><mo>(</mo><x2/><mo>)</mo>
+operator	equiv_class	2	<msub><mrow><mo>[</mo><x2/><mo>]</mo></mrow><x1/></msub>
+operator	euclidean_metric	1	<msubsup><mi>d</mi><mn>2</mn><x1/></msubsup>
+operator	exp	2	<msup><x1/><x2/></msup>
+operator	fiber_partition	2	<mi>Fib</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	finite_complement_topology	1	<msub><mi>τ</mi><mi>fc</mi></msub><mo>(</mo><x1/><mo>)</mo>
+operator	finite_intersections	1	<mi>FinInter</mi><mo>(</mo><x1/><mo>)</mo>
+operator	funs	2	<mi>Fun</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	id	1	<msub><mi>id</mi><x1/></msub>
+operator	img	2	<x1/><mo>[</mo><x2/><mo>]</mo>
+operator	indexed_product	1	<mo>∏</mo><x1/>
+operator	indiscrete_topology	1	<msub><mi>τ</mi><mi>indiscr</mi></msub><mo>(</mo><x1/><mo>)</mo>
+operator	induced_map	5	<mover><x2/><mo>¯</mo></mover>
+operator	initial_segment_naturalsplus	1	<msub><mi>seg</mi><mi>+</mi></msub><mo>(</mo><x1/><mo>)</mo>
+operator	inj	2	<mi>Inj</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	integers	0	<mi mathvariant="double-struck">Z</mi>
+operator	interior	3	<msubsup><mi>int</mi><x2/><x3/></msubsup><mo>(</mo><x1/><mo>)</mo>
+operator	interval_closed_open	2	<mo>[</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	intervalclosed	2	<mo>[</mo><x1/><mo>,</mo><x2/><mo>]</mo>
+operator	intervalclosed_rel	4	<msubsup><mrow><mo>[</mo><x3/><mo>,</mo><x4/><mo>]</mo></mrow><x1/><x2/></msubsup>
+operator	intervalclosedopen_rel	4	<msubsup><mrow><mo>[</mo><x3/><mo>,</mo><x4/><mo>)</mo></mrow><x1/><x2/></msubsup>
+operator	intervalopen	2	<mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	intervalopen_rel	4	<msubsup><mrow><mo>(</mo><x3/><mo>,</mo><x4/><mo>)</mo></mrow><x1/><x2/></msubsup>
+operator	intervalopenclosed_rel	4	<msubsup><mrow><mo>(</mo><x3/><mo>,</mo><x4/><mo>]</mo></mrow><x1/><x2/></msubsup>
+operator	inv	1	<msup><x1/><mrow><mo>−</mo><mn>1</mn></mrow></msup>
+operator	iteration_set	2	<mi>Iter</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	k_basis_reals	0	<msub><mi>B</mi><mi>K</mi></msub>
+operator	k_set	0	<mi>K</mi>
+operator	k_topology_reals	0	<msub><mi>τ</mi><mi>K</mi></msub>
+operator	limit_points	3	<msubsup><mi>Lim</mi><x2/><x3/></msubsup><mo>(</mo><x1/><mo>)</mo>
+operator	lower_limit_basis_reals	0	<msub><mi>B</mi><mi>ll</mi></msub>
+operator	lower_limit_topology_reals	0	<msub><mi>τ</mi><mi>ll</mi></msub>
+operator	metric_ball	4	<msubsup><mi>B</mi><x1/><x2/></msubsup><mo>(</mo><x3/><mo>,</mo><x4/><mo>)</mo>
+operator	metric_ball_family	4	<mi>BallFam</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>)</mo>
+operator	metric_basis	2	<msubsup><mi>B</mi><x1/><x2/></msubsup>
+operator	metric_distance_set	2	<msub><mi>D</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
+operator	metric_topology	2	<msubsup><mi>τ</mi><x1/><x2/></msubsup>
+operator	minus	2	<x1/><mo>−</mo><x2/>
+operator	naturals	0	<mi mathvariant="double-struck">N</mi>
+operator	naturalsPlus	0	<msub><mi mathvariant="double-struck">N</mi><mo>+</mo></msub>
+operator	neg	1	<mo>−</mo><x1/>
+operator	omega_metric	0	<msub><mi>d</mi><mi>ω</mi></msub>
+operator	omega_metric_set	2	<msub><mi>M</mi><mi>ω</mi></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	one_point_compact_complements	3	<msub><mi>K</mi><x3/></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	one_point_compactification_topology	3	<msubsup><mi>τ</mi><x3/><mo>+</mo></msubsup><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	one_point_open_sets	3	<msub><mi>O</mi><x3/></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	open_rays	2	<mi>OpenRays</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	openray_left	3	<msubsup><mrow><mo>(</mo><mo>←</mo><mo>,</mo><x3/><mo>)</mo></mrow><x1/><x2/></msubsup>
+operator	openray_right	3	<msubsup><mrow><mo>(</mo><x3/><mo>,</mo><mo>→</mo><mo>)</mo></mrow><x1/><x2/></msubsup>
+operator	order_basis	2	<mi>OrdBasis</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	partition_map	2	<msub><mi>π</mi><x1/></msub><mo>(</mo><x2/><mo>)</mo>
+operator	path_relation	2	<msubsup><mo>∼</mo><mi>path</mi><mrow><x1/><mo>,</mo><x2/></mrow></msubsup>
+operator	point_distance_set	3	<msub><mi>D</mi><x1/></msub><mo>(</mo><x3/><mo>,</mo><x2/><mo>)</mo>
+operator	preimg	2	<msup><x1/><mrow><mo>−</mo><mn>1</mn></mrow></msup><mo>[</mo><x2/><mo>]</mo>
+operator	product_basis	4	<mi>ProdBasis</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>;</mo><x3/><mo>,</mo><x4/><mo>)</mo>
+operator	product_subbasis_indexed	3	<msub><mi>ProdSub</mi><x3/></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	product_subbasis_left	3	<mi>ProdSubL</mi><mo>(</mo><x1/><mo>;</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	product_subbasis_right	3	<mi>ProdSubR</mi><mo>(</mo><x1/><mo>;</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	product_subbasis_union_indexed	2	<mi>ProdSub</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	product_topology	4	<mi>ProdTop</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>;</mo><x3/><mo>,</mo><x4/><mo>)</mo>
+operator	product_topology_indexed	2	<mi>ProdTop</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	projection_first	2	<msub><mi>π</mi><mn>1</mn></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	projection_map_indexed	2	<msub><mi>π</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
+operator	projection_second	2	<msub><mi>π</mi><mn>2</mn></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	quotient_topology	4	<mi>QuotTop</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>)</mo>
+operator	ran	1	<mi>ran</mi><mo>(</mo><x1/><mo>)</mo>
+operator	rationals	0	<mi mathvariant="double-struck">Q</mi>
+operator	real_addition_operation	0	<msub><mo>+</mo><mi mathvariant="double-struck">R</mi></msub>
+operator	real_division_operation	0	<msub><mo>/</mo><mi mathvariant="double-struck">R</mi></msub>
+operator	real_inverse_operation	0	<msub><mi>inv</mi><mi mathvariant="double-struck">R</mi></msub>
+operator	real_multiplication_operation	0	<msub><mo>·</mo><mi mathvariant="double-struck">R</mi></msub>
+operator	real_order_relation	0	<msub><mo>&lt;</mo><mi mathvariant="double-struck">R</mi></msub>
+operator	real_order_topology	0	<msub><mi>τ</mi><mo>&lt;</mo></msub>
+operator	real_subtraction_operation	0	<msub><mo>−</mo><mi mathvariant="double-struck">R</mi></msub>
+operator	reals	0	<mi mathvariant="double-struck">R</mi>
+operator	reals_power	1	<msup><mi mathvariant="double-struck">R</mi><x1/></msup>
+operator	rels	2	<mi>Rel</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	restrl	2	<x1/><mo>↾</mo><x2/>
+operator	rmul	2	<x1/><mo>·</mo><x2/>
+operator	sig6	2	<x1/><mo>/</mo><x2/>
+operator	sig9	1	<msqrt><x1/></msqrt>
+operator	square_metric	1	<msubsup><mi>d</mi><mo>∞</mo><x1/></msubsup>
+operator	standard_basis_reals	0	<msub><mi>B</mi><mi>std</mi></msub>
+operator	standard_metric_r	0	<msub><mi>d</mi><mi>std</mi></msub>
+operator	standard_topology_reals	0	<msub><mi>τ</mi><mi>std</mi></msub>
+operator	subspace_topology	2	<x1/><mo>↾</mo><x2/>
+operator	suc	1	<x1/><mo>+</mo><mn>1</mn>
+operator	surj	2	<mi>Surj</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
+operator	topology_generated_by_basis	2	<msub><mi>τ</mi><x1/></msub><mo>(</mo><x2/><mo>)</mo>
+operator	topology_generated_by_subbasis	2	<msub><mi>τ</mi><mrow><mo>⟨</mo><x1/><mo>⟩</mo></mrow></msub><mo>(</mo><x2/><mo>)</mo>
+operator	tuple_power	2	<msup><x1/><x2/></msup>
+operator	uniform_metric	1	<msubsup><mi>d</mi><mi>u</mi><x1/></msubsup>
+operator	uniform_metric_set	3	<msubsup><mi>M</mi><mi>u</mi><x1/></msubsup><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	uniform_topology	1	<msubsup><mi>τ</mi><mi>u</mi><x1/></msubsup>
+operator	unit_rationals	0	<msub><mi mathvariant="double-struck">Q</mi><mi>unit</mi></msub>
+operator	unit_rationals_zero	0	<msub><mi mathvariant="double-struck">Q</mi><mi>unit0</mi></msub>
+operator	urysohn_admissible	6	<mi>Adm</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>,</mo><x5/><mo>,</mo><x6/><mo>)</mo>
+operator	urysohn_good_pairs	5	<mi>GoodPairs</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>,</mo><x5/><mo>)</mo>
+operator	urysohn_level_set	2	<msub><mi>L</mi><x1/></msub><mo>(</mo><x2/><mo>)</mo>
+relation	real_at_least	0	<mo>≥</mo>
+relation	real_at_most	0	<mo>≤</mo>
+relation	real_gt	0	<mo>&gt;</mo>
+relation	real_lt	0	<mo>&lt;</mo>
+relation	rless	0	<mo>&lt;</mo>
+predicate	finite_indexed_product_compact_property	1	<mi>FinProdCompact</mi><mo>(</mo><x1/><mo>)</mo>
+predicate	real_supremum_pred	2	<x1/><mo>=</mo><mi>sup</mi><mo>(</mo><x2/><mo>)</mo>
+predicate	sum_finite_sequence_pred	2	<x2/><mo>=</mo><mo>∑</mo><mo>(</mo><x1/><mo>)</mo>
+predicate	urysohn_good_pair	7	<mi>GoodPair</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>,</mo><x5/><mo>,</mo><x6/><mo>,</mo><x7/><mo>)</mo>
