@@ -14,7 +14,7 @@ import Lucid hiding (Term, for_)
 import Lucid.Math
 
 import Control.Monad (guard, unless, when)
-import Data.Char (digitToInt, isDigit, isSpace)
+import Data.Char (digitToInt, isDigit, isSpace, toUpper)
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
@@ -41,6 +41,9 @@ data RenderHint = RenderHint
     } deriving (Show, Eq, Ord)
 
 type HintMap = Map (HintCategory, Marker) RenderHint
+
+proofCollapseThreshold :: Int
+proofCollapseThreshold = 10
 
 
 renderDocument :: FilePath -> Text -> [Block] -> Text
@@ -76,37 +79,41 @@ pageStyles = Text.unlines
     , "main {"
     , "  display: block;"
     , "}"
-    , "axiom-block, theorem-block, lemma-block, corollary-block, claim-block, proposition-block,"
-    , "definition-block, abbreviation-block, datatype-block, inductive-block, signature-block,"
-    , "struct-block, proof-block {"
+    , ".block {"
     , "  display: block;"
-    , "  margin: 0 0 1.5rem;"
-    , "  padding: 0.9rem 1rem;"
-    , "  border: 1px solid #cfc9bc;"
-    , "  border-radius: 0.35rem;"
-    , "  background: #fffdf8;"
+    , "  margin: 0 0 1rem;"
     , "}"
     , ".block-header {"
     , "  font-weight: 700;"
-    , "  margin-bottom: 0.5rem;"
     , "}"
     , ".block-title {"
     , "  font-weight: 400;"
-    , "  font-style: italic;"
     , "}"
-    , ".block-body > :first-child {"
-    , "  margin-top: 0;"
-    , "}"
-    , ".block-body > :last-child {"
-    , "  margin-bottom: 0;"
-    , "}"
+    , ".block-body,"
     , ".proof-body {"
-    , "  display: block;"
+    , "  display: contents;"
+    , "}"
+    , ".proof-body > p:first-child {"
+    , "  display: inline;"
+    , "  margin: 0;"
     , "}"
     , ".proof-nested {"
-    , "  margin-left: 1rem;"
+    , "  margin: 0.5rem 0 0.5rem 1rem;"
     , "  padding-left: 0.75rem;"
-    , "  border-left: 2px solid #d9d2c2;"
+    , "  border-left: 1px solid #d9d2c2;"
+    , "}"
+    , ".proof-details {"
+    , "  margin: 0;"
+    , "}"
+    , ".proof-details > summary {"
+    , "  cursor: pointer;"
+    , "  font-weight: 700;"
+    , "}"
+    , ".proof-details > summary .block-title {"
+    , "  font-weight: 400;"
+    , "}"
+    , ".proof-details > :not(summary) {"
+    , "  margin-top: 0.5rem;"
     , "}"
     , ".math-block {"
     , "  margin: 0.5rem 0;"
@@ -179,39 +186,70 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
 renderBlock :: HintMap -> Block -> Html ()
 renderBlock hints = \case
     BlockAxiom _loc title _marker axiom ->
-        renderCustomBlock "axiom-block" "Axiom." title (renderAxiom hints axiom)
+        renderCustomBlock "axiom-block" "Axiom" title (renderAxiom hints axiom)
     BlockClaim kind _loc title _marker claim ->
         renderCustomBlock (claimKindElement kind) (claimKindPrefix kind) title (renderClaim hints claim)
     BlockProof _start proof _end ->
-        renderCustomBlock "proof-block" "Proof." Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
+        renderProofBlock hints proof
     BlockDefn _loc title _marker defn ->
-        renderCustomBlock "definition-block" "Definition." title (renderDefn hints defn)
+        renderCustomBlock "definition-block" "Definition" title (renderDefn hints defn)
     BlockAbbr _loc title _marker abbr ->
-        renderCustomBlock "abbreviation-block" "Abbreviation." title (renderAbbreviation hints abbr)
+        renderCustomBlock "abbreviation-block" "Abbreviation" title (renderAbbreviation hints abbr)
     BlockData _loc datatype ->
-        renderCustomBlock "datatype-block" "Datatype." Nothing (renderDatatype hints datatype)
+        renderCustomBlock "datatype-block" "Datatype" Nothing (renderDatatype hints datatype)
     BlockInductive _loc title _marker ind ->
-        renderCustomBlock "inductive-block" "Inductive." title (renderInductive hints ind)
+        renderCustomBlock "inductive-block" "Inductive" title (renderInductive hints ind)
     BlockSig _loc title _marker asms sig ->
-        renderCustomBlock "signature-block" "Signature." title (renderSignatureBlock hints asms sig)
+        renderCustomBlock "signature-block" "Signature" title (renderSignatureBlock hints asms sig)
     BlockStruct _loc title _marker structDefn ->
-        renderCustomBlock "struct-block" "Structure." title (renderStructDefn hints structDefn)
+        renderCustomBlock "struct-block" "Structure" title (renderStructDefn hints structDefn)
 
 renderCustomBlock :: Text -> Text -> Maybe BlockTitle -> Html () -> Html ()
 renderCustomBlock name prefix mtitle body =
     term name [class_ "block"] do
-        div_ [class_ "block-header"] do
-            span_ [class_ "block-prefix"] (toHtml prefix)
-            case mtitle >>= titleText of
-                Nothing -> skip
-                Just title -> span_ [class_ "block-title"] do
-                    toHtml (" " :: Text)
-                    toHtml title
+        span_ [class_ "block-header"] (renderBlockLead prefix mtitle True)
         div_ [class_ "block-body"] body
+
+renderProofBlock :: HintMap -> Proof -> Html ()
+renderProofBlock hints proof
+    | proofStepCount proof >= proofCollapseThreshold =
+        term "proof-block" [class_ "block"] do
+            details_ [class_ "proof-details"] do
+                summary_ (renderBlockLead "Proof" Nothing False)
+                div_ [class_ "proof-body"] (renderProof hints proof)
+    | otherwise =
+        renderCustomBlock "proof-block" "Proof" Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
+
+renderBlockLead :: Text -> Maybe BlockTitle -> Bool -> Html ()
+renderBlockLead prefix mtitle withTrailingSpace = do
+    span_ [class_ "block-prefix"] (toHtml prefix)
+    case formatBlockTitle mtitle of
+        Nothing ->
+            toHtml ("." <> suffix)
+        Just title -> do
+            toHtml (" (" :: Text)
+            span_ [class_ "block-title"] (toHtml title)
+            toHtml (")." <> suffix)
     where
-        titleText toks =
-            let text = Text.strip (Text.unwords (tokToText <$> toks))
-            in if Text.null text then Nothing else Just text
+        suffix :: Text
+        suffix
+            | withTrailingSpace = " "
+            | otherwise = ""
+
+formatBlockTitle :: Maybe BlockTitle -> Maybe Text
+formatBlockTitle =
+    fmap capitalizeTitle . nonEmptyTitle
+    where
+        nonEmptyTitle = \case
+            Nothing -> Nothing
+            Just toks ->
+                let text = Text.strip (Text.unwords (tokToText <$> toks))
+                in if Text.null text then Nothing else Just text
+
+capitalizeTitle :: Text -> Text
+capitalizeTitle text = case Text.uncons text of
+    Nothing -> text
+    Just (c, rest) -> Text.cons (toUpper c) rest
 
 claimKindElement :: ClaimKind -> Text
 claimKindElement = \case
@@ -223,20 +261,20 @@ claimKindElement = \case
 
 claimKindPrefix :: ClaimKind -> Text
 claimKindPrefix = \case
-    Proposition -> "Proposition."
-    Theorem -> "Theorem."
-    Lemma -> "Lemma."
-    Corollary -> "Corollary."
-    PlainClaim -> "Claim."
+    Proposition -> "Proposition"
+    Theorem -> "Theorem"
+    Lemma -> "Lemma"
+    Corollary -> "Corollary"
+    PlainClaim -> "Claim"
 
 
 renderAxiom :: HintMap -> Axiom -> Html ()
 renderAxiom hints (Axiom asms stmt) =
-    p_ (renderWithAssumptions hints asms stmt)
+    renderWithAssumptions hints asms stmt
 
 renderClaim :: HintMap -> Claim -> Html ()
 renderClaim hints (Claim asms stmt) =
-    p_ (renderWithAssumptions hints asms stmt)
+    renderWithAssumptions hints asms stmt
 
 renderWithAssumptions :: HintMap -> [Asm] -> Stmt -> Html ()
 renderWithAssumptions hints asms stmt = do
@@ -252,7 +290,7 @@ renderWithAssumptions hints asms stmt = do
 renderDefn :: HintMap -> Defn -> Html ()
 renderDefn hints = \case
     Defn asms headStmt stmt ->
-        p_ do
+        do
             when (not (null asms)) do
                 toHtml ("If " :: Text)
                 renderAsmList hints asms
@@ -262,7 +300,7 @@ renderDefn hints = \case
             renderStmtInline hints stmt
             toHtml ("." :: Text)
     DefnFun asms fun maybeSymbol resultTerm ->
-        p_ do
+        do
             when (not (null asms)) do
                 toHtml ("If " :: Text)
                 renderAsmList hints asms
@@ -277,7 +315,7 @@ renderDefn hints = \case
             renderTermInline hints resultTerm
             toHtml ("." :: Text)
     DefnOp symb expr ->
-        p_ do
+        do
             renderSymbolPatternInline hints symb
             toHtml (" is defined as " :: Text)
             inlineMath (renderExprMath hints expr)
@@ -314,7 +352,7 @@ renderTypedVar hints = \case
 renderAbbreviation :: HintMap -> Abbreviation -> Html ()
 renderAbbreviation hints = \case
     AbbreviationAdj var adj stmt ->
-        p_ do
+        do
             renderVarInline var
             toHtml (" is " :: Text)
             renderAdjInline renderVarInline adj
@@ -322,7 +360,7 @@ renderAbbreviation hints = \case
             renderStmtInline hints stmt
             toHtml ("." :: Text)
     AbbreviationVerb var verb stmt ->
-        p_ do
+        do
             renderVarInline var
             toHtml (" " :: Text)
             renderVerbInline False renderVarInline verb
@@ -330,7 +368,7 @@ renderAbbreviation hints = \case
             renderStmtInline hints stmt
             toHtml ("." :: Text)
     AbbreviationNoun var noun stmt ->
-        p_ do
+        do
             renderVarInline var
             toHtml (" is a " :: Text)
             renderNounInline False renderVarInline noun
@@ -338,19 +376,19 @@ renderAbbreviation hints = \case
             renderStmtInline hints stmt
             toHtml ("." :: Text)
     AbbreviationRel x rel params y stmt ->
-        p_ do
+        do
             inlineMath (renderRelationApplication hints Positive [ExprVar x] (Relation Nowhere rel [ExprVar p | p <- params]) [ExprVar y])
             toHtml (" stands for " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
     AbbreviationFun fun bodyTerm ->
-        p_ do
+        do
             renderFunInline renderVarInline fun
             toHtml (" stands for " :: Text)
             renderTermInline hints bodyTerm
             toHtml ("." :: Text)
     AbbreviationEq symb expr ->
-        p_ do
+        do
             renderSymbolPatternInline hints symb
             toHtml (" stands for " :: Text)
             inlineMath (renderExprMath hints expr)
@@ -359,10 +397,9 @@ renderAbbreviation hints = \case
 renderDatatype :: HintMap -> Datatype -> Html ()
 renderDatatype hints = \case
     DatatypeFin noun labels -> do
-        p_ do
-            toHtml ("Finite datatype of " :: Text)
-            renderNounInline False (renderTermInline hints) noun
-            toHtml ("." :: Text)
+        toHtml ("Finite datatype of " :: Text)
+        renderNounInline False (renderTermInline hints) noun
+        toHtml ("." :: Text)
         p_ do
             toHtml ("Constructors: " :: Text)
             toHtml (Text.intercalate ", " (toList labels))
@@ -370,12 +407,11 @@ renderDatatype hints = \case
 
 renderInductive :: HintMap -> Inductive -> Html ()
 renderInductive hints Inductive{..} = do
-    p_ do
-        toHtml ("Inductive definition of " :: Text)
-        renderSymbolPatternInline hints inductiveSymbolPattern
-        toHtml (" over " :: Text)
-        inlineMath (renderExprMath hints inductiveDomain)
-        toHtml ("." :: Text)
+    toHtml ("Inductive definition of " :: Text)
+    renderSymbolPatternInline hints inductiveSymbolPattern
+    toHtml (" over " :: Text)
+    inlineMath (renderExprMath hints inductiveDomain)
+    toHtml ("." :: Text)
     ul_ do
         traverse_ renderIntro (toList inductiveIntros)
     where
@@ -392,12 +428,17 @@ renderInductive hints Inductive{..} = do
 
 renderSignatureBlock :: HintMap -> [Asm] -> Signature -> Html ()
 renderSignatureBlock hints asms sig = do
-    when (not (null asms)) do
-        p_ do
+    case asms of
+        [] -> skip
+        _ -> do
             toHtml ("Assumptions: " :: Text)
             renderAsmList hints asms
             toHtml ("." :: Text)
-    p_ do
+    when (not (null asms)) do
+        p_ do
+            renderSignature hints sig
+            toHtml ("." :: Text)
+    when (null asms) do
         renderSignature hints sig
         toHtml ("." :: Text)
 
@@ -422,10 +463,9 @@ renderSignature hints = \case
 
 renderStructDefn :: HintMap -> StructDefn -> Html ()
 renderStructDefn hints StructDefn{..} = do
-    p_ do
-        toHtml ("Structure phrase: " :: Text)
-        renderStructPhraseInline structPhrase
-        toHtml ("." :: Text)
+    toHtml ("Structure phrase: " :: Text)
+    renderStructPhraseInline structPhrase
+    toHtml ("." :: Text)
     p_ do
         toHtml ("Label: " :: Text)
         renderVarInline structLabel
@@ -584,6 +624,36 @@ renderProof hints = \case
                 inlineMath (renderFormulaMath hints formula)
                 toHtml ("." :: Text)
         renderProof hints proof
+
+proofStepCount :: Proof -> Int
+proofStepCount = \case
+    Omitted -> 1
+    Qed{} -> 1
+    ByCase _loc cases -> 1 + sum (caseStepCount <$> cases)
+    ByContradiction _loc proof -> 1 + proofStepCount proof
+    BySetInduction _loc _maybeTerm proof -> 1 + proofStepCount proof
+    ByOrdInduction _loc proof -> 1 + proofStepCount proof
+    Assume _loc _stmt proof -> 1 + proofStepCount proof
+    FixSymbolic _loc _vars _bound proof -> 1 + proofStepCount proof
+    FixSuchThat _loc _vars _stmt proof -> 1 + proofStepCount proof
+    Calc _loc _maybeQuant calc proof -> 1 + calcStepCount calc + proofStepCount proof
+    TakeVar _loc _vars _bound _stmt _justification proof -> 1 + proofStepCount proof
+    TakeNoun _loc _np _justification proof -> 1 + proofStepCount proof
+    Have _loc _maybeStmt _stmt _justification proof -> 1 + proofStepCount proof
+    Suffices _loc _stmt _justification proof -> 1 + proofStepCount proof
+    Subclaim _loc _stmt subproof proof -> 1 + proofStepCount subproof + proofStepCount proof
+    Define _loc _var _expr proof -> 1 + proofStepCount proof
+    DefineFunction _loc _fun _arg _value _boundVar _boundExpr proof -> 1 + proofStepCount proof
+    DefineFunctionLocal _loc _fun _arg _target _domVar _codVar rules proof ->
+        1 + length rules + proofStepCount proof
+
+caseStepCount :: Case -> Int
+caseStepCount Case{caseProof} = 1 + proofStepCount caseProof
+
+calcStepCount :: Calc -> Int
+calcStepCount = \case
+    Equation _ steps -> length steps
+    Biconditionals _ steps -> length steps
 
 renderCase :: HintMap -> Case -> Html ()
 renderCase hints Case{..} =
