@@ -14,7 +14,7 @@ import Lucid hiding (Term, for_)
 import Lucid.Math
 
 import Control.Monad (guard, unless, when)
-import Data.Char (digitToInt, isDigit, isSpace, toUpper)
+import Data.Char (digitToInt, isAlphaNum, isDigit, isSpace, toUpper)
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
@@ -51,6 +51,7 @@ renderDocument inputPath hintsSource blocks =
     LazyText.toStrict (renderText (renderPage hints))
     where
         hints = parseHints hintsSource
+        indexedBlocks = zip [1 :: Int ..] blocks
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -59,29 +60,100 @@ renderDocument inputPath hintsSource blocks =
                 title_ (toHtml (Text.pack inputPath))
                 style_ pageStyles
             body_ do
-                main_ do
-                    h1_ (toHtml (Text.pack inputPath))
-                    traverse_ (renderBlock hintMap) blocks
+                div_ [class_ "layout"] do
+                    aside_ [class_ "toc-column"] do
+                        nav_ [class_ "toc"] do
+                            h2_ [class_ "toc-heading"] "Contents"
+                            ol_ [class_ "toc-list"] do
+                                traverse_ (uncurry renderTocEntry) indexedBlocks
+                    main_ [class_ "content"] do
+                        h1_ (toHtml (Text.pack inputPath))
+                        traverse_ (uncurry (renderBlock hintMap)) indexedBlocks
 
 
 pageStyles :: Text
 pageStyles = Text.unlines
     [ ":root {"
-    , "  color-scheme: light;"
+    , "  color-scheme: light dark;"
     , "  font-family: Georgia, \"Times New Roman\", serif;"
+    , "  --page-bg: #ffffff;"
+    , "  --page-fg: #111111;"
+    , "  --muted-fg: #666666;"
+    , "  --subtle-fg: #444444;"
+    , "  --badge-bg: #f1f1f1;"
+    , "  --badge-border: #dddddd;"
+    , "  --badge-fg: #555555;"
+    , "  --rule-color: #d9d2c2;"
+    , "  --error-fg: #9f1d1d;"
+    , "  --error-bg: #fff1f1;"
     , "}"
     , "body {"
     , "  margin: 2rem auto;"
-    , "  max-width: 56rem;"
+    , "  max-width: 84rem;"
     , "  padding: 0 1.25rem 3rem;"
     , "  line-height: 1.5;"
+    , "  background: var(--page-bg);"
+    , "  color: var(--page-fg);"
+    , "}"
+    , ".layout {"
+    , "  display: grid;"
+    , "  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);"
+    , "  gap: 2rem;"
+    , "  align-items: start;"
+    , "}"
+    , ".toc-column {"
+    , "  display: block;"
+    , "}"
+    , ".toc {"
+    , "  position: sticky;"
+    , "  top: 1.5rem;"
+    , "  max-height: calc(100vh - 3rem);"
+    , "  overflow: auto;"
+    , "  padding-right: 0.5rem;"
+    , "}"
+    , ".toc-heading {"
+    , "  margin: 0 0 0.75rem;"
+    , "  color: var(--muted-fg);"
+    , "  font-size: 0.9rem;"
+    , "  letter-spacing: 0.04em;"
+    , "  text-transform: uppercase;"
+    , "}"
+    , ".toc-list {"
+    , "  list-style: none;"
+    , "  margin: 0;"
+    , "  padding: 0;"
+    , "}"
+    , ".toc-item {"
+    , "  margin: 0 0 0.45rem;"
+    , "}"
+    , ".toc-link {"
+    , "  color: inherit;"
+    , "  text-decoration: none;"
+    , "}"
+    , ".toc-link:hover,"
+    , ".toc-link:focus-visible {"
+    , "  text-decoration: underline;"
+    , "}"
+    , ".toc-prefix {"
+    , "  font-weight: 700;"
+    , "}"
+    , ".toc-marker {"
+    , "  margin-left: 0.35rem;"
+    , "  color: var(--muted-fg);"
+    , "  font-family: \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;"
+    , "  font-size: 0.9em;"
+    , "}"
+    , ".toc-title {"
+    , "  color: var(--subtle-fg);"
     , "}"
     , "main {"
     , "  display: block;"
+    , "  min-width: 0;"
     , "}"
     , ".block {"
     , "  display: block;"
     , "  margin: 0 0 1rem;"
+    , "  scroll-margin-top: 1rem;"
     , "}"
     , ".block-header {"
     , "  font-weight: 700;"
@@ -93,10 +165,10 @@ pageStyles = Text.unlines
     , "  display: inline-block;"
     , "  margin-left: 0.45rem;"
     , "  padding: 0.02rem 0.35rem;"
-    , "  border: 1px solid #ddd;"
+    , "  border: 1px solid var(--badge-border);"
     , "  border-radius: 0.2rem;"
-    , "  background: #f1f1f1;"
-    , "  color: #555;"
+    , "  background: var(--badge-bg);"
+    , "  color: var(--badge-fg);"
     , "  font-family: \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;"
     , "  font-size: 0.82em;"
     , "}"
@@ -111,7 +183,7 @@ pageStyles = Text.unlines
     , ".proof-nested {"
     , "  margin: 0.5rem 0 0.5rem 1rem;"
     , "  padding-left: 0.75rem;"
-    , "  border-left: 1px solid #d9d2c2;"
+    , "  border-left: 1px solid var(--rule-color);"
     , "}"
     , ".proof-details {"
     , "  margin: 0;"
@@ -130,8 +202,34 @@ pageStyles = Text.unlines
     , "  margin: 0.5rem 0;"
     , "}"
     , "merror {"
-    , "  color: #9f1d1d;"
-    , "  background: #fff1f1;"
+    , "  color: var(--error-fg);"
+    , "  background: var(--error-bg);"
+    , "}"
+    , "@media (prefers-color-scheme: dark) {"
+    , "  :root {"
+    , "    --page-bg: #161616;"
+    , "    --page-fg: #e9e6df;"
+    , "    --muted-fg: #b7b0a4;"
+    , "    --subtle-fg: #cfc8bc;"
+    , "    --badge-bg: #2a2a2a;"
+    , "    --badge-border: #444444;"
+    , "    --badge-fg: #d8d3ca;"
+    , "    --rule-color: #5b5348;"
+    , "    --error-fg: #ffb0b0;"
+    , "    --error-bg: #3b1f1f;"
+    , "  }"
+    , "}"
+    , "@media (max-width: 900px) {"
+    , "  .layout {"
+    , "    grid-template-columns: 1fr;"
+    , "    gap: 1.5rem;"
+    , "  }"
+    , "  .toc {"
+    , "    position: static;"
+    , "    max-height: none;"
+    , "    overflow: visible;"
+    , "    padding-right: 0;"
+    , "  }"
     , "}"
     ]
 
@@ -194,42 +292,116 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
         _unusedLineNo = lineNo
 
 
-renderBlock :: HintMap -> Block -> Html ()
-renderBlock hints = \case
+renderBlock :: HintMap -> Int -> Block -> Html ()
+renderBlock hints index block = case block of
     BlockAxiom _loc title marker axiom ->
-        renderCustomBlock "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
+        renderCustomBlock (blockAnchorId index block) "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
     BlockClaim kind _loc title marker claim ->
-        renderCustomBlock (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
+        renderCustomBlock (blockAnchorId index block) (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
-        renderProofBlock hints proof
+        renderProofBlock (blockAnchorId index block) hints proof
     BlockDefn _loc title marker defn ->
-        renderCustomBlock "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
+        renderCustomBlock (blockAnchorId index block) "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
-        renderCustomBlock "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
+        renderCustomBlock (blockAnchorId index block) "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
     BlockData _loc datatype ->
-        renderCustomBlock "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
+        renderCustomBlock (blockAnchorId index block) "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
     BlockInductive _loc title marker ind ->
-        renderCustomBlock "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
+        renderCustomBlock (blockAnchorId index block) "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
     BlockSig _loc title marker asms sig ->
-        renderCustomBlock "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
+        renderCustomBlock (blockAnchorId index block) "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
     BlockStruct _loc title marker structDefn ->
-        renderCustomBlock "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
+        renderCustomBlock (blockAnchorId index block) "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
 
-renderCustomBlock :: Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
-renderCustomBlock name prefix mmarker mtitle body =
-    term name [class_ "block"] do
+renderTocEntry :: Int -> Block -> Html ()
+renderTocEntry index block =
+    li_ [class_ "toc-item"] do
+        a_ [class_ "toc-link", href_ ("#" <> blockAnchorId index block)] do
+            span_ [class_ "toc-prefix"] (toHtml (blockPrefixText block))
+            case formatMarker (blockMarkerOf block) of
+                Nothing -> skip
+                Just marker ->
+                    span_ [class_ "toc-marker"] (toHtml marker)
+            case formatBlockTitle (blockTitleOf block) of
+                Nothing ->
+                    when (blockNeedsIndexLabel block) do
+                        toHtml (" " <> Text.pack (show index) :: Text)
+                Just title ->
+                    span_ [class_ "toc-title"] (toHtml (" (" <> title <> ")" :: Text))
+
+renderCustomBlock :: Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
+renderCustomBlock blockId name prefix mmarker mtitle body =
+    term name [id_ blockId, class_ "block"] do
         span_ [class_ "block-header"] (renderBlockLead prefix mmarker mtitle True)
         div_ [class_ "block-body"] body
 
-renderProofBlock :: HintMap -> Proof -> Html ()
-renderProofBlock hints proof
+renderProofBlock :: Text -> HintMap -> Proof -> Html ()
+renderProofBlock blockId hints proof
     | proofStepCount proof >= proofCollapseThreshold =
-        term "proof-block" [class_ "block"] do
+        term "proof-block" [id_ blockId, class_ "block"] do
             details_ [class_ "proof-details"] do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
                 div_ [class_ "proof-body"] (renderProof hints proof)
     | otherwise =
-        renderCustomBlock "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
+        renderCustomBlock blockId "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
+
+blockAnchorId :: Int -> Block -> Text
+blockAnchorId index block =
+    "block-" <> Text.pack (show index) <> "-" <> sanitizeIdFragment raw
+    where
+        raw = case formatMarker (blockMarkerOf block) of
+            Nothing -> blockPrefixText block
+            Just marker -> marker
+
+sanitizeIdFragment :: Text -> Text
+sanitizeIdFragment =
+    Text.dropWhile (== '-') . Text.map sanitize . Text.toLower
+    where
+        sanitize c
+            | isAlphaNum c = c
+            | c == '-' || c == '_' = c
+            | otherwise = '-'
+
+blockPrefixText :: Block -> Text
+blockPrefixText = \case
+    BlockAxiom{} -> "Axiom"
+    BlockClaim kind _ _ _ _ -> claimKindPrefix kind
+    BlockProof{} -> "Proof"
+    BlockDefn{} -> "Definition"
+    BlockAbbr{} -> "Abbreviation"
+    BlockData{} -> "Datatype"
+    BlockInductive{} -> "Inductive"
+    BlockSig{} -> "Signature"
+    BlockStruct{} -> "Structure"
+
+blockMarkerOf :: Block -> Maybe Marker
+blockMarkerOf = \case
+    BlockAxiom _ _ marker _ -> Just marker
+    BlockClaim _ _ _ marker _ -> Just marker
+    BlockProof{} -> Nothing
+    BlockDefn _ _ marker _ -> Just marker
+    BlockAbbr _ _ marker _ -> Just marker
+    BlockData{} -> Nothing
+    BlockInductive _ _ marker _ -> Just marker
+    BlockSig _ _ marker _ _ -> Just marker
+    BlockStruct _ _ marker _ -> Just marker
+
+blockTitleOf :: Block -> Maybe BlockTitle
+blockTitleOf = \case
+    BlockAxiom _ title _ _ -> title
+    BlockClaim _ _ title _ _ -> title
+    BlockProof{} -> Nothing
+    BlockDefn _ title _ _ -> title
+    BlockAbbr _ title _ _ -> title
+    BlockData{} -> Nothing
+    BlockInductive _ title _ _ -> title
+    BlockSig _ title _ _ _ -> title
+    BlockStruct _ title _ _ -> title
+
+blockNeedsIndexLabel :: Block -> Bool
+blockNeedsIndexLabel block = case (formatMarker (blockMarkerOf block), formatBlockTitle (blockTitleOf block)) of
+    (Nothing, Nothing) -> True
+    _ -> False
 
 renderBlockLead :: Text -> Maybe Marker -> Maybe BlockTitle -> Bool -> Html ()
 renderBlockLead prefix mmarker mtitle withTrailingSpace = do
