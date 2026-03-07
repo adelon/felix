@@ -14,9 +14,11 @@ import Lucid hiding (Term, for_)
 import Lucid.Math
 
 import Control.Monad (guard, unless, when)
+import Control.Monad.State.Strict (State, execState, modify')
 import Data.Char (digitToInt, isAlphaNum, isDigit, isSpace, toUpper)
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map.Strict qualified as Map
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Lazy qualified as LazyText
 import Report.Location (pattern Nowhere)
@@ -41,6 +43,7 @@ data RenderHint = RenderHint
     } deriving (Show, Eq, Ord)
 
 type HintMap = Map (HintCategory, Marker) RenderHint
+type MissingHintMap = Map HintCategory (Set Marker)
 
 proofCollapseThreshold :: Int
 proofCollapseThreshold = 10
@@ -48,9 +51,13 @@ proofCollapseThreshold = 10
 
 renderDocument :: FilePath -> Text -> [Block] -> Text
 renderDocument inputPath hintsSource blocks =
-    LazyText.toStrict (renderText (renderPage hints))
+    case formatMissingHintWarning missingHints of
+        Nothing -> rendered
+        Just warningText -> trace (Text.unpack warningText) rendered
     where
         hints = parseHints hintsSource
+        missingHints = collectMissingHints hints blocks
+        rendered = LazyText.toStrict (renderText (renderPage hints))
         indexedBlocks = zip [1 :: Int ..] blocks
         tocBlocks = [(index, block) | (index, block) <- indexedBlocks, includeInToc block]
 
@@ -251,6 +258,430 @@ pageStyles = Text.unlines
     , "  }"
     , "}"
     ]
+
+
+collectMissingHints :: HintMap -> [Block] -> MissingHintMap
+collectMissingHints hints blocks = execState (traverse_ collectBlock blocks) mempty
+    where
+        noteMissingHint :: HintCategory -> Marker -> State MissingHintMap ()
+        noteMissingHint category marker =
+            unless (Map.member (category, marker) hints) do
+                modify' (Map.insertWith Set.union category (Set.singleton marker))
+
+        collectBlock :: Block -> State MissingHintMap ()
+        collectBlock = \case
+            BlockAxiom _loc _title _marker axiom ->
+                collectAxiom axiom
+            BlockClaim _kind _loc _title _marker claim ->
+                collectClaim claim
+            BlockProof _start proof _end ->
+                collectProof proof
+            BlockDefn _loc _title _marker defn ->
+                collectDefn defn
+            BlockAbbr _loc _title _marker abbr ->
+                collectAbbreviation abbr
+            BlockData _loc datatype ->
+                collectDatatype datatype
+            BlockInductive _loc _title _marker ind ->
+                collectInductive ind
+            BlockSig _loc _title _marker asms sig -> do
+                traverse_ collectAsm asms
+                collectSignature sig
+            BlockStruct _loc _title _marker structDefn ->
+                collectStructDefn structDefn
+
+        collectAxiom :: Axiom -> State MissingHintMap ()
+        collectAxiom (Axiom asms stmt) = do
+            traverse_ collectAsm asms
+            collectStmt stmt
+
+        collectClaim :: Claim -> State MissingHintMap ()
+        collectClaim (Claim asms stmt) = do
+            traverse_ collectAsm asms
+            collectStmt stmt
+
+        collectDefn :: Defn -> State MissingHintMap ()
+        collectDefn = \case
+            Defn asms defnHead stmt -> do
+                traverse_ collectAsm asms
+                collectDefnHead defnHead
+                collectStmt stmt
+            DefnFun asms fun maybeTerm resultTerm -> do
+                traverse_ collectAsm asms
+                collectFunWith (const skip) fun
+                traverse_ collectTerm maybeTerm
+                collectTerm resultTerm
+            DefnOp symb expr -> do
+                collectSymbolPattern symb
+                collectExpr expr
+
+        collectDefnHead :: DefnHead -> State MissingHintMap ()
+        collectDefnHead = \case
+            DefnAdj maybeNp _var adj -> do
+                traverse_ collectNounPhraseMaybe maybeNp
+                collectAdjWith (const skip) adj
+            DefnVerb maybeNp _var verb -> do
+                traverse_ collectNounPhraseMaybe maybeNp
+                collectVerbWith (const skip) verb
+            DefnNoun _var noun ->
+                collectNounWith (const skip) noun
+            DefnSymbolicPredicate{} ->
+                skip
+            DefnRel _x rel _params _y ->
+                noteMissingHint RelationHint (relationSymbolMarker rel)
+
+        collectAbbreviation :: Abbreviation -> State MissingHintMap ()
+        collectAbbreviation = \case
+            AbbreviationAdj _var adj stmt -> do
+                collectAdjWith (const skip) adj
+                collectStmt stmt
+            AbbreviationVerb _var verb stmt -> do
+                collectVerbWith (const skip) verb
+                collectStmt stmt
+            AbbreviationNoun _var noun stmt -> do
+                collectNounWith (const skip) noun
+                collectStmt stmt
+            AbbreviationRel _x rel _params _y stmt -> do
+                noteMissingHint RelationHint (relationSymbolMarker rel)
+                collectStmt stmt
+            AbbreviationFun fun bodyTerm -> do
+                collectFunWith (const skip) fun
+                collectTerm bodyTerm
+            AbbreviationEq symb expr -> do
+                collectSymbolPattern symb
+                collectExpr expr
+
+        collectDatatype :: Datatype -> State MissingHintMap ()
+        collectDatatype = \case
+            DatatypeFin noun _labels ->
+                collectNoun noun
+
+        collectInductive :: Inductive -> State MissingHintMap ()
+        collectInductive Inductive{..} = do
+            collectSymbolPattern inductiveSymbolPattern
+            collectExpr inductiveDomain
+            traverse_ collectIntroRule inductiveIntros
+
+        collectIntroRule :: IntroRule -> State MissingHintMap ()
+        collectIntroRule IntroRule{..} = do
+            traverse_ collectFormula introConditions
+            collectFormula introResult
+
+        collectSignature :: Signature -> State MissingHintMap ()
+        collectSignature = \case
+            SignatureAdj _var adj ->
+                collectAdjWith (const skip) adj
+            SignatureVerb _var verb ->
+                collectVerbWith (const skip) verb
+            SignatureNoun _var noun ->
+                collectNounWith (const skip) noun
+            SignatureSymbolic symb np -> do
+                collectSymbolPattern symb
+                collectNounPhraseMaybe np
+
+        collectStructDefn :: StructDefn -> State MissingHintMap ()
+        collectStructDefn StructDefn{structAssumes} =
+            traverse_ (collectStmt . snd) structAssumes
+
+        collectProof :: Proof -> State MissingHintMap ()
+        collectProof = \case
+            Omitted ->
+                skip
+            Qed{} ->
+                skip
+            ByCase _loc cases ->
+                traverse_ collectCase cases
+            ByContradiction _loc proof ->
+                collectProof proof
+            BySetInduction _loc maybeTerm proof -> do
+                traverse_ collectTerm maybeTerm
+                collectProof proof
+            ByOrdInduction _loc proof ->
+                collectProof proof
+            Assume _loc stmt proof -> do
+                collectStmt stmt
+                collectProof proof
+            FixSymbolic _loc _vars bound proof -> do
+                collectBound bound
+                collectProof proof
+            FixSuchThat _loc _vars stmt proof -> do
+                collectStmt stmt
+                collectProof proof
+            Calc _loc maybeQuant calc proof -> do
+                traverse_ collectCalcQuantifier maybeQuant
+                collectCalc calc
+                collectProof proof
+            TakeVar _loc _vars bound stmt _justification proof -> do
+                collectBound bound
+                collectStmt stmt
+                collectProof proof
+            TakeNoun _loc np _justification proof -> do
+                collectNounPhraseList np
+                collectProof proof
+            Have _loc maybeStmt stmt _justification proof -> do
+                traverse_ collectStmt maybeStmt
+                collectStmt stmt
+                collectProof proof
+            Suffices _loc stmt _justification proof -> do
+                collectStmt stmt
+                collectProof proof
+            Subclaim _loc stmt subproof proof -> do
+                collectStmt stmt
+                collectProof subproof
+                collectProof proof
+            Define _loc _var expr proof -> do
+                collectExpr expr
+                collectProof proof
+            DefineFunction _loc _fun _arg value _boundVar boundExpr proof -> do
+                collectExpr value
+                collectExpr boundExpr
+                collectProof proof
+            DefineFunctionLocal _loc _fun _arg _target _domVar _codVar rules proof -> do
+                traverse_ collectLocalFunctionRule rules
+                collectProof proof
+
+        collectLocalFunctionRule :: (Expr, Formula) -> State MissingHintMap ()
+        collectLocalFunctionRule (ruleTerm, formula) = do
+            collectExpr ruleTerm
+            collectFormula formula
+
+        collectCase :: Case -> State MissingHintMap ()
+        collectCase Case{caseOf, caseProof} = do
+            collectStmt caseOf
+            collectProof caseProof
+
+        collectCalcQuantifier :: CalcQuantifier -> State MissingHintMap ()
+        collectCalcQuantifier (CalcQuantifier _vars bound maybeStmt) = do
+            collectBound bound
+            traverse_ collectStmt maybeStmt
+
+        collectCalc :: Calc -> State MissingHintMap ()
+        collectCalc = \case
+            Equation expr steps -> do
+                collectExpr expr
+                traverse_ (collectExpr . fst) steps
+            Biconditionals phi steps -> do
+                collectFormula phi
+                traverse_ (collectFormula . fst) steps
+
+        collectStmt :: Stmt -> State MissingHintMap ()
+        collectStmt = \case
+            StmtFormula phi ->
+                collectFormula phi
+            StmtVerbPhrase terms verbPhrase -> do
+                traverse_ collectTerm terms
+                collectVerbPhrase verbPhrase
+            StmtNoun terms np -> do
+                traverse_ collectTerm terms
+                collectNounPhraseMaybe np
+            StmtStruct stmtTerm _structPhrase ->
+                collectTerm stmtTerm
+            StmtNeg _loc stmt ->
+                collectStmt stmt
+            StmtExists _loc np ->
+                collectNounPhraseList np
+            StmtConnected _conn _loc stmt1 stmt2 -> do
+                collectStmt stmt1
+                collectStmt stmt2
+            StmtQuantPhrase _loc qp stmt -> do
+                collectQuantPhrase qp
+                collectStmt stmt
+            SymbolicQuantified _loc _quant _vars bound suchThat stmt -> do
+                collectBound bound
+                traverse_ collectStmt suchThat
+                collectStmt stmt
+
+        collectQuantPhrase :: QuantPhrase -> State MissingHintMap ()
+        collectQuantPhrase (QuantPhrase _quant np) =
+            collectNounPhraseList np
+
+        collectAsm :: Asm -> State MissingHintMap ()
+        collectAsm = \case
+            AsmSuppose stmt ->
+                collectStmt stmt
+            AsmLetNoun _vars np ->
+                collectNounPhraseMaybe np
+            AsmLetIn _vars expr ->
+                collectExpr expr
+            AsmLetThe _var fun ->
+                collectFun fun
+            AsmLetEq _var expr ->
+                collectExpr expr
+            AsmLetStruct{} ->
+                skip
+
+        collectTerm :: Term -> State MissingHintMap ()
+        collectTerm = \case
+            TermExpr expr ->
+                collectExpr expr
+            TermFun fun ->
+                collectFun fun
+            TermIota _loc _var stmt ->
+                collectStmt stmt
+            TermQuantified _quant _loc np ->
+                collectNounPhraseMaybe np
+
+        collectNounPhraseMaybe :: NounPhrase Maybe -> State MissingHintMap ()
+        collectNounPhraseMaybe (NounPhrase ls noun _maybeName rs maybeSuchThat) = do
+            traverse_ collectAdjL ls
+            collectNoun noun
+            traverse_ collectAdjR rs
+            traverse_ collectStmt maybeSuchThat
+
+        collectNounPhraseList :: NounPhrase [] -> State MissingHintMap ()
+        collectNounPhraseList (NounPhrase ls noun _names rs maybeSuchThat) = do
+            traverse_ collectAdjL ls
+            collectNoun noun
+            traverse_ collectAdjR rs
+            traverse_ collectStmt maybeSuchThat
+
+        collectAdjL :: AdjLOf Term -> State MissingHintMap ()
+        collectAdjL (AdjL _loc _item args) =
+            traverse_ collectTerm args
+
+        collectAdjR :: AdjROf Term -> State MissingHintMap ()
+        collectAdjR = \case
+            AdjR _loc _item args ->
+                traverse_ collectTerm args
+            AttrRThat verbPhrase ->
+                collectVerbPhrase verbPhrase
+
+        collectAdjWith :: (a -> State MissingHintMap ()) -> AdjOf a -> State MissingHintMap ()
+        collectAdjWith collectArg (Adj _loc _item args) =
+            traverse_ collectArg args
+
+        collectAdj :: AdjOf Term -> State MissingHintMap ()
+        collectAdj =
+            collectAdjWith collectTerm
+
+        collectVerbWith :: (a -> State MissingHintMap ()) -> VerbOf a -> State MissingHintMap ()
+        collectVerbWith collectArg (Verb _loc _item args) =
+            traverse_ collectArg args
+
+        collectVerb :: VerbOf Term -> State MissingHintMap ()
+        collectVerb =
+            collectVerbWith collectTerm
+
+        collectVerbPhrase :: VerbPhrase -> State MissingHintMap ()
+        collectVerbPhrase = \case
+            VPVerb verb ->
+                collectVerb verb
+            VPAdj adjs ->
+                traverse_ collectAdj adjs
+            VPVerbNot verb ->
+                collectVerb verb
+            VPAdjNot adjs ->
+                traverse_ collectAdj adjs
+
+        collectNounWith :: (a -> State MissingHintMap ()) -> NounOf a -> State MissingHintMap ()
+        collectNounWith collectArg (Noun _loc _item args) =
+            traverse_ collectArg args
+
+        collectNoun :: NounOf Term -> State MissingHintMap ()
+        collectNoun =
+            collectNounWith collectTerm
+
+        collectFunWith :: (a -> State MissingHintMap ()) -> FunOf a -> State MissingHintMap ()
+        collectFunWith collectArg Fun{funArgs} =
+            traverse_ collectArg funArgs
+
+        collectFun :: FunOf Term -> State MissingHintMap ()
+        collectFun =
+            collectFunWith collectTerm
+
+        collectBound :: Bound -> State MissingHintMap ()
+        collectBound = \case
+            Unbounded ->
+                skip
+            Bounded _loc _sign rel expr -> do
+                collectRelation rel
+                collectExpr expr
+
+        collectFormula :: Formula -> State MissingHintMap ()
+        collectFormula = \case
+            FormulaChain chain ->
+                collectChain chain
+            FormulaPredicate _loc _predi marker exprs -> do
+                noteMissingHint PredicateHint marker
+                traverse_ collectExpr exprs
+            Connected _loc _conn phi psi -> do
+                collectFormula phi
+                collectFormula psi
+            FormulaNeg _loc phi ->
+                collectFormula phi
+            FormulaQuantified _loc _quant _vars bound phi -> do
+                collectBound bound
+                collectFormula phi
+            PropositionalConstant{} ->
+                skip
+
+        collectChain :: Chain -> State MissingHintMap ()
+        collectChain = \case
+            ChainBase lhs _sign rel rhs -> do
+                traverse_ collectExpr lhs
+                collectRelation rel
+                traverse_ collectExpr rhs
+            ChainCons lhs _sign rel chain -> do
+                traverse_ collectExpr lhs
+                collectRelation rel
+                collectChain chain
+
+        collectRelation :: Relation -> State MissingHintMap ()
+        collectRelation = \case
+            Relation _loc symbol relParams -> do
+                noteMissingHint RelationHint (relationSymbolMarker symbol)
+                traverse_ collectExpr relParams
+            RelationExpr _loc expr ->
+                collectExpr expr
+
+        collectExpr :: Expr -> State MissingHintMap ()
+        collectExpr = \case
+            ExprVar{} ->
+                skip
+            ExprInteger{} ->
+                skip
+            ExprOp _loc item args -> do
+                noteMissingHint OperatorHint (mixfixMarker item)
+                traverse_ collectExpr args
+            ExprStructOp _loc symb maybeExpr -> do
+                noteMissingHint StructOpHint (structMarker symb)
+                traverse_ collectExpr maybeExpr
+            ExprFiniteSet _loc exprs ->
+                traverse_ collectExpr exprs
+            ExprSep _loc _var boundExpr stmt -> do
+                collectExpr boundExpr
+                collectStmt stmt
+            ExprReplace _loc expr bounds maybeStmt -> do
+                collectExpr expr
+                traverse_ (collectExpr . snd) bounds
+                traverse_ collectStmt maybeStmt
+            ExprReplacePred _loc _rangeVar _domVar domExpr stmt -> do
+                collectExpr domExpr
+                collectStmt stmt
+
+        collectSymbolPattern :: SymbolPattern -> State MissingHintMap ()
+        collectSymbolPattern (SymbolPattern symbol _vars) =
+            noteMissingHint OperatorHint (mixfixMarker symbol)
+
+formatMissingHintWarning :: MissingHintMap -> Maybe Text
+formatMissingHintWarning missingHints
+    | null parts = Nothing
+    | otherwise = Just ("WARNING: missing render hints: " <> Text.intercalate "; " parts)
+    where
+        parts =
+            [ label <> "(" <> Text.intercalate ", " (markerText <$> Set.toAscList markers) <> ")"
+            | (category, label) <- categoryLabels
+            , Just markers <- [Map.lookup category missingHints]
+            , not (Set.null markers)
+            ]
+
+        categoryLabels :: [(HintCategory, Text)]
+        categoryLabels =
+            [ (OperatorHint, "operators")
+            , (RelationHint, "relations")
+            , (PredicateHint, "predicates")
+            , (StructOpHint, "structops")
+            ]
 
 
 parseHints :: Text -> HintMap
@@ -1374,19 +1805,13 @@ renderHintedMath :: HintMap -> HintCategory -> Marker -> [Expr] -> Html () -> Ht
 renderHintedMath hints category marker args fallback =
     case Map.lookup (category, marker) hints of
         Nothing ->
-            trace warningText fallback
+            fallback
         Just RenderHint{..}
             | renderHintArity /= length args ->
                 error ("Render hint arity mismatch for " <> show category <> " " <> show marker <> ": expected " <> show renderHintArity <> ", got " <> show (length args))
             | otherwise ->
                 mrow_ (traverse_ renderPiece renderHintTemplate)
     where
-        warningText =
-            "WARNING: missing render hint for "
-                <> show category
-                <> " "
-                <> show marker
-
         renderedArgs = renderExprMath hints <$> args
 
         renderPiece :: TemplatePiece -> Html ()
