@@ -4,7 +4,7 @@
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "empty" )
     ( AbbreviationAdj
         ( NamedVar "x" )
@@ -65,15 +65,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/abbr.tex"
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "dummy_abbr_test_adj" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just
@@ -134,7 +134,7 @@
         , locLine = 11
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "function" )
     ( AbbreviationNoun
         ( NamedVar "x" )
@@ -181,15 +181,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/abbr.tex"
         , locLine = 15
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "dummy_abbr_test_noun" )
-    ( Lemma []
+    ( Claim []
         ( SymbolicQuantified
             { loc = Location
                 { locFile = "test/examples/abbr.tex"
@@ -234,7 +234,7 @@
         , locLine = 21
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "converges" )
     ( AbbreviationVerb
         ( NamedVar "x" )
@@ -288,15 +288,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/abbr.tex"
         , locLine = 25
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "dummy_abbr_test_verb" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just
@@ -368,15 +368,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/abbr.tex"
         , locLine = 31
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "abbr_test_notin" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just
@@ -435,15 +435,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/abbr.tex"
         , locLine = 37
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "abbr_test_elementof_is_in" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just
@@ -515,15 +515,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/abbr.tex"
         , locLine = 43
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "abbr_test_equals_is_eq" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just

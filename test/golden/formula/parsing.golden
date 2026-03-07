@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/formula.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "formula_test_forall" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaQuantified
                 ( Location
@@ -73,15 +73,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/formula.tex"
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "formula_test_exists" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaQuantified
                 ( Location
@@ -118,15 +118,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/formula.tex"
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "formula_test_not_exists" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Equivalence
             , mloc = Nothing

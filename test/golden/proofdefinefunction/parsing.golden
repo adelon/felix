@@ -4,7 +4,7 @@
         , locLine = 3
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "apply" )
     ( DefnOp
         ( SymbolPattern
@@ -37,7 +37,7 @@
         , locLine = 8
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "dom" )
     ( DefnOp
         ( SymbolPattern
@@ -62,7 +62,7 @@
         , locLine = 13
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "rightunique" )
     ( Defn []
         ( DefnAdj Nothing
@@ -113,7 +113,7 @@
         , locLine = 18
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "relation" )
     ( Defn []
         ( DefnNoun
@@ -162,15 +162,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/proofdefinefunction.tex"
         , locLine = 22
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "definefunctiontest" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just

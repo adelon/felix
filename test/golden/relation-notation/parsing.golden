@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/relation-notation.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "mathrel_notation_test" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just

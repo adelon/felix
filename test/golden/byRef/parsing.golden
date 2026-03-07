@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/byRef.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "prop1" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -32,15 +32,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/byRef.tex"
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "prop2" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -66,15 +66,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/byRef.tex"
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "prop3" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -126,15 +126,15 @@
         , locColumn = 1
         }
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/byRef.tex"
         , locLine = 16
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "prop4" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -219,15 +219,15 @@
         , locColumn = 1
         }
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/byRef.tex"
         , locLine = 23
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "prop5" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase

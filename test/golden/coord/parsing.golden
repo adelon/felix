@@ -4,7 +4,7 @@
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "bar" )
     ( Defn []
         ( DefnNoun
@@ -59,7 +59,7 @@
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "foo" )
     ( Defn []
         ( DefnAdj Nothing
@@ -110,7 +110,7 @@
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "baz" )
     ( Defn []
         ( DefnAdj Nothing
@@ -155,15 +155,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/coord.tex"
         , locLine = 13
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "nouns" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "x" :|
                 [ NamedVar "y" ]
@@ -212,15 +212,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/coord.tex"
         , locLine = 18
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "adj_nouns" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "x" :|
                 [ NamedVar "y" ]
@@ -285,15 +285,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/coord.tex"
         , locLine = 24
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "nouns_suchthat" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "x" :|
                 [ NamedVar "y" ]
@@ -391,15 +391,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/coord.tex"
         , locLine = 30
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "noun_verb" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Equivalence
             , mloc = Nothing
@@ -478,15 +478,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/coord.tex"
         , locLine = 35
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "adjs" )
-    ( Lemma []
+    ( Claim []
         ( StmtVerbPhrase
             { args = TermExpr
                 ( ExprVar
@@ -524,15 +524,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/coord.tex"
         , locLine = 39
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "are_nouns" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "x" :|
                 [ NamedVar "y" ]

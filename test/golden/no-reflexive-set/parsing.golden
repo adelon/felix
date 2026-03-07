@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/no-reflexive-set.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "in_irrefl" )
-    ( Lemma []
+    ( Claim []
         ( StmtQuantPhrase
             { loc = Location
                 { locFile = "test/examples/no-reflexive-set.tex"

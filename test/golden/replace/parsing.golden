@@ -4,7 +4,7 @@
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "cons" )
     ( Axiom []
         ( StmtConnected
@@ -117,7 +117,7 @@
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "times" )
     ( DefnOp
         ( SymbolPattern
@@ -188,7 +188,7 @@
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "unit" )
     ( DefnOp
         ( SymbolPattern
@@ -222,15 +222,15 @@
             )
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/replace.tex"
         , locLine = 13
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "pair_emptyset_in_times_unit" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -349,7 +349,7 @@
         , locLine = 19
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "suc" )
     ( DefnOp
         ( SymbolPattern
@@ -410,15 +410,15 @@
             )
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/replace.tex"
         , locLine = 25
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "times_replacement_test" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase

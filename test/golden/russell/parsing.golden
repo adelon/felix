@@ -4,7 +4,7 @@
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "universal_set" )
     ( Defn []
         ( DefnAdj
@@ -98,15 +98,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Theorem
     ( Location
         { locFile = "test/examples/russell.tex"
         , locLine = 7
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "no_universal_set" )
-    ( Lemma []
+    ( Claim []
         ( StmtNeg
             { loc = Location
                 { locFile = "test/examples/russell.tex"

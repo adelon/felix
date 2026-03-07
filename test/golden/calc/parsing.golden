@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/calc.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "trivial" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -32,15 +32,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/calc.tex"
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "irrelevant" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -66,15 +66,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/calc.tex"
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "alsotrivial" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -139,15 +139,15 @@
         , locColumn = 1
         }
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/calc.tex"
         , locLine = 22
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "trivial_biconditionals" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase

@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/proofassume.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "assumetest" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just
@@ -142,15 +142,15 @@
         , locColumn = 1
         }
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/proofassume.tex"
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "assumetesttwo" )
-    ( Lemma []
+    ( Claim []
         ( StmtConnected
             { conn = Implication
             , mloc = Just

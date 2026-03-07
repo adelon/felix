@@ -5,6 +5,9 @@
         , locColumn = 1
         }
     )
+    ( Just
+        [ Word "extensionality" ]
+    )
     ( Marker "ext" )
     ( Axiom
         [ AsmSuppose
@@ -102,7 +105,7 @@
         , locLine = 6
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "union_defn" )
     ( Axiom
         [ AsmLetNoun
@@ -225,15 +228,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/union.tex"
         , locLine = 11
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "union_comm" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase
@@ -295,15 +298,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/union.tex"
         , locLine = 15
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "union_assoc" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase

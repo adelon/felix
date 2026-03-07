@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Proposition
     ( Location
         { locFile = "test/examples/prooffix.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "assumetest" )
-    ( Lemma []
+    ( Claim []
         ( SymbolicQuantified
             { loc = Location
                 { locFile = "test/examples/prooffix.tex"

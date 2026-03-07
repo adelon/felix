@@ -4,7 +4,7 @@
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "cons" )
     ( Axiom []
         ( StmtConnected
@@ -117,7 +117,7 @@
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "unit" )
     ( DefnOp
         ( SymbolPattern
@@ -151,15 +151,15 @@
             )
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/finite-set-terms.tex"
         , locLine = 9
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "emptyset_in_unit" )
-    ( Lemma []
+    ( Claim []
         ( StmtFormula
             { formula = FormulaChain
                 ( ChainBase

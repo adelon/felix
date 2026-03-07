@@ -4,7 +4,7 @@
         , locLine = 2
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "abbr_equal" )
     ( AbbreviationRel
         ( NamedVar "x" )
@@ -39,15 +39,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/relparam.tex"
         , locLine = 6
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "dummy_abbr_test" )
-    ( Lemma []
+    ( Claim []
         ( SymbolicQuantified
             { loc = Location
                 { locFile = "test/examples/relparam.tex"
@@ -93,7 +93,7 @@
         , locLine = 11
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "defn_equals" )
     ( AbbreviationRel
         ( NamedVar "x" )
@@ -128,15 +128,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Proposition
     ( Location
         { locFile = "test/examples/relparam.tex"
         , locLine = 15
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "dummy_defn_test" )
-    ( Lemma []
+    ( Claim []
         ( SymbolicQuantified
             { loc = Location
                 { locFile = "test/examples/relparam.tex"

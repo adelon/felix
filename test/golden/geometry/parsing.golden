@@ -4,7 +4,7 @@
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "collinear" )
     ( Defn []
         ( DefnAdj Nothing
@@ -47,6 +47,7 @@
                         }
                     )
                     ( PrefixPredicate "Betw" 3 )
+                    ( Marker "betw" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -68,6 +69,7 @@
                             }
                         )
                         ( PrefixPredicate "Betw" 3 )
+                        ( Marker "betw" )
                         ( ExprVar
                             ( NamedVar "b" ) :|
                             [ ExprVar
@@ -86,6 +88,7 @@
                             }
                         )
                         ( PrefixPredicate "Betw" 3 )
+                        ( Marker "betw" )
                         ( ExprVar
                             ( NamedVar "c" ) :|
                             [ ExprVar
@@ -105,6 +108,12 @@
         , locLine = 5
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "reflexivity"
+        , Word "of"
+        , Word "congruence"
+        ]
     )
     ( Marker "cong_refl_swap" )
     ( Axiom
@@ -140,6 +149,7 @@
                     }
                 )
                 ( PrefixPredicate "Cong" 4 )
+                ( Marker "cong" )
                 ( ExprVar
                     ( NamedVar "a" ) :|
                     [ ExprVar
@@ -159,6 +169,12 @@
         , locLine = 10
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "pseudotransitivity"
+        , Word "of"
+        , Word "congruence"
+        ]
     )
     ( Marker "cong_pseudotransitive" )
     ( Axiom
@@ -209,6 +225,7 @@
                             }
                         )
                         ( PrefixPredicate "Cong" 4 )
+                        ( Marker "cong" )
                         ( ExprVar
                             ( NamedVar "c" ) :|
                             [ ExprVar
@@ -229,6 +246,7 @@
                             }
                         )
                         ( PrefixPredicate "Cong" 4 )
+                        ( Marker "cong" )
                         ( ExprVar
                             ( NamedVar "c" ) :|
                             [ ExprVar
@@ -250,6 +268,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -270,6 +289,12 @@
         , locLine = 15
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "identity"
+        , Word "of"
+        , Word "congruence"
+        ]
     )
     ( Marker "cong_id" )
     ( Axiom
@@ -316,6 +341,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -360,6 +386,11 @@
         , locColumn = 1
         }
     )
+    ( Just
+        [ Word "segment"
+        , Word "construction"
+        ]
+    )
     ( Marker "segment_construction" )
     ( Axiom []
         ( StmtExists
@@ -403,6 +434,7 @@
                                     }
                                 )
                                 ( PrefixPredicate "Betw" 3 )
+                                ( Marker "betw" )
                                 ( ExprVar
                                     ( NamedVar "a" ) :|
                                     [ ExprVar
@@ -421,6 +453,7 @@
                                     }
                                 )
                                 ( PrefixPredicate "Cong" 4 )
+                                ( Marker "cong" )
                                 ( ExprVar
                                     ( NamedVar "b" ) :|
                                     [ ExprVar
@@ -444,7 +477,7 @@
         , locLine = 26
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "ofs" )
     ( Defn
         [ AsmLetNoun
@@ -509,6 +542,7 @@
                             }
                         )
                         ( PrefixPredicate "Betw" 3 )
+                        ( Marker "betw" )
                         ( ExprVar
                             ( NamedVar "x" ) :|
                             [ ExprVar
@@ -526,6 +560,7 @@
                             }
                         )
                         ( PrefixPredicate "Betw" 3 )
+                        ( Marker "betw" )
                         ( ExprVar
                             ( NamedVar "u" ) :|
                             [ ExprVar
@@ -566,6 +601,7 @@
                                     }
                                 )
                                 ( PrefixPredicate "Cong" 4 )
+                                ( Marker "cong" )
                                 ( ExprVar
                                     ( NamedVar "x" ) :|
                                     [ ExprVar
@@ -585,6 +621,7 @@
                                     }
                                 )
                                 ( PrefixPredicate "Cong" 4 )
+                                ( Marker "cong" )
                                 ( ExprVar
                                     ( NamedVar "y" ) :|
                                     [ ExprVar
@@ -605,6 +642,7 @@
                                 }
                             )
                             ( PrefixPredicate "Cong" 4 )
+                            ( Marker "cong" )
                             ( ExprVar
                                 ( NamedVar "x" ) :|
                                 [ ExprVar
@@ -625,6 +663,7 @@
                             }
                         )
                         ( PrefixPredicate "Cong" 4 )
+                        ( Marker "cong" )
                         ( ExprVar
                             ( NamedVar "y" ) :|
                             [ ExprVar
@@ -646,6 +685,12 @@
         , locLine = 39
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "five"
+        , Word "segment"
+        , Word "axiom"
+        ]
     )
     ( Marker "five_segment" )
     ( Axiom
@@ -700,6 +745,7 @@
                             }
                         )
                         ( PrefixPredicate "OFS" 8 )
+                        ( Marker "ofs" )
                         ( ExprVar
                             ( NamedVar "a" ) :|
                             [ ExprVar
@@ -752,6 +798,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "c" ) :|
                         [ ExprVar
@@ -772,6 +819,12 @@
         , locLine = 46
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "identity"
+        , Word "of"
+        , Word "betweenness"
+        ]
     )
     ( Marker "betw_id" )
     ( Axiom
@@ -816,6 +869,7 @@
                         }
                     )
                     ( PrefixPredicate "Betw" 3 )
+                    ( Marker "betw" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -857,6 +911,11 @@
         , locLine = 52
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "inner"
+        , Word "pasch"
+        ]
     )
     ( Marker "innerpasch" )
     ( Axiom
@@ -909,6 +968,7 @@
                             }
                         )
                         ( PrefixPredicate "Betw" 3 )
+                        ( Marker "betw" )
                         ( ExprVar
                             ( NamedVar "x" ) :|
                             [ ExprVar
@@ -927,6 +987,7 @@
                             }
                         )
                         ( PrefixPredicate "Betw" 3 )
+                        ( Marker "betw" )
                         ( ExprVar
                             ( NamedVar "y" ) :|
                             [ ExprVar
@@ -978,6 +1039,7 @@
                                         }
                                     )
                                     ( PrefixPredicate "Betw" 3 )
+                                    ( Marker "betw" )
                                     ( ExprVar
                                         ( NamedVar "u" ) :|
                                         [ ExprVar
@@ -996,6 +1058,7 @@
                                         }
                                     )
                                     ( PrefixPredicate "Betw" 3 )
+                                    ( Marker "betw" )
                                     ( ExprVar
                                         ( NamedVar "v" ) :|
                                         [ ExprVar
@@ -1018,6 +1081,11 @@
         , locLine = 66
         , locColumn = 1
         }
+    )
+    ( Just
+        [ Word "upper"
+        , Word "dimension"
+        ]
     )
     ( Marker "upperdim" )
     ( Axiom
@@ -1069,6 +1137,7 @@
                             }
                         )
                         ( PrefixPredicate "Cong" 4 )
+                        ( Marker "cong" )
                         ( ExprVar
                             ( NamedVar "x" ) :|
                             [ ExprVar
@@ -1092,6 +1161,7 @@
                                 }
                             )
                             ( PrefixPredicate "Cong" 4 )
+                            ( Marker "cong" )
                             ( ExprVar
                                 ( NamedVar "y" ) :|
                                 [ ExprVar
@@ -1115,6 +1185,7 @@
                                     }
                                 )
                                 ( PrefixPredicate "Cong" 4 )
+                                ( Marker "cong" )
                                 ( ExprVar
                                     ( NamedVar "z" ) :|
                                     [ ExprVar
@@ -1193,15 +1264,21 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/geometry.tex"
         , locLine = 82
         , locColumn = 1
         }
     )
+    ( Just
+        [ Word "reflexivity"
+        , Word "of"
+        , Word "congruence"
+        ]
+    )
     ( Marker "cong_refl" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "a" :|
                 [ NamedVar "b" ]
@@ -1234,6 +1311,7 @@
                     }
                 )
                 ( PrefixPredicate "Cong" 4 )
+                ( Marker "cong" )
                 ( ExprVar
                     ( NamedVar "a" ) :|
                     [ ExprVar
@@ -1247,15 +1325,21 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/geometry.tex"
         , locLine = 88
         , locColumn = 1
         }
     )
+    ( Just
+        [ Word "symmetry"
+        , Word "of"
+        , Word "congruence"
+        ]
+    )
     ( Marker "cong_sym" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "a" :|
                 [ NamedVar "b"
@@ -1291,6 +1375,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -1313,6 +1398,7 @@
                     }
                 )
                 ( PrefixPredicate "Cong" 4 )
+                ( Marker "cong" )
                 ( ExprVar
                     ( NamedVar "c" ) :|
                     [ ExprVar
@@ -1326,15 +1412,21 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/geometry.tex"
         , locLine = 95
         , locColumn = 1
         }
     )
+    ( Just
+        [ Word "transitivity"
+        , Word "of"
+        , Word "congruence"
+        ]
+    )
     ( Marker "cong_transitive" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "a" :|
                 [ NamedVar "b"
@@ -1384,6 +1476,7 @@
                             }
                         )
                         ( PrefixPredicate "Cong" 4 )
+                        ( Marker "cong" )
                         ( ExprVar
                             ( NamedVar "a" ) :|
                             [ ExprVar
@@ -1404,6 +1497,7 @@
                             }
                         )
                         ( PrefixPredicate "Cong" 4 )
+                        ( Marker "cong" )
                         ( ExprVar
                             ( NamedVar "c" ) :|
                             [ ExprVar
@@ -1425,6 +1519,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -1439,15 +1534,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/geometry.tex"
         , locLine = 102
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "cong_shuffle_left" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "a" :|
                 [ NamedVar "b"
@@ -1492,6 +1587,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -1512,6 +1608,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "b" ) :|
                         [ ExprVar
@@ -1526,15 +1623,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/geometry.tex"
         , locLine = 109
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "cong_shuffle_right" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "a" :|
                 [ NamedVar "b"
@@ -1579,6 +1676,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "a" ) :|
                         [ ExprVar
@@ -1599,6 +1697,7 @@
                         }
                     )
                     ( PrefixPredicate "Cong" 4 )
+                    ( Marker "cong" )
                     ( ExprVar
                         ( NamedVar "b" ) :|
                         [ ExprVar
@@ -1613,15 +1712,22 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/geometry.tex"
         , locLine = 116
         , locColumn = 1
         }
     )
+    ( Just
+        [ Word "zero"
+        , Word "segments"
+        , Word "are"
+        , Word "congruent"
+        ]
+    )
     ( Marker "cong_zero" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "a" :|
                 [ NamedVar "b" ]
@@ -1654,6 +1760,7 @@
                     }
                 )
                 ( PrefixPredicate "Cong" 4 )
+                ( Marker "cong" )
                 ( ExprVar
                     ( NamedVar "a" ) :|
                     [ ExprVar

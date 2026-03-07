@@ -1,12 +1,12 @@
-[ BlockLemma
+[ BlockClaim Theorem
     ( Location
         { locFile = "test/examples/indefinite-terms.tex"
         , locLine = 1
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "indefinite_test_forall" )
-    ( Lemma []
+    ( Claim []
         ( StmtNoun
             { args = TermQuantified Universally
                 ( Location
@@ -55,15 +55,15 @@
             }
         )
     )
-, BlockLemma
+, BlockClaim Theorem
     ( Location
         { locFile = "test/examples/indefinite-terms.tex"
         , locLine = 5
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "indefinite_test_exists" )
-    ( Lemma []
+    ( Claim []
         ( StmtNoun
             { args = TermQuantified Existentially
                 ( Location

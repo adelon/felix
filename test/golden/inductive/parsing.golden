@@ -4,7 +4,7 @@
         , locLine = 3
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "subseteq" )
     ( Defn []
         ( DefnRel
@@ -46,7 +46,7 @@
         , locLine = 7
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "pow" )
     ( DefnOp
         ( SymbolPattern
@@ -82,7 +82,7 @@
         , locLine = 11
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "cons" )
     ( DefnOp
         ( SymbolPattern
@@ -126,7 +126,7 @@
         , locLine = 15
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "times" )
     ( DefnOp
         ( SymbolPattern
@@ -163,7 +163,7 @@
         , locLine = 19
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "fld" )
     ( DefnOp
         ( SymbolPattern
@@ -199,7 +199,7 @@
         , locLine = 23
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "preimg" )
     ( DefnOp
         ( SymbolPattern
@@ -243,7 +243,7 @@
         , locLine = 27
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "lmao" )
     ( Axiom []
         ( StmtFormula
@@ -288,7 +288,7 @@
         , locLine = 31
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "fin" )
     ( Inductive
         { inductiveSymbolPattern = SymbolPattern
@@ -502,15 +502,15 @@
             ]
         }
     )
-, BlockLemma
+, BlockClaim Lemma
     ( Location
         { locFile = "test/examples/inductive.tex"
         , locLine = 39
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "fin_mono" )
-    ( Lemma
+    ( Claim
         [ AsmLetNoun
             ( NamedVar "A" :|
                 [ NamedVar "B" ]
@@ -624,7 +624,7 @@
         , locLine = 45
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "tracl" )
     ( Inductive
         { inductiveSymbolPattern = SymbolPattern
@@ -940,7 +940,7 @@
         , locLine = 53
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "quasirefltracl" )
     ( Inductive
         { inductiveSymbolPattern = SymbolPattern
@@ -1298,7 +1298,7 @@
         , locLine = 61
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "refltracl" )
     ( Inductive
         { inductiveSymbolPattern = SymbolPattern
@@ -1637,7 +1637,7 @@
         , locLine = 69
         , locColumn = 1
         }
-    )
+    ) Nothing
     ( Marker "acc" )
     ( Inductive
         { inductiveSymbolPattern = SymbolPattern
