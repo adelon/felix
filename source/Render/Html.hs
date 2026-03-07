@@ -44,6 +44,7 @@ data RenderHint = RenderHint
 type HintMap = Map (HintCategory, Marker) RenderHint
 type MissingHintMap = Map HintCategory (Set Marker)
 type AnchorMap = Map Marker Text
+type BlockRenderInfo = (Int, Block, Text, Text)
 
 proofCollapseThreshold :: Int
 proofCollapseThreshold = 10
@@ -59,12 +60,24 @@ renderDocument inputPath hintsSource blocks =
         missingHints = collectMissingHints hints blocks
         rendered = LazyText.toStrict (renderText (renderPage hints))
         indexedBlocks = zip [1 :: Int ..] blocks
-        tocBlocks = [(index, block) | (index, block) <- indexedBlocks, includeInToc block]
+        blockInfos = reverse (snd (foldl' addBlockInfo (Nothing, []) indexedBlocks))
+        tocBlocks = [(index, blockId, block) | (index, block, blockId, _tocTarget) <- blockInfos, includeInToc block]
         anchors = Map.fromList
             [ (marker, blockAnchorId index block)
             | (index, block) <- indexedBlocks
             , Just marker <- [blockMarkerOf block]
             ]
+
+        addBlockInfo :: (Maybe Text, [BlockRenderInfo]) -> (Int, Block) -> (Maybe Text, [BlockRenderInfo])
+        addBlockInfo (previousTarget, infos) (index, block) =
+            let blockId = blockAnchorId index block
+                tocTarget = case block of
+                    BlockProof{} -> previousTarget ?? blockId
+                    _ -> blockId
+                nextTarget
+                    | includeInToc block = Just blockId
+                    | otherwise = previousTarget
+            in (nextTarget, (index, block, blockId, tocTarget) : infos)
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -78,10 +91,11 @@ renderDocument inputPath hintsSource blocks =
                         nav_ [class_ "toc"] do
                             h2_ [class_ "toc-heading"] "Contents"
                             ol_ [class_ "toc-list"] do
-                                traverse_ (uncurry renderTocEntry) tocBlocks
+                                traverse_ renderTocEntry tocBlocks
                     main_ [class_ "content"] do
                         h1_ (toHtml (Text.pack inputPath))
-                        traverse_ (uncurry (renderBlock hintMap anchors)) indexedBlocks
+                        traverse_ (renderBlock hintMap anchors) blockInfos
+                script_ [type_ "text/javascript"] (toHtmlRaw tocScript)
 
 
 pageStyles :: Text
@@ -99,6 +113,9 @@ pageStyles = Text.unlines
     , "  --rule-color: #d9d2c2;"
     , "  --error-fg: #9f1d1d;"
     , "  --error-bg: #fff1f1;"
+    , "  --toc-active-bg: #f3efe6;"
+    , "  --toc-active-fg: #1b1b1b;"
+    , "  --toc-active-accent: #b9aa7a;"
     , "}"
     , "html {"
     , "  height: 100%;"
@@ -149,12 +166,24 @@ pageStyles = Text.unlines
     , "}"
     , ".toc-link {"
     , "  display: block;"
+    , "  margin: -0.15rem -0.35rem;"
+    , "  padding: 0.15rem 0.35rem;"
+    , "  border-radius: 0.35rem;"
     , "  color: inherit;"
     , "  text-decoration: none;"
+    , "  transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;"
     , "}"
     , ".toc-link:hover,"
     , ".toc-link:focus-visible {"
     , "  text-decoration: underline;"
+    , "}"
+    , ".toc-link.is-active {"
+    , "  background: var(--toc-active-bg);"
+    , "  box-shadow: inset 0.2rem 0 0 var(--toc-active-accent);"
+    , "  color: var(--toc-active-fg);"
+    , "}"
+    , ".toc-link.is-active .toc-marker {"
+    , "  color: var(--toc-active-fg);"
     , "}"
     , ".marker-link {"
     , "  color: inherit;"
@@ -244,6 +273,9 @@ pageStyles = Text.unlines
     , "    --rule-color: #5b5348;"
     , "    --error-fg: #ffb0b0;"
     , "    --error-bg: #3b1f1f;"
+    , "    --toc-active-bg: #2b271f;"
+    , "    --toc-active-fg: #f0ebe1;"
+    , "    --toc-active-accent: #99865a;"
     , "  }"
     , "}"
     , "@media (max-width: 900px) {"
@@ -266,6 +298,132 @@ pageStyles = Text.unlines
     , "  }"
     , "}"
     ]
+
+
+tocScript :: Text
+tocScript = Text.unlines
+    [ "(function () {"
+    , "  const toc = document.querySelector('.toc');"
+    , "  const content = document.querySelector('main.content');"
+    , "  if (!toc || !content) return;"
+    , "  const links = Array.from(toc.querySelectorAll('.toc-link[data-toc-target]'));"
+    , "  const blocks = Array.from(content.querySelectorAll('.block[data-toc-target]'));"
+    , "  if (!links.length || !blocks.length) return;"
+    , "  const linkByTarget = new Map(links.map((link) => [link.dataset.tocTarget, link]));"
+    , "  let activeTarget = null;"
+    , "  let rafId = 0;"
+    , "  let suspendUntil = 0;"
+    , ""
+    , "  const keepActiveLinkVisible = (link) => {"
+    , "    if (!link || performance.now() < suspendUntil) return;"
+    , "    const tocRect = toc.getBoundingClientRect();"
+    , "    const linkRect = link.getBoundingClientRect();"
+    , "    const comfortTop = tocRect.top + tocRect.height * 0.2;"
+    , "    const comfortBottom = tocRect.bottom - tocRect.height * 0.2;"
+    , "    if (linkRect.top < comfortTop || linkRect.bottom > comfortBottom) {"
+    , "      link.scrollIntoView({ block: 'nearest', inline: 'nearest' });"
+    , "    }"
+    , "  };"
+    , ""
+    , "  const setActiveTarget = (target) => {"
+    , "    if (!target || target === activeTarget) return;"
+    , "    const previous = activeTarget ? linkByTarget.get(activeTarget) : null;"
+    , "    if (previous) {"
+    , "      previous.classList.remove('is-active');"
+    , "      previous.removeAttribute('aria-current');"
+    , "    }"
+    , "    activeTarget = target;"
+    , "    const next = linkByTarget.get(target);"
+    , "    if (!next) return;"
+    , "    next.classList.add('is-active');"
+    , "    next.setAttribute('aria-current', 'location');"
+    , "    keepActiveLinkVisible(next);"
+    , "  };"
+    , ""
+    , "  const firstTarget = blocks[0].dataset.tocTarget;"
+    , ""
+    , "  const findActiveTarget = () => {"
+    , "    const contentRect = content.getBoundingClientRect();"
+    , "    const activationLine = contentRect.top + contentRect.height * 0.22;"
+    , "    let candidate = firstTarget;"
+    , "    for (const block of blocks) {"
+    , "      const target = block.dataset.tocTarget;"
+    , "      if (!target) continue;"
+    , "      if (block.getBoundingClientRect().top <= activationLine) {"
+    , "        candidate = target;"
+    , "        continue;"
+    , "      }"
+    , "      break;"
+    , "    }"
+    , "    return candidate;"
+    , "  };"
+    , ""
+    , "  const scheduleUpdate = () => {"
+    , "    if (rafId) return;"
+    , "    rafId = window.requestAnimationFrame(() => {"
+    , "      rafId = 0;"
+    , "      setActiveTarget(findActiveTarget());"
+    , "    });"
+    , "  };"
+    , ""
+    , "  const suspendAutofollow = () => {"
+    , "    suspendUntil = performance.now() + 1500;"
+    , "  };"
+    , ""
+    , "  const scrollToTarget = (targetId) => {"
+    , "    const target = document.getElementById(targetId);"
+    , "    if (!target || !content.contains(target)) return false;"
+    , "    target.scrollIntoView({ block: 'start', inline: 'nearest' });"
+    , "    setActiveTarget(target.dataset.tocTarget || targetId);"
+    , "    return true;"
+    , "  };"
+    , ""
+    , "  content.addEventListener('scroll', scheduleUpdate, { passive: true });"
+    , "  window.addEventListener('resize', scheduleUpdate);"
+    , "  toc.addEventListener('wheel', suspendAutofollow, { passive: true });"
+    , "  toc.addEventListener('touchstart', suspendAutofollow, { passive: true });"
+    , "  toc.addEventListener('pointerdown', suspendAutofollow);"
+    , "  toc.addEventListener('focusin', suspendAutofollow);"
+    , "  for (const details of content.querySelectorAll('details')) {"
+    , "    details.addEventListener('toggle', scheduleUpdate);"
+    , "  }"
+    , ""
+    , "  toc.addEventListener('click', (event) => {"
+    , "    const link = event.target.closest('.toc-link[data-toc-target]');"
+    , "    if (!link) return;"
+    , "    const targetId = link.dataset.tocTarget;"
+    , "    if (!scrollToTarget(targetId)) return;"
+    , "    event.preventDefault();"
+    , "    suspendUntil = 0;"
+    , "    if (location.hash !== '#' + targetId) {"
+    , "      try {"
+    , "        history.pushState(null, '', '#' + targetId);"
+    , "      } catch (_error) {"
+    , "        location.hash = targetId;"
+    , "      }"
+    , "    }"
+    , "  });"
+    , ""
+    , "  window.addEventListener('hashchange', () => {"
+    , "    if (location.hash.length <= 1) return;"
+    , "    const hashTarget = decodeURIComponent(location.hash.slice(1));"
+    , "    if (!scrollToTarget(hashTarget)) scheduleUpdate();"
+    , "  });"
+    , ""
+    , "  if (location.hash.length > 1) {"
+    , "    const hashTarget = decodeURIComponent(location.hash.slice(1));"
+    , "    window.requestAnimationFrame(() => {"
+    , "      if (!scrollToTarget(hashTarget)) scheduleUpdate();"
+    , "    });"
+    , "    return;"
+    , "  }"
+    , ""
+    , "  scheduleUpdate();"
+    , "})();"
+    ]
+
+dataTocTarget_ :: Text -> Attributes
+dataTocTarget_ = data_ "toc-target"
 
 
 collectMissingHints :: HintMap -> [Block] -> MissingHintMap
@@ -758,31 +916,31 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
         _unusedLineNo = lineNo
 
 
-renderBlock :: HintMap -> AnchorMap -> Int -> Block -> Html ()
-renderBlock hints anchors index block = case block of
+renderBlock :: HintMap -> AnchorMap -> BlockRenderInfo -> Html ()
+renderBlock hints anchors (_index, block, blockId, tocTarget) = case block of
     BlockAxiom _loc title marker axiom ->
-        renderCustomBlock (blockAnchorId index block) "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
+        renderCustomBlock blockId tocTarget "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
     BlockClaim kind _loc title marker claim ->
-        renderCustomBlock (blockAnchorId index block) (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
+        renderCustomBlock blockId tocTarget (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
-        renderProofBlock (blockAnchorId index block) hints anchors proof
+        renderProofBlock blockId tocTarget hints anchors proof
     BlockDefn _loc title marker defn ->
-        renderCustomBlock (blockAnchorId index block) "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
+        renderCustomBlock blockId tocTarget "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
-        renderCustomBlock (blockAnchorId index block) "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
+        renderCustomBlock blockId tocTarget "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
     BlockData _loc datatype ->
-        renderCustomBlock (blockAnchorId index block) "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
+        renderCustomBlock blockId tocTarget "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
     BlockInductive _loc title marker ind ->
-        renderCustomBlock (blockAnchorId index block) "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
+        renderCustomBlock blockId tocTarget "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
     BlockSig _loc title marker asms sig ->
-        renderCustomBlock (blockAnchorId index block) "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
+        renderCustomBlock blockId tocTarget "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
     BlockStruct _loc title marker structDefn ->
-        renderCustomBlock (blockAnchorId index block) "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
+        renderCustomBlock blockId tocTarget "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
 
-renderTocEntry :: Int -> Block -> Html ()
-renderTocEntry index block =
+renderTocEntry :: (Int, Text, Block) -> Html ()
+renderTocEntry (index, blockId, block) =
     li_ [class_ "toc-item"] do
-        a_ [class_ "toc-link", href_ ("#" <> blockAnchorId index block)] do
+        a_ [class_ "toc-link", href_ ("#" <> blockId), dataTocTarget_ blockId] do
             span_ [class_ "toc-prefix"] (toHtml (blockPrefixText block))
             case formatMarker (blockMarkerOf block) of
                 Nothing ->
@@ -796,21 +954,21 @@ includeInToc = \case
     BlockProof{} -> False
     _ -> True
 
-renderCustomBlock :: Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
-renderCustomBlock blockId name prefix mmarker mtitle body =
-    term name [id_ blockId, class_ "block"] do
+renderCustomBlock :: Text -> Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
+renderCustomBlock blockId tocTarget name prefix mmarker mtitle body =
+    term name [id_ blockId, class_ "block", dataTocTarget_ tocTarget] do
         span_ [class_ "block-header"] (renderBlockLead prefix mmarker mtitle True)
         div_ [class_ "block-body"] body
 
-renderProofBlock :: Text -> HintMap -> AnchorMap -> Proof -> Html ()
-renderProofBlock blockId hints anchors proof
+renderProofBlock :: Text -> Text -> HintMap -> AnchorMap -> Proof -> Html ()
+renderProofBlock blockId tocTarget hints anchors proof
     | proofStepCount proof >= proofCollapseThreshold =
-        term "proof-block" [id_ blockId, class_ "block"] do
+        term "proof-block" [id_ blockId, class_ "block", dataTocTarget_ tocTarget] do
             details_ [class_ "proof-details"] do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
                 div_ [class_ "proof-body"] (renderProof hints anchors proof)
     | otherwise =
-        renderCustomBlock blockId "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints anchors proof))
+        renderCustomBlock blockId tocTarget "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints anchors proof))
 
 blockAnchorId :: Int -> Block -> Text
 blockAnchorId index block =
