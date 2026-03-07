@@ -89,6 +89,17 @@ pageStyles = Text.unlines
     , ".block-title {"
     , "  font-weight: 400;"
     , "}"
+    , ".block-marker {"
+    , "  display: inline-block;"
+    , "  margin-left: 0.45rem;"
+    , "  padding: 0.02rem 0.35rem;"
+    , "  border: 1px solid #ddd;"
+    , "  border-radius: 0.2rem;"
+    , "  background: #f1f1f1;"
+    , "  color: #555;"
+    , "  font-family: \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;"
+    , "  font-size: 0.82em;"
+    , "}"
     , ".block-body,"
     , ".proof-body {"
     , "  display: contents;"
@@ -185,29 +196,29 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
 
 renderBlock :: HintMap -> Block -> Html ()
 renderBlock hints = \case
-    BlockAxiom _loc title _marker axiom ->
-        renderCustomBlock "axiom-block" "Axiom" title (renderAxiom hints axiom)
-    BlockClaim kind _loc title _marker claim ->
-        renderCustomBlock (claimKindElement kind) (claimKindPrefix kind) title (renderClaim hints claim)
+    BlockAxiom _loc title marker axiom ->
+        renderCustomBlock "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
+    BlockClaim kind _loc title marker claim ->
+        renderCustomBlock (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
         renderProofBlock hints proof
-    BlockDefn _loc title _marker defn ->
-        renderCustomBlock "definition-block" "Definition" title (renderDefn hints defn)
-    BlockAbbr _loc title _marker abbr ->
-        renderCustomBlock "abbreviation-block" "Abbreviation" title (renderAbbreviation hints abbr)
+    BlockDefn _loc title marker defn ->
+        renderCustomBlock "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
+    BlockAbbr _loc title marker abbr ->
+        renderCustomBlock "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
     BlockData _loc datatype ->
-        renderCustomBlock "datatype-block" "Datatype" Nothing (renderDatatype hints datatype)
-    BlockInductive _loc title _marker ind ->
-        renderCustomBlock "inductive-block" "Inductive" title (renderInductive hints ind)
-    BlockSig _loc title _marker asms sig ->
-        renderCustomBlock "signature-block" "Signature" title (renderSignatureBlock hints asms sig)
-    BlockStruct _loc title _marker structDefn ->
-        renderCustomBlock "struct-block" "Structure" title (renderStructDefn hints structDefn)
+        renderCustomBlock "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
+    BlockInductive _loc title marker ind ->
+        renderCustomBlock "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
+    BlockSig _loc title marker asms sig ->
+        renderCustomBlock "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
+    BlockStruct _loc title marker structDefn ->
+        renderCustomBlock "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
 
-renderCustomBlock :: Text -> Text -> Maybe BlockTitle -> Html () -> Html ()
-renderCustomBlock name prefix mtitle body =
+renderCustomBlock :: Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
+renderCustomBlock name prefix mmarker mtitle body =
     term name [class_ "block"] do
-        span_ [class_ "block-header"] (renderBlockLead prefix mtitle True)
+        span_ [class_ "block-header"] (renderBlockLead prefix mmarker mtitle True)
         div_ [class_ "block-body"] body
 
 renderProofBlock :: HintMap -> Proof -> Html ()
@@ -215,14 +226,18 @@ renderProofBlock hints proof
     | proofStepCount proof >= proofCollapseThreshold =
         term "proof-block" [class_ "block"] do
             details_ [class_ "proof-details"] do
-                summary_ (renderBlockLead "Proof" Nothing False)
+                summary_ (renderBlockLead "Proof" Nothing Nothing False)
                 div_ [class_ "proof-body"] (renderProof hints proof)
     | otherwise =
-        renderCustomBlock "proof-block" "Proof" Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
+        renderCustomBlock "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
 
-renderBlockLead :: Text -> Maybe BlockTitle -> Bool -> Html ()
-renderBlockLead prefix mtitle withTrailingSpace = do
+renderBlockLead :: Text -> Maybe Marker -> Maybe BlockTitle -> Bool -> Html ()
+renderBlockLead prefix mmarker mtitle withTrailingSpace = do
     span_ [class_ "block-prefix"] (toHtml prefix)
+    case formatMarker mmarker of
+        Nothing -> skip
+        Just marker ->
+            span_ [class_ "block-marker"] (toHtml marker)
     case formatBlockTitle mtitle of
         Nothing ->
             toHtml ("." <> suffix)
@@ -235,6 +250,13 @@ renderBlockLead prefix mtitle withTrailingSpace = do
         suffix
             | withTrailingSpace = " "
             | otherwise = ""
+
+formatMarker :: Maybe Marker -> Maybe Text
+formatMarker = \case
+    Nothing -> Nothing
+    Just marker ->
+        let text = Text.strip (markerText marker)
+        in if Text.null text then Nothing else Just text
 
 formatBlockTitle :: Maybe BlockTitle -> Maybe Text
 formatBlockTitle =
