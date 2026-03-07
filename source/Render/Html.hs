@@ -44,7 +44,7 @@ data RenderHint = RenderHint
 
 type HintMap = Map (HintCategory, Marker) RenderHint
 type AnchorMap = Map Marker Text
-type BlockRenderInfo = (Int, Block, Text, Text)
+type BlockRenderInfo = (Int, Block, Text)
 
 data StmtMathFragment
     = StmtMathProse Text
@@ -77,24 +77,13 @@ renderDocument inputPath hintsSource blocks =
         missingHints = collectMissingHints hints blocks
         rendered = LazyText.toStrict (renderText (renderPage hints))
         indexedBlocks = zip [1 :: Int ..] blocks
-        blockInfos = reverse (snd (foldl' addBlockInfo (Nothing, []) indexedBlocks))
-        tocBlocks = [(index, blockId, block) | (index, block, blockId, _tocTarget) <- blockInfos, includeInToc block]
+        blockInfos = [(index, block, blockAnchorId index block) | (index, block) <- indexedBlocks]
+        tocBlocks = [(index, blockId, block) | (index, block, blockId) <- blockInfos, includeInToc block]
         anchors = Map.fromList
             [ (marker, blockAnchorId index block)
             | (index, block) <- indexedBlocks
             , Just marker <- [blockMarkerOf block]
             ]
-
-        addBlockInfo :: (Maybe Text, [BlockRenderInfo]) -> (Int, Block) -> (Maybe Text, [BlockRenderInfo])
-        addBlockInfo (previousTarget, infos) (index, block) =
-            let blockId = blockAnchorId index block
-                tocTarget = case block of
-                    BlockProof{} -> previousTarget ?? blockId
-                    _ -> blockId
-                nextTarget
-                    | includeInToc block = Just blockId
-                    | otherwise = previousTarget
-            in (nextTarget, (index, block, blockId, tocTarget) : infos)
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -254,7 +243,7 @@ pageStyles = Text.unlines
     , "block-title {"
     , "  font-weight: 400;"
     , "}"
-    , "marker-badge,"
+    , "block-id,"
     , "main a[href^=\"#\"] {"
     , "  display: inline-block;"
     , "  padding: 0.02rem 0.35rem;"
@@ -266,7 +255,7 @@ pageStyles = Text.unlines
     , "  font-size: 0.82em;"
     , "  text-decoration: none;"
     , "}"
-    , "block-head > marker-badge {"
+    , "block-head > block-id {"
     , "  margin-left: 0.45rem;"
     , "}"
     , "main a[href^=\"#\"]:hover,"
@@ -408,15 +397,13 @@ tocScript = Text.unlines
     , "    keepActiveLinkVisible(next);"
     , "  };"
     , ""
-    , "  const blockTarget = (block) => block.dataset.tocTarget || block.id;"
-    , "  const firstTarget = blockTarget(blocks[0]);"
+    , "  const firstTarget = blocks[0].id;"
     , ""
     , "  const findActiveTarget = () => {"
     , "    const contentRect = content.getBoundingClientRect();"
     , "    const topSnapThreshold = 40;"
     , "    for (const block of blocks) {"
-    , "      const target = blockTarget(block);"
-    , "      if (!target) continue;"
+    , "      const target = block.id;"
     , "      const rect = block.getBoundingClientRect();"
     , "      if (rect.top >= contentRect.top - 4 && rect.top <= contentRect.top + topSnapThreshold) {"
     , "        return target;"
@@ -425,8 +412,7 @@ tocScript = Text.unlines
     , "    const activationLine = contentRect.top + contentRect.height * 0.22;"
     , "    let candidate = firstTarget;"
     , "    for (const block of blocks) {"
-    , "      const target = blockTarget(block);"
-    , "      if (!target) continue;"
+    , "      const target = block.id;"
     , "      if (block.getBoundingClientRect().top <= activationLine) {"
     , "        candidate = target;"
     , "        continue;"
@@ -452,7 +438,7 @@ tocScript = Text.unlines
     , "    const target = document.getElementById(targetId);"
     , "    if (!target || !content.contains(target)) return false;"
     , "    target.scrollIntoView({ block: 'start', inline: 'nearest' });"
-    , "    setActiveTarget(target.dataset.tocTarget || targetId);"
+    , "    setActiveTarget(targetId);"
     , "    return true;"
     , "  };"
     , ""
@@ -504,10 +490,6 @@ tocScript = Text.unlines
     , "  scheduleUpdate();"
     , "})();"
     ]
-
-dataTocTarget_ :: Text -> Attributes
-dataTocTarget_ = data_ "toc-target"
-
 
 collectMissingHints :: HintMap -> [Block] -> MissingHintMap
 collectMissingHints hints = foldMap collectBlock
@@ -1003,25 +985,25 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
 
 
 renderBlock :: HintMap -> AnchorMap -> BlockRenderInfo -> Html ()
-renderBlock hints anchors (_index, block, blockId, tocTarget) = case block of
+renderBlock hints anchors (_index, block, blockId) = case block of
     BlockAxiom _loc title marker axiom ->
-        renderCustomBlock blockId tocTarget "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
+        renderCustomBlock blockId "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
     BlockClaim kind _loc title marker claim ->
-        renderCustomBlock blockId tocTarget (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
+        renderCustomBlock blockId (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
-        renderProofBlock blockId tocTarget hints anchors proof
+        renderProofBlock hints anchors proof
     BlockDefn _loc title marker defn ->
-        renderCustomBlock blockId tocTarget "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
+        renderCustomBlock blockId "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
-        renderCustomBlock blockId tocTarget "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
+        renderCustomBlock blockId "abbreviation-block" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
     BlockData _loc datatype ->
-        renderCustomBlock blockId tocTarget "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
+        renderCustomBlock blockId "datatype-block" "Datatype" Nothing Nothing (renderDatatype hints datatype)
     BlockInductive _loc title marker ind ->
-        renderCustomBlock blockId tocTarget "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
+        renderCustomBlock blockId "inductive-block" "Inductive" (Just marker) title (renderInductive hints ind)
     BlockSig _loc title marker asms sig ->
-        renderCustomBlock blockId tocTarget "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
+        renderCustomBlock blockId "signature-block" "Signature" (Just marker) title (renderSignatureBlock hints asms sig)
     BlockStruct _loc title marker structDefn ->
-        renderCustomBlock blockId tocTarget "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
+        renderCustomBlock blockId "struct-block" "Structure" (Just marker) title (renderStructDefn hints structDefn)
 
 renderTocEntry :: (Int, Text, Block) -> Html ()
 renderTocEntry (index, blockId, block) =
@@ -1040,21 +1022,23 @@ includeInToc = \case
     BlockProof{} -> False
     _ -> True
 
-renderCustomBlock :: Text -> Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
-renderCustomBlock blockId tocTarget name prefix mmarker mtitle body =
-    term name [id_ blockId, if tocTarget == blockId then mempty else dataTocTarget_ tocTarget] do
+renderCustomBlock :: Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
+renderCustomBlock blockId name prefix mmarker mtitle body =
+    term name [id_ blockId] do
         renderBlockLead prefix mmarker mtitle True
         div_ body
 
-renderProofBlock :: Text -> Text -> HintMap -> AnchorMap -> Proof -> Html ()
-renderProofBlock blockId tocTarget hints anchors proof
+renderProofBlock :: HintMap -> AnchorMap -> Proof -> Html ()
+renderProofBlock hints anchors proof
     | proofStepCount proof >= proofCollapseThreshold =
-        term "proof-block" [id_ blockId, if tocTarget == blockId then mempty else dataTocTarget_ tocTarget] do
+        term "proof-block" do
             details_ do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
                 div_ (renderProof hints anchors proof)
     | otherwise =
-        renderCustomBlock blockId tocTarget "proof-block" "Proof" Nothing Nothing (div_ (renderProof hints anchors proof))
+        term "proof-block" do
+            renderBlockLead "Proof" Nothing Nothing True
+            div_ (renderProof hints anchors proof)
 
 blockAnchorId :: Int -> Block -> Text
 blockAnchorId index block =
@@ -1119,7 +1103,7 @@ renderBlockLead prefix mmarker mtitle withTrailingSpace =
         case formatMarker mmarker of
             Nothing -> skip
             Just marker ->
-                term "marker-badge" (toHtml marker)
+                term "block-id" (toHtml marker)
         case formatBlockTitle mtitle of
             Nothing ->
                 toHtml ("." <> suffix)
