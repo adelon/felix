@@ -54,7 +54,7 @@ operator	euclidean_metric	1	<msubsup><mi>d</mi><mn>2</mn><x1/></msubsup>
 operator	exp	2	<msup><x1/><x2/></msup>
 operator	fiber_partition	2	<mi>Fib</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	finite_complement_topology	1	<msub><mi>τ</mi><mi>fc</mi></msub><mo>(</mo><x1/><mo>)</mo>
-operator	finite_intersections	1	<mi>FinInter</mi><mo>(</mo><x1/><mo>)</mo>
+operator	finite_intersections	1	<mi>π</mi><mo>(</mo><x1/><mo>)</mo>
 operator	funs	2	<mi>Fun</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	id	1	<msub><mi>id</mi><x1/></msub>
 operator	img	2	<x1/><mo>[</mo><x2/><mo>]</mo>
