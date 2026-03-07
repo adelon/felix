@@ -101,7 +101,7 @@ pageStyles = Text.unlines
     , "}"
     , ".layout {"
     , "  display: grid;"
-    , "  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);"
+    , "  grid-template-columns: minmax(16rem, 24rem) minmax(0, 1fr);"
     , "  grid-template-rows: minmax(0, 1fr);"
     , "  gap: 2rem;"
     , "  align-items: stretch;"
@@ -133,9 +133,10 @@ pageStyles = Text.unlines
     , "  padding: 0;"
     , "}"
     , ".toc-item {"
-    , "  margin: 0 0 0.45rem;"
+    , "  margin: 0 0 0.8rem;"
     , "}"
     , ".toc-link {"
+    , "  display: block;"
     , "  color: inherit;"
     , "  text-decoration: none;"
     , "}"
@@ -144,16 +145,16 @@ pageStyles = Text.unlines
     , "  text-decoration: underline;"
     , "}"
     , ".toc-prefix {"
+    , "  display: block;"
     , "  font-weight: 700;"
     , "}"
     , ".toc-marker {"
-    , "  margin-left: 0.35rem;"
+    , "  display: block;"
+    , "  margin-top: 0.15rem;"
     , "  color: var(--muted-fg);"
     , "  font-family: \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;"
     , "  font-size: 0.9em;"
-    , "}"
-    , ".toc-title {"
-    , "  color: var(--subtle-fg);"
+    , "  overflow-wrap: anywhere;"
     , "}"
     , ".content {"
     , "  display: block;"
@@ -337,15 +338,11 @@ renderTocEntry index block =
         a_ [class_ "toc-link", href_ ("#" <> blockAnchorId index block)] do
             span_ [class_ "toc-prefix"] (toHtml (blockPrefixText block))
             case formatMarker (blockMarkerOf block) of
-                Nothing -> skip
-                Just marker ->
-                    span_ [class_ "toc-marker"] (toHtml marker)
-            case formatBlockTitle (blockTitleOf block) of
                 Nothing ->
                     when (blockNeedsIndexLabel block) do
-                        toHtml (" " <> Text.pack (show index) :: Text)
-                Just title ->
-                    span_ [class_ "toc-title"] (toHtml (" (" <> title <> ")" :: Text))
+                        span_ [class_ "toc-marker"] (toHtml (Text.pack (show index)))
+                Just marker ->
+                    span_ [class_ "toc-marker"] (toHtml marker)
 
 includeInToc :: Block -> Bool
 includeInToc = \case
