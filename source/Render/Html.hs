@@ -21,7 +21,7 @@ import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Lazy qualified as LazyText
 import Report.Location (Location, pattern Nowhere)
-import Syntax.Token (tokToText)
+import Syntax.Token (VariableDisplay(..), VariableSuffix(..), displayVariable, tokToText)
 
 
 data HintCategory
@@ -2088,7 +2088,7 @@ structMarker (StructSymbol name) = Marker name
 renderMathToken :: Token -> Html ()
 renderMathToken = \case
     Word w -> miText w
-    Variable v -> miText v
+    Variable v -> renderNamedVariableMath v
     Symbol s -> moText s
     Integer n -> mnText (Text.pack (show n))
     Command cmd -> miText cmd
@@ -2116,12 +2116,30 @@ renderVarInline :: VarSymbol -> Html ()
 renderVarInline = inlineMath . renderVarMath
 
 renderVarMath :: VarSymbol -> Html ()
-renderVarMath var = miText (varText var)
+renderVarMath = \case
+    NamedVarAt _loc name ->
+        renderNamedVariableMath name
+    FreshVarAt _loc n ->
+        miText ("_" <> Text.pack (show n))
 
-varText :: VarSymbol -> Text
-varText = \case
-    NamedVarAt _loc name -> name
-    FreshVarAt _loc n -> "_" <> Text.pack (show n)
+renderNamedVariableMath :: Text -> Html ()
+renderNamedVariableMath rawName =
+    case displayVariable rawName of
+        VariableDisplay baseText Nothing ->
+            miText baseText
+        VariableDisplay baseText (Just (VariableTicks tickCount)) ->
+            miText (baseText <> Text.replicate tickCount "'")
+        VariableDisplay baseText (Just (VariableSubscript subscriptText)) ->
+            msub_ do
+                miText baseText
+                renderVariableSubscriptMath subscriptText
+
+renderVariableSubscriptMath :: Text -> Html ()
+renderVariableSubscriptMath subscriptText
+    | Text.all isDigit subscriptText =
+        mnText subscriptText
+    | otherwise =
+        miText subscriptText
 
 renderVarListInline :: NonEmpty VarSymbol -> Html ()
 renderVarListInline vars =

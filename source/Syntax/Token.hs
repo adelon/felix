@@ -15,6 +15,10 @@
 --
 module Syntax.Token
     ( Token(..)
+    , VariableDisplay(..)
+    , VariableSuffix(..)
+    , displayVariable
+    , renderVariableText
     , tokToString
     , tokToText
     , TokStream(..)
@@ -120,10 +124,93 @@ data Token
 instance IsString Token where
     fromString w = Word (Text.pack w)
 
+data VariableDisplay = VariableDisplay
+    { variableBaseText :: !Text
+    , variableSuffix :: !(Maybe VariableSuffix)
+    } deriving (Show, Eq, Ord)
+
+data VariableSuffix
+    = VariableSubscript !Text
+    | VariableTicks !Int
+    deriving (Show, Eq, Ord)
+
+displayVariable :: Text -> VariableDisplay
+displayVariable rawName =
+    case splitVariableBase rawName of
+        Nothing ->
+            VariableDisplay rawName Nothing
+        Just (baseText, suffixText) ->
+            VariableDisplay baseText (displayVariableSuffix suffixText)
+
+renderVariableText :: Text -> Text
+renderVariableText rawName =
+    case displayVariable rawName of
+        VariableDisplay baseText Nothing ->
+            baseText
+        VariableDisplay baseText (Just (VariableTicks n)) ->
+            baseText <> Text.replicate n "'"
+        VariableDisplay baseText (Just (VariableSubscript subscriptText)) ->
+            baseText <> renderSubscriptText subscriptText
+
+splitVariableBase :: Text -> Maybe (Text, Text)
+splitVariableBase rawName =
+    matchBlackboardBase rawName <|> matchGreekBase rawName <|> matchSingleLetterBase rawName
+
+matchBlackboardBase :: Text -> Maybe (Text, Text)
+matchBlackboardBase rawName = do
+    suffixText <- Text.stripPrefix "bb" rawName
+    case Text.uncons suffixText of
+        Just (upper, rest)
+            | 'A' <= upper && upper <= 'Z' ->
+                Just ("bb" <> Text.singleton upper, rest)
+        _ ->
+            Nothing
+
+matchGreekBase :: Text -> Maybe (Text, Text)
+matchGreekBase rawName =
+    asum
+        [ (\suffixText -> (rendered, suffixText)) <$> Text.stripPrefix prefix rawName
+        | (prefix, rendered) <- greekVariables
+        ]
+
+matchSingleLetterBase :: Text -> Maybe (Text, Text)
+matchSingleLetterBase rawName = do
+    (baseChar, suffixText) <- Text.uncons rawName
+    pure (Text.singleton baseChar, suffixText)
+
+displayVariableSuffix :: Text -> Maybe VariableSuffix
+displayVariableSuffix suffixText
+    | Text.null suffixText =
+        Nothing
+    | Text.all (== '_') suffixText =
+        Just (VariableTicks (Text.length suffixText))
+    | otherwise =
+        Just (VariableSubscript (Text.replace "_" "'" suffixText))
+
+renderSubscriptText :: Text -> Text
+renderSubscriptText subscriptText
+    | Text.length subscriptText == 1 =
+        "_" <> subscriptText
+    | otherwise =
+        "_{" <> subscriptText <> "}"
+
+greekVariables :: [(Text, Text)]
+greekVariables =
+    [ ("alpha", "α"), ("beta", "β"), ("gamma", "γ"), ("delta", "δ")
+    , ("epsilon", "ε"), ("zeta", "ζ"), ("eta", "η"), ("theta", "θ")
+    , ("iota", "ι"), ("kappa", "κ"), ("lambda", "λ"), ("mu", "μ")
+    , ("nu", "ν"), ("xi", "ξ"), ("pi", "π"), ("rho", "ρ"), ("sigma", "σ")
+    , ("tau", "τ"), ("upsilon", "υ"), ("phi", "φ"), ("chi", "χ")
+    , ("psi", "ψ"), ("omega", "ω")
+    , ("Gamma", "Γ"), ("Delta", "Δ"), ("Theta", "Θ"), ("Lambda", "Λ")
+    , ("Xi", "Ξ"), ("Pi", "Π"), ("Sigma", "Σ"), ("Upsilon", "Υ")
+    , ("Phi", "Φ"), ("Psi", "Ψ"), ("Omega", "Ω")
+    ]
+
 tokToText :: Token -> Text
 tokToText = \case
     Word w -> w
-    Variable v -> v
+    Variable v -> renderVariableText v
     Symbol s -> s
     Integer n -> Text.pack (show n)
     Command cmd -> Text.cons '\\' cmd
@@ -148,7 +235,7 @@ tokToString = Text.unpack . tokToText
 instance Pretty Token where
     pretty = \case
         Word w -> pretty w
-        Variable v -> pretty v
+        Variable v -> pretty (renderVariableText v)
         Symbol s -> pretty s
         Integer n -> pretty n
         Command cmd -> "\\" <> pretty cmd
