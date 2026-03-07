@@ -1164,9 +1164,9 @@ renderWithAssumptions hints asms stmt = do
     case asms of
         [] -> renderStmtInline hints stmt
         _ -> do
-            toHtml ("If " :: Text)
+            toHtml ("Suppose " :: Text)
             renderAsmList hints asms
-            toHtml (", then " :: Text)
+            toHtml (". Then " :: Text)
             renderStmtInline hints stmt
     toHtml ("." :: Text)
 
@@ -1655,11 +1655,7 @@ renderStmtInline hints = \case
         toHtml ("there exists " :: Text)
         renderNounPhraseList hints np
     StmtConnected conn _loc stmt1 stmt2 -> do
-        renderStmtInline hints stmt1
-        toHtml (" " :: Text)
-        toHtml (connectiveWord conn)
-        toHtml (" " :: Text)
-        renderStmtInline hints stmt2
+        renderConnectedStmtInline hints conn stmt1 stmt2
     StmtQuantPhrase _loc qp stmt -> do
         renderQuantPhraseInline hints qp
         toHtml (" " :: Text)
@@ -1667,15 +1663,8 @@ renderStmtInline hints = \case
     SymbolicQuantified _loc quant vars bound suchThat stmt -> do
         toHtml (quantifierWord quant)
         toHtml (" " :: Text)
-        renderVarListInline vars
-        renderBoundInline hints vars bound
-        case suchThat of
-            Nothing -> skip
-            Just suchStmt -> do
-                toHtml (" such that " :: Text)
-                renderStmtInline hints suchStmt
-        toHtml (" we have " :: Text)
-        renderStmtInline hints stmt
+        renderBoundSubjectInline hints vars bound
+        renderQuantifiedTailInline hints quant suchThat stmt
 
 renderQuantPhraseInline :: HintMap -> QuantPhrase -> Html ()
 renderQuantPhraseInline hints (QuantPhrase quant np) = do
@@ -1697,6 +1686,50 @@ connectiveWord = \case
     Equivalence -> "iff"
     ExclusiveOr -> "xor"
     NegatedDisjunction -> "nor"
+
+renderConnectedStmtInline :: HintMap -> Connective -> Stmt -> Stmt -> Html ()
+renderConnectedStmtInline hints conn stmt1 stmt2 = case conn of
+    ExclusiveOr -> do
+        toHtml ("either " :: Text)
+        renderStmtInline hints stmt1
+        toHtml (" or " :: Text)
+        renderStmtInline hints stmt2
+    NegatedDisjunction -> do
+        toHtml ("neither " :: Text)
+        renderStmtInline hints stmt1
+        toHtml (" nor " :: Text)
+        renderStmtInline hints stmt2
+    _ -> do
+        renderStmtInline hints stmt1
+        toHtml (" " :: Text)
+        toHtml (connectiveWord conn)
+        toHtml (" " :: Text)
+        renderStmtInline hints stmt2
+
+renderQuantifiedTailInline :: HintMap -> Quantifier -> Maybe Stmt -> Stmt -> Html ()
+renderQuantifiedTailInline hints quant suchThat stmt =
+    case quant of
+        Universally -> do
+            for_ suchThat \suchStmt -> do
+                toHtml (" such that " :: Text)
+                renderStmtInline hints suchStmt
+            toHtml (" we have " :: Text)
+            renderStmtInline hints stmt
+        Existentially ->
+            renderExistentialTailInline hints suchThat stmt
+        Nonexistentially ->
+            renderExistentialTailInline hints suchThat stmt
+
+renderExistentialTailInline :: HintMap -> Maybe Stmt -> Stmt -> Html ()
+renderExistentialTailInline hints suchThat stmt = do
+    toHtml (" such that " :: Text)
+    case suchThat of
+        Nothing ->
+            renderStmtInline hints stmt
+        Just suchStmt -> do
+            renderStmtInline hints suchStmt
+            toHtml (" and " :: Text)
+            renderStmtInline hints stmt
 
 
 renderAsmList :: HintMap -> [Asm] -> Html ()
@@ -1943,30 +1976,62 @@ stmtMathFragments hints = \case
         stmtMathProse "there exists "
             <> nounPhraseListMathFragments hints np
     StmtConnected conn _loc stmt1 stmt2 -> do
-        stmtMathFragments hints stmt1
-            <> stmtMathProse (" " <> connectiveWord conn <> " ")
-            <> stmtMathFragments hints stmt2
+        connectedStmtMathFragments hints conn stmt1 stmt2
     StmtQuantPhrase _loc qp stmt -> do
         quantPhraseMathFragments hints qp
             <> stmtMathProse " "
             <> stmtMathFragments hints stmt
     SymbolicQuantified _loc quant vars bound suchThat stmt -> do
         stmtMathProse (quantifierWord quant <> " ")
-            <> stmtMathNode (renderVarListMath vars)
-            <> stmtMathNode (renderBoundMath hints vars bound)
-            <> foldMap
-                ( \suchStmt ->
-                    stmtMathProse " such that "
-                        <> stmtMathFragments hints suchStmt
-                )
-                suchThat
-            <> stmtMathProse " we have "
-            <> stmtMathFragments hints stmt
+            <> boundSubjectMathFragments hints vars bound
+            <> quantifiedTailMathFragments hints quant suchThat stmt
 
 quantPhraseMathFragments :: HintMap -> QuantPhrase -> StmtMathFragments
 quantPhraseMathFragments hints (QuantPhrase quant np) =
     stmtMathProse (quantifierWord quant <> " ")
         <> nounPhraseListMathFragments hints np
+
+connectedStmtMathFragments :: HintMap -> Connective -> Stmt -> Stmt -> StmtMathFragments
+connectedStmtMathFragments hints conn stmt1 stmt2 = case conn of
+    ExclusiveOr ->
+        stmtMathProse "either "
+            <> stmtMathFragments hints stmt1
+            <> stmtMathProse " or "
+            <> stmtMathFragments hints stmt2
+    NegatedDisjunction ->
+        stmtMathProse "neither "
+            <> stmtMathFragments hints stmt1
+            <> stmtMathProse " nor "
+            <> stmtMathFragments hints stmt2
+    _ ->
+        stmtMathFragments hints stmt1
+            <> stmtMathProse (" " <> connectiveWord conn <> " ")
+            <> stmtMathFragments hints stmt2
+
+quantifiedTailMathFragments :: HintMap -> Quantifier -> Maybe Stmt -> Stmt -> StmtMathFragments
+quantifiedTailMathFragments hints quant suchThat stmt =
+    case quant of
+        Universally ->
+            foldMap
+                (\suchStmt -> stmtMathProse " such that " <> stmtMathFragments hints suchStmt)
+                suchThat
+                <> stmtMathProse " we have "
+                <> stmtMathFragments hints stmt
+        Existentially ->
+            existentialTailMathFragments hints suchThat stmt
+        Nonexistentially ->
+            existentialTailMathFragments hints suchThat stmt
+
+existentialTailMathFragments :: HintMap -> Maybe Stmt -> Stmt -> StmtMathFragments
+existentialTailMathFragments hints suchThat stmt =
+    stmtMathProse " such that "
+        <> case suchThat of
+            Nothing ->
+                stmtMathFragments hints stmt
+            Just suchStmt ->
+                stmtMathFragments hints suchStmt
+                    <> stmtMathProse " and "
+                    <> stmtMathFragments hints stmt
 
 termMathFragments :: HintMap -> Term -> StmtMathFragments
 termMathFragments hints = \case
@@ -2166,8 +2231,14 @@ renderBoundMath hints vars = \case
         renderRelationApplication hints sign (ExprVar <$> toList vars) rel [expr]
 
 renderRelationApplication :: HintMap -> Sign -> [Expr] -> Relation -> [Expr] -> Html ()
-renderRelationApplication hints sign lhs rel rhs =
-    applySign sign (renderRelationCore hints lhs rel rhs)
+renderRelationApplication hints sign lhs rel rhs = case (sign, rel) of
+    (Negative, Relation _loc symbol [])
+        | Just negated <- negatedRelationSymbol (relationSymbolToken symbol) -> do
+            renderExprListMath hints lhs
+            moText negated
+            renderExprListMath hints rhs
+    _ ->
+        applySign sign (renderRelationCore hints lhs rel rhs)
 
 applySign :: Sign -> Html () -> Html ()
 applySign sign html = case sign of
@@ -2220,6 +2291,22 @@ renderRelationToken = \case
     Command "supseteq" -> moText "⊇"
     Command "neq" -> moText "≠"
     tok -> renderMathToken tok
+
+negatedRelationSymbol :: Token -> Maybe Text
+negatedRelationSymbol = \case
+    Command "in" -> Just "∉"
+    Command "ni" -> Just "∌"
+    Command "subset" -> Just "⊄"
+    Command "subseteq" -> Just "⊈"
+    Command "supset" -> Just "⊅"
+    Command "supseteq" -> Just "⊉"
+    Command "meets" -> Just "⋈̸"
+    Symbol "=" -> Just "≠"
+    Symbol "<" -> Just "≮"
+    Symbol ">" -> Just "≯"
+    Symbol "≤" -> Just "≰"
+    Symbol "≥" -> Just "≱"
+    _ -> Nothing
 
 
 renderExprMath :: HintMap -> Expr -> Html ()
@@ -2496,11 +2583,32 @@ renderBoundInline hints vars = \case
         toHtml (" with " :: Text)
         inlineMath (renderBoundPhraseMath hints vars bound)
 
+renderBoundSubjectInline :: HintMap -> NonEmpty VarSymbol -> Bound -> Html ()
+renderBoundSubjectInline hints vars = \case
+    Unbounded ->
+        renderVarListInline vars
+    bound ->
+        inlineMath (renderBoundSubjectMath hints vars bound)
+
 renderBoundPhraseMath :: HintMap -> NonEmpty VarSymbol -> Bound -> Html ()
 renderBoundPhraseMath hints vars = \case
     Unbounded -> mrow_ skip
     Bounded _loc sign rel expr ->
         renderRelationApplication hints sign (ExprVar <$> toList vars) rel [expr]
+
+renderBoundSubjectMath :: HintMap -> NonEmpty VarSymbol -> Bound -> Html ()
+renderBoundSubjectMath hints vars = \case
+    Unbounded ->
+        renderVarListMath vars
+    Bounded _loc sign rel expr ->
+        renderRelationApplication hints sign (ExprVar <$> toList vars) rel [expr]
+
+boundSubjectMathFragments :: HintMap -> NonEmpty VarSymbol -> Bound -> StmtMathFragments
+boundSubjectMathFragments hints vars = \case
+    Unbounded ->
+        stmtMathNode (renderVarListMath vars)
+    bound ->
+        stmtMathNode (renderBoundSubjectMath hints vars bound)
 
 renderSymbolPatternInline :: HintMap -> SymbolPattern -> Html ()
 renderSymbolPatternInline hints =
