@@ -20,7 +20,7 @@ import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Lazy qualified as LazyText
-import Report.Location (pattern Nowhere)
+import Report.Location (Location, pattern Nowhere)
 import Syntax.Token (tokToText)
 
 
@@ -43,6 +43,7 @@ data RenderHint = RenderHint
 
 type HintMap = Map (HintCategory, Marker) RenderHint
 type MissingHintMap = Map HintCategory (Set Marker)
+type AnchorMap = Map Marker Text
 
 proofCollapseThreshold :: Int
 proofCollapseThreshold = 10
@@ -59,6 +60,11 @@ renderDocument inputPath hintsSource blocks =
         rendered = LazyText.toStrict (renderText (renderPage hints))
         indexedBlocks = zip [1 :: Int ..] blocks
         tocBlocks = [(index, block) | (index, block) <- indexedBlocks, includeInToc block]
+        anchors = Map.fromList
+            [ (marker, blockAnchorId index block)
+            | (index, block) <- indexedBlocks
+            , Just marker <- [blockMarkerOf block]
+            ]
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -75,7 +81,7 @@ renderDocument inputPath hintsSource blocks =
                                 traverse_ (uncurry renderTocEntry) tocBlocks
                     main_ [class_ "content"] do
                         h1_ (toHtml (Text.pack inputPath))
-                        traverse_ (uncurry (renderBlock hintMap)) indexedBlocks
+                        traverse_ (uncurry (renderBlock hintMap anchors)) indexedBlocks
 
 
 pageStyles :: Text
@@ -149,6 +155,9 @@ pageStyles = Text.unlines
     , ".toc-link:hover,"
     , ".toc-link:focus-visible {"
     , "  text-decoration: underline;"
+    , "}"
+    , ".marker-link {"
+    , "  color: inherit;"
     , "}"
     , ".toc-prefix {"
     , "  display: block;"
@@ -749,14 +758,14 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
         _unusedLineNo = lineNo
 
 
-renderBlock :: HintMap -> Int -> Block -> Html ()
-renderBlock hints index block = case block of
+renderBlock :: HintMap -> AnchorMap -> Int -> Block -> Html ()
+renderBlock hints anchors index block = case block of
     BlockAxiom _loc title marker axiom ->
         renderCustomBlock (blockAnchorId index block) "axiom-block" "Axiom" (Just marker) title (renderAxiom hints axiom)
     BlockClaim kind _loc title marker claim ->
         renderCustomBlock (blockAnchorId index block) (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
-        renderProofBlock (blockAnchorId index block) hints proof
+        renderProofBlock (blockAnchorId index block) hints anchors proof
     BlockDefn _loc title marker defn ->
         renderCustomBlock (blockAnchorId index block) "definition-block" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
@@ -793,15 +802,15 @@ renderCustomBlock blockId name prefix mmarker mtitle body =
         span_ [class_ "block-header"] (renderBlockLead prefix mmarker mtitle True)
         div_ [class_ "block-body"] body
 
-renderProofBlock :: Text -> HintMap -> Proof -> Html ()
-renderProofBlock blockId hints proof
+renderProofBlock :: Text -> HintMap -> AnchorMap -> Proof -> Html ()
+renderProofBlock blockId hints anchors proof
     | proofStepCount proof >= proofCollapseThreshold =
         term "proof-block" [id_ blockId, class_ "block"] do
             details_ [class_ "proof-details"] do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
-                div_ [class_ "proof-body"] (renderProof hints proof)
+                div_ [class_ "proof-body"] (renderProof hints anchors proof)
     | otherwise =
-        renderCustomBlock blockId "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints proof))
+        renderCustomBlock blockId "proof-block" "Proof" Nothing Nothing (div_ [class_ "proof-body"] (renderProof hints anchors proof))
 
 blockAnchorId :: Int -> Block -> Text
 blockAnchorId index block =
@@ -1141,21 +1150,18 @@ renderStructDefn hints StructDefn{..} = do
                 toHtml ("." :: Text)
 
 
-renderProof :: HintMap -> Proof -> Html ()
-renderProof hints = \case
+renderProof :: HintMap -> AnchorMap -> Proof -> Html ()
+renderProof hints anchors = \case
     Omitted ->
-        p_ "Proof omitted."
-    Qed _loc justification ->
-        p_ do
-            toHtml ("Qed" :: Text)
-            renderJustificationSuffix justification
-            toHtml ("." :: Text)
+        p_ "Omitted."
+    Qed mloc justification ->
+        renderProofTerminal mloc justification
     ByCase _loc cases -> do
         p_ "Proof by cases."
-        div_ [class_ "proof-nested"] (traverse_ (renderCase hints) cases)
+        div_ [class_ "proof-nested"] (traverse_ (renderCase hints anchors) cases)
     ByContradiction _loc proof -> do
         p_ "Proof by contradiction."
-        div_ [class_ "proof-nested"] (renderProof hints proof)
+        div_ [class_ "proof-nested"] (renderProof hints anchors proof)
     BySetInduction _loc maybeTerm proof -> do
         p_ do
             toHtml ("Proof by set induction" :: Text)
@@ -1165,23 +1171,23 @@ renderProof hints = \case
                     toHtml (" on " :: Text)
                     renderTermInline hints targetTerm
             toHtml ("." :: Text)
-        div_ [class_ "proof-nested"] (renderProof hints proof)
+        div_ [class_ "proof-nested"] (renderProof hints anchors proof)
     ByOrdInduction _loc proof -> do
         p_ "Proof by ordinal induction."
-        div_ [class_ "proof-nested"] (renderProof hints proof)
+        div_ [class_ "proof-nested"] (renderProof hints anchors proof)
     Assume _loc stmt proof -> do
         p_ do
             toHtml ("Assume " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     FixSymbolic _loc vars bound proof -> do
         p_ do
             toHtml ("Fix " :: Text)
             renderVarListInline vars
             renderBoundInline hints vars bound
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     FixSuchThat _loc vars stmt proof -> do
         p_ do
             toHtml ("Fix " :: Text)
@@ -1189,10 +1195,10 @@ renderProof hints = \case
             toHtml (" such that " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     Calc _loc maybeQuant calc proof -> do
-        renderCalc hints maybeQuant calc
-        renderProof hints proof
+        renderCalc hints anchors maybeQuant calc
+        renderProofContinuation hints anchors proof
     TakeVar _loc vars bound stmt justification proof -> do
         p_ do
             toHtml ("Take " :: Text)
@@ -1200,42 +1206,49 @@ renderProof hints = \case
             renderBoundInline hints vars bound
             toHtml (" such that " :: Text)
             renderStmtInline hints stmt
-            renderJustificationSuffix justification
+            renderJustificationSuffix anchors justification
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     TakeNoun _loc np justification proof -> do
         p_ do
             toHtml ("Take " :: Text)
             renderNounPhraseList hints np
-            renderJustificationSuffix justification
+            renderJustificationSuffix anchors justification
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     Have _loc maybeStmt stmt justification proof -> do
         p_ do
             case maybeStmt of
-                Nothing -> toHtml ("We have " :: Text)
+                Nothing
+                    | isContradictionStmt stmt ->
+                        toHtml ("Contradiction" :: Text)
+                    | isImplicitProofEnd proof ->
+                        skip
+                    | otherwise ->
+                        toHtml ("We have " :: Text)
                 Just premise -> do
                     toHtml ("Since " :: Text)
                     renderStmtInline hints premise
                     toHtml (", we have " :: Text)
-            renderStmtInline hints stmt
-            renderJustificationSuffix justification
+            unless (isContradictionStmt stmt) do
+                renderStmtInline hints stmt
+            renderJustificationSuffix anchors justification
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     Suffices _loc stmt justification proof -> do
         p_ do
             toHtml ("It suffices to show that " :: Text)
             renderStmtInline hints stmt
-            renderJustificationSuffix justification
+            renderJustificationSuffix anchors justification
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     Subclaim _loc stmt subproof proof -> do
         p_ do
             toHtml ("Show " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        div_ [class_ "proof-nested"] (renderProof hints subproof)
-        renderProof hints proof
+        div_ [class_ "proof-nested"] (renderProof hints anchors subproof)
+        renderProofContinuation hints anchors proof
     Define _loc var expr proof -> do
         p_ do
             toHtml ("Let " :: Text)
@@ -1243,7 +1256,7 @@ renderProof hints = \case
             toHtml (" = " :: Text)
             inlineMath (renderExprMath hints expr)
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     DefineFunction _loc fun arg value boundVar boundExpr proof -> do
         p_ do
             toHtml ("Let " :: Text)
@@ -1257,7 +1270,7 @@ renderProof hints = \case
             toHtml (" in " :: Text)
             inlineMath (renderExprMath hints boundExpr)
             toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
     DefineFunctionLocal _loc fun arg _target domVar codVar rules proof -> do
         p_ do
             toHtml ("Let " :: Text)
@@ -1275,7 +1288,34 @@ renderProof hints = \case
                 toHtml (" if " :: Text)
                 inlineMath (renderFormulaMath hints formula)
                 toHtml ("." :: Text)
-        renderProof hints proof
+        renderProofContinuation hints anchors proof
+
+    where
+        renderProofTerminal :: Maybe Location -> Justification -> Html ()
+        renderProofTerminal mloc justification = case (mloc, justification) of
+            (Nothing, JustificationEmpty) ->
+                skip
+            (Just _, JustificationEmpty) ->
+                p_ "Trivial."
+            _ ->
+                p_ do
+                    toHtml ("Follows" :: Text)
+                    renderJustificationSuffix anchors justification
+                    toHtml ("." :: Text)
+
+renderProofContinuation :: HintMap -> AnchorMap -> Proof -> Html ()
+renderProofContinuation hints anchors proof =
+    unless (isImplicitProofEnd proof) (renderProof hints anchors proof)
+
+isImplicitProofEnd :: Proof -> Bool
+isImplicitProofEnd = \case
+    Qed Nothing JustificationEmpty -> True
+    _ -> False
+
+isContradictionStmt :: Stmt -> Bool
+isContradictionStmt = \case
+    StmtFormula (PropositionalConstant _loc IsBottom) -> True
+    _ -> False
 
 proofStepCount :: Proof -> Int
 proofStepCount = \case
@@ -1307,17 +1347,17 @@ calcStepCount = \case
     Equation _ steps -> length steps
     Biconditionals _ steps -> length steps
 
-renderCase :: HintMap -> Case -> Html ()
-renderCase hints Case{..} =
+renderCase :: HintMap -> AnchorMap -> Case -> Html ()
+renderCase hints anchors Case{..} =
     div_ [class_ "proof-nested"] do
         p_ do
             toHtml ("Case " :: Text)
             renderStmtInline hints caseOf
             toHtml ("." :: Text)
-        renderProof hints caseProof
+        renderProof hints anchors caseProof
 
-renderCalc :: HintMap -> Maybe CalcQuantifier -> Calc -> Html ()
-renderCalc hints maybeQuant calc = do
+renderCalc :: HintMap -> AnchorMap -> Maybe CalcQuantifier -> Calc -> Html ()
+renderCalc hints anchors maybeQuant calc = do
     p_ do
         toHtml ("Calculation" :: Text)
         case maybeQuant of
@@ -1336,7 +1376,7 @@ renderCalc hints maybeQuant calc = do
         renderStepJustification (_idx, JustificationEmpty) = skip
         renderStepJustification (idx, jst) = li_ do
             toHtml ("Step " <> Text.pack (show idx) <> ": " :: Text)
-            renderJustification jst
+            renderJustification anchors jst
             toHtml ("." :: Text)
 
 renderCalcQuantifierInline :: HintMap -> CalcQuantifier -> Html ()
@@ -1929,11 +1969,11 @@ renderSymbolPatternInline :: HintMap -> SymbolPattern -> Html ()
 renderSymbolPatternInline hints (SymbolPattern symbol vars) =
     inlineMath (renderHintedMath hints OperatorHint (mixfixMarker symbol) (ExprVar <$> vars) (renderPatternFallback (mixfixPattern symbol) (renderVarMath <$> vars)))
 
-renderJustification :: Justification -> Html ()
-renderJustification = \case
+renderJustification :: AnchorMap -> Justification -> Html ()
+renderJustification anchors = \case
     JustificationRef markers -> do
         toHtml ("by " :: Text)
-        toHtml (Text.intercalate ", " (markerText <$> toList markers))
+        joinHtml (toHtml (", " :: Text)) (renderMarkerLink anchors <$> toList markers)
     JustificationSetExt ->
         toHtml ("by set extensionality" :: Text)
     JustificationEmpty ->
@@ -1941,11 +1981,19 @@ renderJustification = \case
     JustificationLocal ->
         toHtml ("by local assumptions" :: Text)
 
-renderJustificationSuffix :: Justification -> Html ()
-renderJustificationSuffix JustificationEmpty = skip
-renderJustificationSuffix justification = do
+renderJustificationSuffix :: AnchorMap -> Justification -> Html ()
+renderJustificationSuffix _ JustificationEmpty = skip
+renderJustificationSuffix anchors justification = do
     toHtml (" " :: Text)
-    renderJustification justification
+    renderJustification anchors justification
+
+renderMarkerLink :: AnchorMap -> Marker -> Html ()
+renderMarkerLink anchors marker =
+    case Map.lookup marker anchors of
+        Nothing ->
+            toHtml (markerText marker)
+        Just anchor ->
+            a_ [class_ "marker-link", href_ ("#" <> anchor)] (toHtml (markerText marker))
 
 
 markerText :: Marker -> Text
