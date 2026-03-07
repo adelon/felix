@@ -63,7 +63,7 @@ operator	indiscrete_topology	1	<msub><mi>τ</mi><mi>indiscr</mi></msub><mo>(</mo
 operator	induced_map	5	<mover><x2/><mo>¯</mo></mover>
 operator	initial_segment_naturalsplus	1	<msub><mi>seg</mi><mi>+</mi></msub><mo>(</mo><x1/><mo>)</mo>
 operator	inj	2	<mi>Inj</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
-operator	integers	0	<mi mathvariant="double-struck">Z</mi>
+operator	integers	0	<mi>ℤ</mi>
 operator	interior	3	<msubsup><mi>int</mi><x2/><x3/></msubsup><mo>(</mo><x1/><mo>)</mo>
 operator	interval_closed_open	2	<mo>[</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	intervalclosed	2	<mo>[</mo><x1/><mo>,</mo><x2/><mo>]</mo>
@@ -86,8 +86,8 @@ operator	metric_basis	2	<msubsup><mi>B</mi><x1/><x2/></msubsup>
 operator	metric_distance_set	2	<msub><mi>D</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
 operator	metric_topology	2	<msubsup><mi>τ</mi><x1/><x2/></msubsup>
 operator	minus	2	<x1/><mo>−</mo><x2/>
-operator	naturals	0	<mi mathvariant="double-struck">N</mi>
-operator	naturalsPlus	0	<msub><mi mathvariant="double-struck">N</mi><mo>+</mo></msub>
+operator	naturals	0	<mi>ℕ</mi>
+operator	naturalsPlus	0	<msub><mi>ℕ</mi><mo>+</mo></msub>
 operator	neg	1	<mo>−</mo><x1/>
 operator	omega_metric	0	<msub><mi>d</mi><mi>ω</mi></msub>
 operator	omega_metric_set	2	<msub><mi>M</mi><mi>ω</mi></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
@@ -114,16 +114,16 @@ operator	projection_map_indexed	2	<msub><mi>π</mi><x2/></msub><mo>(</mo><x1/><m
 operator	projection_second	2	<msub><mi>π</mi><mn>2</mn></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	quotient_topology	4	<mi>QuotTop</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>)</mo>
 operator	ran	1	<mi>ran</mi><mo>(</mo><x1/><mo>)</mo>
-operator	rationals	0	<mi mathvariant="double-struck">Q</mi>
-operator	real_addition_operation	0	<msub><mo>+</mo><mi mathvariant="double-struck">R</mi></msub>
-operator	real_division_operation	0	<msub><mo>/</mo><mi mathvariant="double-struck">R</mi></msub>
-operator	real_inverse_operation	0	<msub><mi>inv</mi><mi mathvariant="double-struck">R</mi></msub>
-operator	real_multiplication_operation	0	<msub><mo>·</mo><mi mathvariant="double-struck">R</mi></msub>
-operator	real_order_relation	0	<msub><mo>&lt;</mo><mi mathvariant="double-struck">R</mi></msub>
+operator	rationals	0	<mi>ℚ</mi>
+operator	real_addition_operation	0	<msub><mo>+</mo><mi>ℝ</mi></msub>
+operator	real_division_operation	0	<msub><mo>/</mo><mi>ℝ</mi></msub>
+operator	real_inverse_operation	0	<msub><mi>inv</mi><mi>ℝ</mi></msub>
+operator	real_multiplication_operation	0	<msub><mo>·</mo><mi>ℝ</mi></msub>
+operator	real_order_relation	0	<msub><mo>&lt;</mo><mi>ℝ</mi></msub>
 operator	real_order_topology	0	<msub><mi>τ</mi><mo>&lt;</mo></msub>
-operator	real_subtraction_operation	0	<msub><mo>−</mo><mi mathvariant="double-struck">R</mi></msub>
-operator	reals	0	<mi mathvariant="double-struck">R</mi>
-operator	reals_power	1	<msup><mi mathvariant="double-struck">R</mi><x1/></msup>
+operator	real_subtraction_operation	0	<msub><mo>−</mo><mi>ℝ</mi></msub>
+operator	reals	0	<mi>ℝ</mi>
+operator	reals_power	1	<msup><mi>ℝ</mi><x1/></msup>
 operator	rels	2	<mi>Rel</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	restrl	2	<x1/><mo>↾</mo><x2/>
 operator	rmul	2	<x1/><mo>·</mo><x2/>
@@ -142,8 +142,8 @@ operator	tuple_power	2	<msup><x1/><x2/></msup>
 operator	uniform_metric	1	<msubsup><mi>d</mi><mi>u</mi><x1/></msubsup>
 operator	uniform_metric_set	3	<msubsup><mi>M</mi><mi>u</mi><x1/></msubsup><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
 operator	uniform_topology	1	<msubsup><mi>τ</mi><mi>u</mi><x1/></msubsup>
-operator	unit_rationals	0	<msub><mi mathvariant="double-struck">Q</mi><mi>unit</mi></msub>
-operator	unit_rationals_zero	0	<msub><mi mathvariant="double-struck">Q</mi><mi>unit0</mi></msub>
+operator	unit_rationals	0	<msub><mi>ℚ</mi><mi>unit</mi></msub>
+operator	unit_rationals_zero	0	<msub><mi>ℚ</mi><mi>unit0</mi></msub>
 operator	urysohn_admissible	6	<mi>Adm</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>,</mo><x5/><mo>,</mo><x6/><mo>)</mo>
 operator	urysohn_good_pairs	5	<mi>GoodPairs</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>,</mo><x5/><mo>)</mo>
 operator	urysohn_level_set	2	<msub><mi>L</mi><x1/></msub><mo>(</mo><x2/><mo>)</mo>
