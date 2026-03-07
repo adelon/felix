@@ -42,9 +42,19 @@ data RenderHint = RenderHint
     } deriving (Show, Eq, Ord)
 
 type HintMap = Map (HintCategory, Marker) RenderHint
-type MissingHintMap = Map HintCategory (Set Marker)
 type AnchorMap = Map Marker Text
 type BlockRenderInfo = (Int, Block, Text, Text)
+
+newtype MissingHintMap = MissingHintMap
+    { unMissingHintMap :: Map HintCategory (Set Marker)
+    } deriving (Show, Eq)
+
+instance Semigroup MissingHintMap where
+    MissingHintMap left <> MissingHintMap right =
+        MissingHintMap (Map.unionWith (<>) left right)
+
+instance Monoid MissingHintMap where
+    mempty = MissingHintMap mempty
 
 proofCollapseThreshold :: Int
 proofCollapseThreshold = 10
@@ -442,7 +452,7 @@ collectMissingHints hints = foldMap collectBlock
         noteMissingHint category marker =
             if Map.member (category, marker) hints
                 then mempty
-                else Map.singleton category (Set.singleton marker)
+                else MissingHintMap (Map.singleton category (Set.singleton marker))
 
         collectBlock :: Block -> MissingHintMap
         collectBlock = \case
@@ -851,10 +861,12 @@ formatMissingHintWarning missingHints
     | null parts = Nothing
     | otherwise = Just ("WARNING: missing render hints: " <> Text.intercalate "; " parts)
     where
+        missingHintMap = unMissingHintMap missingHints
+
         parts =
             [ label <> "(" <> Text.intercalate ", " (markerText <$> Set.toAscList markers) <> ")"
             | (category, label) <- categoryLabels
-            , Just markers <- [Map.lookup category missingHints]
+            , Just markers <- [Map.lookup category missingHintMap]
             , not (Set.null markers)
             ]
 
