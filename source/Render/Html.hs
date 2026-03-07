@@ -11,6 +11,7 @@ import Syntax.Abstract
 
 import Base
 import Lucid hiding (Term, for_)
+import Lucid.Base (makeAttributes)
 import Lucid.Math
 
 import Control.Monad (guard, unless, when)
@@ -106,6 +107,12 @@ renderDocument inputPath hintsSource blocks =
                     aside_ [class_ "toc-column"] do
                         nav_ [class_ "toc"] do
                             h2_ [class_ "toc-heading"] "Contents"
+                            input_
+                                [ class_ "toc-filter"
+                                , type_ "search"
+                                , placeholder_ "Filter labels"
+                                , makeAttributes "aria-label" "Filter TOC by label"
+                                ]
                             ol_ [class_ "toc-list"] do
                                 traverse_ renderTocEntry tocBlocks
                     main_ [class_ "content"] do
@@ -161,9 +168,10 @@ pageStyles = Text.unlines
     , "  min-height: 0;"
     , "}"
     , ".toc {"
+    , "  display: flex;"
+    , "  flex-direction: column;"
     , "  height: 100%;"
-    , "  overflow-y: auto;"
-    , "  padding-right: 0.5rem;"
+    , "  min-height: 0;"
     , "}"
     , ".toc-heading {"
     , "  margin: 0 0 0.75rem;"
@@ -172,10 +180,27 @@ pageStyles = Text.unlines
     , "  letter-spacing: 0.04em;"
     , "  text-transform: uppercase;"
     , "}"
+    , ".toc-filter {"
+    , "  box-sizing: border-box;"
+    , "  width: 100%;"
+    , "  margin: 0 0 0.9rem;"
+    , "  padding: 0.45rem 0.55rem;"
+    , "  border: 1px solid var(--badge-border);"
+    , "  border-radius: 0.35rem;"
+    , "  background: var(--page-bg);"
+    , "  color: var(--page-fg);"
+    , "  font: inherit;"
+    , "}"
+    , ".toc-filter::placeholder {"
+    , "  color: var(--muted-fg);"
+    , "}"
     , ".toc-list {"
+    , "  flex: 1 1 auto;"
+    , "  min-height: 0;"
+    , "  overflow-y: auto;"
     , "  list-style: none;"
     , "  margin: 0;"
-    , "  padding: 0;"
+    , "  padding: 0 0.5rem 0 0;"
     , "}"
     , ".toc-item {"
     , "  margin: 0 0 0.8rem;"
@@ -320,24 +345,44 @@ tocScript :: Text
 tocScript = Text.unlines
     [ "(function () {"
     , "  const toc = document.querySelector('.toc');"
+    , "  const tocList = toc ? toc.querySelector('.toc-list') : null;"
+    , "  const filterInput = toc ? toc.querySelector('.toc-filter') : null;"
     , "  const content = document.querySelector('main.content');"
-    , "  if (!toc || !content) return;"
+    , "  if (!toc || !tocList || !content) return;"
     , "  const links = Array.from(toc.querySelectorAll('.toc-link[data-toc-target]'));"
     , "  const blocks = Array.from(content.querySelectorAll('.block[data-toc-target]'));"
     , "  if (!links.length || !blocks.length) return;"
     , "  const linkByTarget = new Map(links.map((link) => [link.dataset.tocTarget, link]));"
+    , "  const tocEntries = links.map((link) => ({"
+    , "    item: link.closest('.toc-item'),"
+    , "    link,"
+    , "    label: (link.dataset.tocLabel || '').toLowerCase()"
+    , "  }));"
     , "  let activeTarget = null;"
     , "  let rafId = 0;"
     , "  let suspendUntil = 0;"
     , ""
     , "  const keepActiveLinkVisible = (link) => {"
     , "    if (!link || performance.now() < suspendUntil) return;"
-    , "    const tocRect = toc.getBoundingClientRect();"
+    , "    const item = link.closest('.toc-item');"
+    , "    if (item && item.hidden) return;"
+    , "    const tocRect = tocList.getBoundingClientRect();"
     , "    const linkRect = link.getBoundingClientRect();"
     , "    const comfortTop = tocRect.top + tocRect.height * 0.2;"
     , "    const comfortBottom = tocRect.bottom - tocRect.height * 0.2;"
     , "    if (linkRect.top < comfortTop || linkRect.bottom > comfortBottom) {"
     , "      link.scrollIntoView({ block: 'nearest', inline: 'nearest' });"
+    , "    }"
+    , "  };"
+    , ""
+    , "  const applyFilter = () => {"
+    , "    const query = filterInput ? filterInput.value.trim().toLowerCase() : '';"
+    , "    for (const { item, label } of tocEntries) {"
+    , "      if (!item) continue;"
+    , "      item.hidden = query !== '' && !label.includes(query);"
+    , "    }"
+    , "    if (activeTarget) {"
+    , "      keepActiveLinkVisible(linkByTarget.get(activeTarget));"
     , "    }"
     , "  };"
     , ""
@@ -405,10 +450,13 @@ tocScript = Text.unlines
     , ""
     , "  content.addEventListener('scroll', scheduleUpdate, { passive: true });"
     , "  window.addEventListener('resize', scheduleUpdate);"
-    , "  toc.addEventListener('wheel', suspendAutofollow, { passive: true });"
-    , "  toc.addEventListener('touchstart', suspendAutofollow, { passive: true });"
+    , "  tocList.addEventListener('wheel', suspendAutofollow, { passive: true });"
+    , "  tocList.addEventListener('touchstart', suspendAutofollow, { passive: true });"
     , "  toc.addEventListener('pointerdown', suspendAutofollow);"
     , "  toc.addEventListener('focusin', suspendAutofollow);"
+    , "  if (filterInput) {"
+    , "    filterInput.addEventListener('input', applyFilter);"
+    , "  }"
     , "  for (const details of content.querySelectorAll('details')) {"
     , "    details.addEventListener('toggle', scheduleUpdate);"
     , "  }"
@@ -438,17 +486,22 @@ tocScript = Text.unlines
     , "  if (location.hash.length > 1) {"
     , "    const hashTarget = decodeURIComponent(location.hash.slice(1));"
     , "    window.requestAnimationFrame(() => {"
+    , "      applyFilter();"
     , "      if (!scrollToTarget(hashTarget)) scheduleUpdate();"
     , "    });"
     , "    return;"
     , "  }"
     , ""
+    , "  applyFilter();"
     , "  scheduleUpdate();"
     , "})();"
     ]
 
 dataTocTarget_ :: Text -> Attributes
 dataTocTarget_ = data_ "toc-target"
+
+dataTocLabel_ :: Text -> Attributes
+dataTocLabel_ = data_ "toc-label"
 
 
 collectMissingHints :: HintMap -> [Block] -> MissingHintMap
@@ -968,7 +1021,7 @@ renderBlock hints anchors (_index, block, blockId, tocTarget) = case block of
 renderTocEntry :: (Int, Text, Block) -> Html ()
 renderTocEntry (index, blockId, block) =
     li_ [class_ "toc-item"] do
-        a_ [class_ "toc-link", href_ ("#" <> blockId), dataTocTarget_ blockId] do
+        a_ [class_ "toc-link", href_ ("#" <> blockId), dataTocTarget_ blockId, dataTocLabel_ tocLabel] do
             span_ [class_ "toc-prefix"] (toHtml (blockPrefixText block))
             case formatMarker (blockMarkerOf block) of
                 Nothing ->
@@ -976,6 +1029,8 @@ renderTocEntry (index, blockId, block) =
                         span_ [class_ "toc-marker"] (toHtml (Text.pack (show index)))
                 Just marker ->
                     span_ [class_ "toc-marker"] (toHtml marker)
+    where
+        tocLabel = fromMaybe "" (formatMarker (blockMarkerOf block))
 
 includeInToc :: Block -> Bool
 includeInToc = \case
