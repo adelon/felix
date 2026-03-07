@@ -52,6 +52,7 @@ renderDocument inputPath hintsSource blocks =
     where
         hints = parseHints hintsSource
         indexedBlocks = zip [1 :: Int ..] blocks
+        tocBlocks = [(index, block) | (index, block) <- indexedBlocks, includeInToc block]
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -65,7 +66,7 @@ renderDocument inputPath hintsSource blocks =
                         nav_ [class_ "toc"] do
                             h2_ [class_ "toc-heading"] "Contents"
                             ol_ [class_ "toc-list"] do
-                                traverse_ (uncurry renderTocEntry) indexedBlocks
+                                traverse_ (uncurry renderTocEntry) tocBlocks
                     main_ [class_ "content"] do
                         h1_ (toHtml (Text.pack inputPath))
                         traverse_ (uncurry (renderBlock hintMap)) indexedBlocks
@@ -87,10 +88,13 @@ pageStyles = Text.unlines
     , "  --error-fg: #9f1d1d;"
     , "  --error-bg: #fff1f1;"
     , "}"
+    , "html {"
+    , "  height: 100%;"
+    , "}"
     , "body {"
-    , "  margin: 2rem auto;"
-    , "  max-width: 84rem;"
-    , "  padding: 0 1.25rem 3rem;"
+    , "  margin: 0;"
+    , "  height: 100vh;"
+    , "  overflow: hidden;"
     , "  line-height: 1.5;"
     , "  background: var(--page-bg);"
     , "  color: var(--page-fg);"
@@ -98,17 +102,22 @@ pageStyles = Text.unlines
     , ".layout {"
     , "  display: grid;"
     , "  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);"
+    , "  grid-template-rows: minmax(0, 1fr);"
     , "  gap: 2rem;"
-    , "  align-items: start;"
+    , "  align-items: stretch;"
+    , "  box-sizing: border-box;"
+    , "  margin: 0 auto;"
+    , "  max-width: 84rem;"
+    , "  height: 100vh;"
+    , "  padding: 2rem 1.25rem 3rem;"
     , "}"
     , ".toc-column {"
     , "  display: block;"
+    , "  min-height: 0;"
     , "}"
     , ".toc {"
-    , "  position: sticky;"
-    , "  top: 1.5rem;"
-    , "  max-height: calc(100vh - 3rem);"
-    , "  overflow: auto;"
+    , "  height: 100%;"
+    , "  overflow-y: auto;"
     , "  padding-right: 0.5rem;"
     , "}"
     , ".toc-heading {"
@@ -146,9 +155,11 @@ pageStyles = Text.unlines
     , ".toc-title {"
     , "  color: var(--subtle-fg);"
     , "}"
-    , "main {"
+    , ".content {"
     , "  display: block;"
     , "  min-width: 0;"
+    , "  min-height: 0;"
+    , "  overflow-y: auto;"
     , "}"
     , ".block {"
     , "  display: block;"
@@ -220,15 +231,22 @@ pageStyles = Text.unlines
     , "  }"
     , "}"
     , "@media (max-width: 900px) {"
+    , "  body {"
+    , "    height: auto;"
+    , "    overflow: auto;"
+    , "  }"
     , "  .layout {"
     , "    grid-template-columns: 1fr;"
+    , "    grid-template-rows: auto;"
     , "    gap: 1.5rem;"
+    , "    height: auto;"
     , "  }"
-    , "  .toc {"
-    , "    position: static;"
-    , "    max-height: none;"
+    , "  .toc-column {"
+    , "    display: none;"
+    , "  }"
+    , "  .content {"
+    , "    min-height: auto;"
     , "    overflow: visible;"
-    , "    padding-right: 0;"
     , "  }"
     , "}"
     ]
@@ -328,6 +346,11 @@ renderTocEntry index block =
                         toHtml (" " <> Text.pack (show index) :: Text)
                 Just title ->
                     span_ [class_ "toc-title"] (toHtml (" (" <> title <> ")" :: Text))
+
+includeInToc :: Block -> Bool
+includeInToc = \case
+    BlockProof{} -> False
+    _ -> True
 
 renderCustomBlock :: Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
 renderCustomBlock blockId name prefix mmarker mtitle body =
