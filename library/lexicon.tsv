@@ -7,7 +7,10 @@ operator	union	2	<x1/><mo>∪</mo><x2/>
 relation	elem	0	<mo>∈</mo>
 relation	eq	0	<mo>=</mo>
 relation	neq	0	<mo>≠</mo>
-relation	ni	0	<mo>∉</mo>
+relation	meets	0	<mo>⋈</mo>
+relation	ni	0	<mo>∋</mo>
+relation	notmeets	0	<mo>⋈̸</mo>
 relation	notelem	0	<mo>∉</mo>
 relation	subset	0	<mo>⊂</mo>
 relation	subseteq	0	<mo>⊆</mo>
+relation	supseteq	0	<mo>⊇</mo>

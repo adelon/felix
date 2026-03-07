@@ -973,13 +973,49 @@ applySign sign html = case sign of
 renderRelationCore :: HintMap -> [Expr] -> Relation -> [Expr] -> Html ()
 renderRelationCore hints lhs rel rhs = case rel of
     Relation _loc symbol relParams ->
-        let allArgs = lhs <> relParams <> rhs
-        in renderHintedMath hints RelationHint (relationSymbolMarker symbol) allArgs (renderPatternFallback (relationSymbolPattern symbol) (renderExprMath hints <$> allArgs))
+        mrow_ do
+            renderExprListMath hints lhs
+            renderRelationSymbolCore hints symbol relParams
+            renderExprListMath hints rhs
     RelationExpr _loc expr ->
         mrow_ do
             renderExprListMath hints lhs
             renderExprMath hints expr
             renderExprListMath hints rhs
+
+renderRelationSymbolCore :: HintMap -> RelationSymbol -> [Expr] -> Html ()
+renderRelationSymbolCore hints symbol relParams =
+    renderHintedMath
+        hints
+        RelationHint
+        (relationSymbolMarker symbol)
+        relParams
+        (renderRelationFallback hints symbol relParams)
+
+renderRelationFallback :: HintMap -> RelationSymbol -> [Expr] -> Html ()
+renderRelationFallback hints symbol relParams =
+    merror_ (renderRelationFallbackCore hints symbol relParams)
+
+renderRelationFallbackCore :: HintMap -> RelationSymbol -> [Expr] -> Html ()
+renderRelationFallbackCore hints symbol relParams
+    | null relParams = renderRelationToken (relationSymbolToken symbol)
+    | otherwise = msub_ do
+        renderRelationToken (relationSymbolToken symbol)
+        mrow_ (renderExprListMath hints relParams)
+
+renderRelationToken :: Token -> Html ()
+renderRelationToken = \case
+    Command "in" -> moText "∈"
+    Command "ni" -> moText "∋"
+    Command "notin" -> moText "∉"
+    Command "meets" -> moText "⋈"
+    Command "notmeets" -> moText "⋈̸"
+    Command "subset" -> moText "⊂"
+    Command "subseteq" -> moText "⊆"
+    Command "supset" -> moText "⊃"
+    Command "supseteq" -> moText "⊇"
+    Command "neq" -> moText "≠"
+    tok -> renderMathToken tok
 
 
 renderExprMath :: HintMap -> Expr -> Html ()
