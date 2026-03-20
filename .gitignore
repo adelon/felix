@@ -44,3 +44,4 @@ stack.yaml.lock
 check/
 *.ps
 html/
+/notes
