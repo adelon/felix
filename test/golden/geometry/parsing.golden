@@ -512,6 +512,7 @@
         ]
         ( DefnSymbolicPredicate
             ( PrefixPredicate "OFS" 8 )
+            ( Marker "ofs" )
             ( NamedVar "x" :|
                 [ NamedVar "y"
                 , NamedVar "z"
