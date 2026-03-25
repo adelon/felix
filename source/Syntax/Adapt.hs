@@ -503,4 +503,4 @@ prefixPattern (PrefixPredicate cmd _arity) =
     TokenCons (Command cmd) End
 
 warnExists :: Pattern -> a -> a
-warnExists pat = trace ("WARNING: Lexical pattern already exists: " <> show pat)
+warnExists pat = trace ("% WARNING: Lexical pattern already exists: " <> show pat)
