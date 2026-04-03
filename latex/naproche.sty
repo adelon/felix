@@ -61,6 +61,7 @@
 \crefname{abbreviation}{abbreviation}{abbreviations}
 \crefname{proposition}{proposition}{propositions}
 \crefname{lemma}{lemma}{lemmas}
+\crefname{struct}{struct}{structs}
 
 \newcommand{\fun}[1]{\operatorname{\mathsf{#1}}}
 
@@ -158,6 +159,8 @@
 \newcommand{\at}[2]{#1(#2)}
 \newcommand{\intervalopenInfiniteLeft}[1]{(-\infty, #1)}
 \newcommand{\intervalopenInfiniteRight}[1]{(#1, \infty)}
+\newcommand{\qdivl}{\backslash}
+\newcommand{\qdivr}{/}
 
 
 \newcommand\restrl[2]{{% we make the whole thing an ordinary symbol
@@ -177,8 +180,8 @@
 % Structure operations
 
 \newcommand{\carrier}[1][]{#1}
-\newcommand{\mul}[1][]{\textsf{mul}_{#1}}
-\newcommand{\neutral}[1][]{\textsf{e}_{#1}}
+\newcommand{\mul}[1][]{\operatorname{mul}_{#1}}
+\newcommand{\neutral}[1][]{\operatorname{e}_{#1}}
 \newcommand{\lt}[1][]{\leq_{#1}}
 \newcommand{\opens}[1][]{\mathcal{O}_{#1}}
 \newcommand{\meet}[1][]{\sqcap_{#1}}
@@ -190,8 +193,8 @@
 \newcommand{\closures}[2]{\fun{Cl}_{#2}{#1}}
 \newcommand{\closure}[2]{\fun{cl}_{#2}{#1}}
 \newcommand{\frontier}[2]{\fun{fr}_{#2}{#1}}
-\newcommand{\neighbourhoods}[2]{\textsf{N}_{#2}{#1}}
-\newcommand{\neighbourhoodsSet}[2]{\textsf{N}_{SET #2}{#1}}
+\newcommand{\neighbourhoods}[2]{\operatorname{N}_{#2}{#1}}
+\newcommand{\neighbourhoodsSet}[2]{\operatorname{N}_{SET #2}{#1}}
 \newcommand{\disconnections}[1]{\fun{Disconnections}{#1}}
 
 \newcommand{\teezero}{\ensuremath{T_0}} % Kolmogorov

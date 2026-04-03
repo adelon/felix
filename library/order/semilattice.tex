@@ -1,41 +1,70 @@
-\import{order/partial-order.tex}
+\import{relation.tex}
+\import{relation/properties.tex}
 
-\begin{struct}\label{meet_semilattice}
-    A meet semilattice $X$ is a partial order
-    equipped with
-    \begin{enumerate}
-        \item $\meet$
-    \end{enumerate}
-    such that
-    \begin{enumerate}
-        \item\label{meet_type} for all $x,y\in \carrier[X]$ we have
-           $\meet[X](x,y)\in X$.
-        \item\label{meet_lb} for all $x,y\in \carrier[X]$ we have
-            $\meet[X](x,y) \mathrel{\lt[X]} x, y$.
-        \item\label{meet_glb} for all $a,x,y\in \carrier[X]$ such that $a\mathrel{\lt[X]} x, y$ we have
-            $a\mathrel{\lt[X]} \meet[X](x,y)$.
-    \end{enumerate}
+\begin{struct}\label{partially_ordered_set}
+  A partially ordered set $X$ is a onesorted structure equipped with
+  \begin{enumerate}
+      \item $\lt$
+  \end{enumerate}
+  such that
+  \begin{enumerate}
+      \item\label{partially_ordered_type} $\lt[X]$ is a binary relation on $\carrier[X]$.
+      \item\label{partially_orderd_refl} $\lt[X]$ is reflexive on $\carrier[X]$.
+      \item\label{partially_ordered_refl} $\lt[X]$ is antisymmetric.
+      \item\label{partially_ordered_tran} $\lt[X]$ is transitive.
+  \end{enumerate}
 \end{struct}
 
+\begin{signature}\label{wedge_is_set}
+  $x \wedge y$ is a set.
+\end{signature}
+
+\begin{struct}\label{meet_semilattice}
+  A meet semilattice $X$ is a partially ordered set equipped with
+  \begin{enumerate}
+      \item $\wedge$
+  \end{enumerate}
+  such that
+  \begin{enumerate}
+      \item\label{meet_type} for all $x,y \in \carrier[X]$ we have $x \wedge y \in \carrier[X]$.
+      \item\label{meet_lb} for all $x,y \in \carrier[X]$ we have $x \wedge y \mathrel{\lt[X]} x, y$.
+      \item\label{meet_glb} for all $a,x,y \in \carrier[X]$ such that $a \mathrel{\lt[X]} x, y$ we have $a \mathrel{\lt[X]} x \wedge y$.
+  \end{enumerate}
+\end{struct}
 
 \begin{proposition}\label{meet_idempotent}
-    Let $X$ be a meet semilattice.
-    Then $\meet(x,x) = x$.
+  Let $X$ be a meet semilattice.
+  Suppose $x \in \carrier[X]$. Then $x \wedge x = x$.
 \end{proposition}
 \begin{proof}
-    $\meet(x,x) \mathrel{\lt} x$.
-    $x\mathrel{\lt[X]} x, x$.
-    Thus $x\mathrel{\lt[X]} \meet(x,x)$.
+  $x \mathrel{\lt} x$.
+  Therefore $x \mathrel{\lt} x \wedge x$ by \cref{meet_glb}.
+  $x \wedge x \mathrel{\lt} x$ by \cref{meet_lb}.
 \end{proof}
 
-%\begin{proposition}\label{meet_comm}
-%    Let $X$ be a meet semilattice.
-%    Suppose $x, y\in X$.
-%    Then $\meet(x,y) = \meet(y,x)$.
-%\end{proposition}
+\begin{proposition}\label{meet_comm}
+  Let $X$ be a meet semilattice.
+  Suppose $x, y\in \carrier[X]$.
+  Then $x \wedge y = y \wedge x$.
+\end{proposition}
+\begin{proof}
+  $x \wedge y, y \wedge x \mathrel{\lt} x,y$ by \cref{meet_lb}.
+  Thus $x \wedge y \mathrel{\lt} y \wedge x \mathrel{\lt} x \wedge y$.
+\end{proof}
 
-%\begin{proposition}\label{meet_assoc}
-%    Let $X$ be a meet semilattice.
-%    Suppose $x, y, z\in X$.
-%    Then $\meet(x,\meet(y,z)) = \meet(\meet(x,y),z)$.
-%\end{proposition}
+\begin{proposition}\label{meet_assoc}
+  Let $X$ be a meet semilattice.
+  Suppose $x, y, z\in \carrier[X]$.
+  Then $x \wedge (y \wedge z) = (x \wedge y) \wedge z$.
+\end{proposition}
+\begin{proof}
+  $x \wedge (y \wedge z) \mathrel{\lt} x, y \wedge z$ and $y \wedge z \mathrel{\lt} y, z$ by \cref{meet_semilattice}.
+  Thus $x \wedge (y \wedge z) \mathrel{\lt} (x \wedge y), z$.
+  Thus $x \wedge (y \wedge z) \mathrel{\lt} (x \wedge y) \wedge z$.
+
+  $(x \wedge y) \wedge z \mathrel{\lt} x \wedge y, z$ and $x \wedge y \mathrel{\lt} x, y$.
+  Thus $(x \wedge y) \wedge z \mathrel{\lt} x, y \wedge z$.
+  Thus $(x \wedge y) \wedge z \mathrel{\lt} x \wedge (y \wedge z)$.
+
+  Thus $(x \wedge y) \wedge z \mathrel{\lt} x \wedge (y \wedge z) \mathrel{\lt} (x \wedge y) \wedge z$.
+\end{proof}
