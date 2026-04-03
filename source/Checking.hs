@@ -1511,8 +1511,8 @@ checkStructDefn StructDefn{..} = do
     let structContext = structContextFromSymbols structDefnLabel (structDefnFixes <> parentSymbols)
     let isStruct p = TermSymbol Nowhere (SymbolPredicate (PredicateNounStruct p)) [TermVar structDefnLabel]
     let intro = if structParents == Set.singleton _Onesorted
-            then makeConjunction (snd <$> structDefnAssumes) `Implies` isStruct structPhrase
-            else makeConjunction ([isStruct parent | parent <- toList structParents] <> (snd <$> structDefnAssumes)) `Implies` isStruct structPhrase
+            then makeConjunction (snd <$> structDefnAssumes) `Iff` isStruct structPhrase
+            else makeConjunction ([isStruct parent | parent <- toList structParents] <> (snd <$> structDefnAssumes)) `Iff` isStruct structPhrase
     let intro' = (m, intro)
     let inherit' = (Marker (m_ <> "inherit"), isStruct structPhrase `Implies` makeConjunction [isStruct parent | parent <- toList structParents])
     let elims' = [(marker, isStruct structPhrase `Implies` phi) | (marker, phi) <- structDefnAssumes]

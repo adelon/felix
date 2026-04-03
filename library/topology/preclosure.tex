@@ -2,17 +2,16 @@
 
 \section{Preclosure spaces}
 
-
-\begin{struct}
+\begin{struct}\label{preclosure}
     A preclosure space $X$ is a onesorted structure equipped with
     \begin{enumerate}
         \item $\cl$
     \end{enumerate}
     such that
     \begin{enumerate}
-        \item For all $Y\subseteq X$ we have $\cl(Y)\subseteq X$.
-        \item $\cl(\emptyset) = \emptyset$.
-        \item For all $A$ we have $A\subseteq \cl(A)$.
-        \item For all $A, B$ we have $\cl(A\union B) = \cl(A) \union \cl(B)$.
+        \item\label{preclosure_closed} For all $Y\subseteq X$ we have $\cl(Y)\subseteq X$.
+        \item\label{preclosure_emptyset} $\cl(\emptyset) = \emptyset$.
+        \item\label{preclosure_increasing} For all $A$ we have $A\subseteq \cl(A)$.
+        \item\label{preclosure_union_commutes} For all $A, B$ we have $\cl(A\union B) = \cl(A) \union \cl(B)$.
     \end{enumerate}
 \end{struct}

@@ -4,3 +4,4 @@ rminus,infix,\rminus
 rmul,infix,\rmul
 rfrac,infix,\rfrac
 rless,rel,\rless
+wedge,infix,\wedge
