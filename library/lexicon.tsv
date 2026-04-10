@@ -33,8 +33,10 @@ operator	box_topology	2	<mi>BoxTop</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	circ	2	<x1/><mo>∘</mo><x2/>
 operator	closedray_left	3	<msubsup><mrow><mo>(</mo><mo>←</mo><mo>,</mo><x3/><mo>]</mo></mrow><x1/><x2/></msubsup>
 operator	closedray_right	3	<msubsup><mrow><mo>[</mo><x3/><mo>,</mo><mo>→</mo><mo>)</mo></mrow><x1/><x2/></msubsup>
-operator	closure	3	<msubsup><mi>cl</mi><x2/><x3/></msubsup><mo>(</mo><x1/><mo>)</mo>
+operator	closeds	1	<msub><mi mathvariant="script">C</mi><x1/></msub>
+operator	closure	2	<msub><mi>cl</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
 operator	closure_family	3	<mi>ClFam</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>)</mo>
+operator	closures	2	<msub><mi>Cl</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
 operator	component_relation	2	<msubsup><mo>∼</mo><mi>c</mi><mrow><x1/><mo>,</mo><x2/></mrow></msubsup>
 operator	converse_relation	1	<msup><x1/><mrow><mo>−</mo><mn>1</mn></mrow></msup>
 operator	coord_diff_sequence	3	<msub><mi>coordDiff</mi><x1/></msub><mo>(</mo><x2/><mo>,</mo><x3/><mo>)</mo>
@@ -55,6 +57,7 @@ operator	exp	2	<msup><x1/><x2/></msup>
 operator	fiber_partition	2	<mi>Fib</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	finite_complement_topology	1	<msub><mi>τ</mi><mi>fc</mi></msub><mo>(</mo><x1/><mo>)</mo>
 operator	finite_intersections	1	<mi>π</mi><mo>(</mo><x1/><mo>)</mo>
+operator	frontier	2	<msub><mi>fr</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
 operator	funs	2	<mi>Fun</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	id	1	<msub><mi>id</mi><x1/></msub>
 operator	img	2	<x1/><mo>[</mo><x2/><mo>]</mo>
@@ -64,7 +67,8 @@ operator	induced_map	5	<mover><x2/><mo>¯</mo></mover>
 operator	initial_segment_naturalsplus	1	<msub><mi>seg</mi><mi>+</mi></msub><mo>(</mo><x1/><mo>)</mo>
 operator	inj	2	<mi>Inj</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	integers	0	<mi>ℤ</mi>
-operator	interior	3	<msubsup><mi>int</mi><x2/><x3/></msubsup><mo>(</mo><x1/><mo>)</mo>
+operator	interiors	2	<msub><mi>Int</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
+operator	interior	2	<msub><mi>int</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
 operator	interval_closed_open	2	<mo>[</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	intervalclosed	2	<mo>[</mo><x1/><mo>,</mo><x2/><mo>]</mo>
 operator	intervalclosed_rel	4	<msubsup><mrow><mo>[</mo><x3/><mo>,</mo><x4/><mo>]</mo></mrow><x1/><x2/></msubsup>
@@ -89,6 +93,8 @@ operator	minus	2	<x1/><mo>−</mo><x2/>
 operator	naturals	0	<mi>ℕ</mi>
 operator	naturalsPlus	0	<msub><mi>ℕ</mi><mo>+</mo></msub>
 operator	neg	1	<mo>−</mo><x1/>
+operator	neighbourhoods	2	<msub><mi mathvariant="sans-serif">N</mi><x2/></msub><mo>(</mo><x1/><mo>)</mo>
+operator	neighbourhoods_set	2	<msub><mi mathvariant="sans-serif">N</mi><mrow><mi>SET</mi><mo> </mo><x2/></mrow></msub><mo>(</mo><x1/><mo>)</mo>
 operator	omega_metric	0	<msub><mi>d</mi><mi>ω</mi></msub>
 operator	omega_metric_set	2	<msub><mi>M</mi><mi>ω</mi></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
 operator	one_point_compact_complements	3	<msub><mi>K</mi><x3/></msub><mo>(</mo><x1/><mo>,</mo><x2/><mo>)</mo>
@@ -156,3 +162,6 @@ predicate	finite_indexed_product_compact_property	1	<mi>FinProdCompact</mi><mo>(
 predicate	real_supremum_pred	2	<x1/><mo>=</mo><mi>sup</mi><mo>(</mo><x2/><mo>)</mo>
 predicate	sum_finite_sequence_pred	2	<x2/><mo>=</mo><mo>∑</mo><mo>(</mo><x1/><mo>)</mo>
 predicate	urysohn_good_pair	7	<mi>GoodPair</mi><mo>(</mo><x1/><mo>,</mo><x2/><mo>,</mo><x3/><mo>,</mo><x4/><mo>,</mo><x5/><mo>,</mo><x6/><mo>,</mo><x7/><mo>)</mo>
+structop	carrier	1	<x1/>
+structop	opens	0	<mi mathvariant="script">O</mi>
+structop	opens	1	<msub><mi mathvariant="script">O</mi><x1/></msub>
