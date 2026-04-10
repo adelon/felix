@@ -23,6 +23,7 @@ import Data.Text qualified as Text
 import Data.Text.Lazy qualified as LazyText
 import Report.Location (Location, locFile, pattern Nowhere)
 import Syntax.Token (VariableDisplay(..), VariableSuffix(..), displayVariable, tokToText)
+import System.FilePath.Posix (dropExtension)
 
 
 data HintCategory
@@ -1779,6 +1780,18 @@ renderPreviewEntry hints PreviewEntry{..} =
         div_ [class_ "reference-preview-body"] do
             renderPreviewBlockBody hints previewBlock
 
+externalReferenceHref :: PreviewEntry -> Text
+externalReferenceHref PreviewEntry{..} =
+    "/" <> routePath <> "#" <> markerText previewMarker
+    where
+        sourceRoute = Text.pack (dropExtension previewSourceFile)
+        routePath =
+            case Text.stripPrefix "library/" sourceRoute of
+                Nothing ->
+                    sourceRoute
+                Just stripped ->
+                    stripped
+
 renderPreviewBlockBody :: HintMap -> Block -> Html ()
 renderPreviewBlockBody hints = \case
     BlockAxiom _loc _title _marker axiom ->
@@ -3085,20 +3098,23 @@ renderMarkerReference ReferenceContext{..} marker =
         Just anchor ->
             a_ (href_ ("#" <> anchor) : referenceAttributes (Just (currentPreviewAttributes anchor))) (toHtml label)
         Nothing ->
-            span_ (spanAttributes importedPreview) (toHtml label)
+            case Map.lookup marker referencePreviews of
+                Nothing ->
+                    span_ (referenceAttributes Nothing) (toHtml label)
+                Just preview ->
+                    a_
+                        ( href_ (externalReferenceHref preview)
+                        : referenceAttributes (Just (importedPreviewAttributes preview))
+                        )
+                        (toHtml label)
     where
         label = markerText marker
-        importedPreview = importedPreviewAttributes <$> Map.lookup marker referencePreviews
 
         referenceAttributes preview =
             [ class_ (if hasPreview preview then "ref-badge has-preview" else "ref-badge")
             , makeAttributes "data-reference-label" label
             ]
             <> foldMap id preview
-
-        spanAttributes preview =
-            referenceAttributes preview
-            <> if hasPreview preview then [makeAttributes "tabindex" "0"] else []
 
         hasPreview =
             \case
