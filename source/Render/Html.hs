@@ -43,7 +43,7 @@ data RenderHint = RenderHint
     , renderHintTemplate :: [TemplatePiece]
     } deriving (Show, Eq, Ord)
 
-type HintMap = Map (HintCategory, Marker) RenderHint
+type HintMap = Map (HintCategory, Marker, Int) RenderHint
 type AnchorMap = Map Marker Text
 type BlockRenderInfo = (Int, Block, Text)
 type PreviewMap = Map Marker PreviewEntry
@@ -831,9 +831,9 @@ collectReferencedMarkers =
 collectMissingHints :: HintMap -> [Block] -> MissingHintMap
 collectMissingHints hints = foldMap collectBlock
     where
-        noteMissingHint :: HintCategory -> Marker -> MissingHintMap
-        noteMissingHint category marker =
-            if Map.member (category, marker) hints
+        noteMissingHint :: HintCategory -> Marker -> Int -> MissingHintMap
+        noteMissingHint category marker arity =
+            if Map.member (category, marker, arity) hints
                 then mempty
                 else MissingHintMap (Map.singleton category (Set.singleton marker))
 
@@ -890,10 +890,10 @@ collectMissingHints hints = foldMap collectBlock
             DefnNoun _var noun ->
                 collectVarNoun noun
             DefnSymbolicPredicate _predi marker vars ->
-                noteMissingHint PredicateHint marker
+                noteMissingHint PredicateHint marker (length vars)
                     <> foldMap (collectExpr . ExprVar) vars
-            DefnRel _x rel _params _y ->
-                noteMissingHint RelationHint (relationSymbolMarker rel)
+            DefnRel _x rel params _y ->
+                noteMissingHint RelationHint (relationSymbolMarker rel) (length params)
 
         collectAbbreviation :: Abbreviation -> MissingHintMap
         collectAbbreviation = \case
@@ -903,8 +903,8 @@ collectMissingHints hints = foldMap collectBlock
                 collectStmt stmt
             AbbreviationNoun _var _noun stmt ->
                 collectStmt stmt
-            AbbreviationRel _x rel _params _y stmt ->
-                noteMissingHint RelationHint (relationSymbolMarker rel)
+            AbbreviationRel _x rel params _y stmt ->
+                noteMissingHint RelationHint (relationSymbolMarker rel) (length params)
                     <> collectStmt stmt
             AbbreviationFun _fun bodyTerm ->
                 collectTerm bodyTerm
@@ -1159,7 +1159,7 @@ collectMissingHints hints = foldMap collectBlock
             FormulaChain chain ->
                 collectChain chain
             FormulaPredicate _loc _predi marker exprs ->
-                noteMissingHint PredicateHint marker
+                noteMissingHint PredicateHint marker (length exprs)
                     <> collectExprs exprs
             Connected _loc _conn phi psi ->
                 collectFormula phi
@@ -1186,7 +1186,7 @@ collectMissingHints hints = foldMap collectBlock
         collectRelation :: Relation -> MissingHintMap
         collectRelation = \case
             Relation _loc symbol relParams ->
-                noteMissingHint RelationHint (relationSymbolMarker symbol)
+                noteMissingHint RelationHint (relationSymbolMarker symbol) (length relParams)
                     <> collectExprs relParams
             RelationExpr _loc expr ->
                 collectExpr expr
@@ -1198,10 +1198,10 @@ collectMissingHints hints = foldMap collectBlock
             ExprInteger{} ->
                 mempty
             ExprOp _loc item args ->
-                noteMissingHint OperatorHint (mixfixMarker item)
+                noteMissingHint OperatorHint (mixfixMarker item) (length args)
                     <> collectExprs args
             ExprStructOp _loc symb maybeExpr ->
-                noteMissingHint StructOpHint (structMarker symb)
+                noteMissingHint StructOpHint (structMarker symb) (length (maybeToList maybeExpr))
                     <> foldMap collectExpr maybeExpr
             ExprFiniteSet _loc exprs ->
                 collectExprs exprs
@@ -1217,8 +1217,8 @@ collectMissingHints hints = foldMap collectBlock
                     <> collectStmt stmt
 
         collectSymbolPattern :: SymbolPattern -> MissingHintMap
-        collectSymbolPattern (SymbolPattern symbol _vars) =
-            noteMissingHint OperatorHint (mixfixMarker symbol)
+        collectSymbolPattern (SymbolPattern symbol vars) =
+            noteMissingHint OperatorHint (mixfixMarker symbol) (length vars)
 
         collectAsms :: [Asm] -> MissingHintMap
         collectAsms =
@@ -1268,14 +1268,14 @@ parseHints source = Map.fromList (parseLine <$> zip [1 :: Int ..] relevantLines)
     where
         relevantLines = [line | line <- Text.lines source, not (Text.all isSpace line)]
 
-        parseLine :: (Int, Text) -> ((HintCategory, Marker), RenderHint)
+        parseLine :: (Int, Text) -> ((HintCategory, Marker, Int), RenderHint)
         parseLine (lineNo, line) = case Text.splitOn "\t" line of
             [categoryText, markerName, arityText, templateText] ->
                 let category = parseCategory lineNo categoryText
                     marker = Marker markerName
                     arity = parseArity lineNo arityText
                     template = parseTemplate lineNo templateText
-                in ((category, marker), RenderHint arity template)
+                in ((category, marker, arity), RenderHint arity template)
             _ ->
                 error ("Malformed render hint at line " <> show lineNo <> ": expected exactly 4 tab-separated columns")
 
@@ -2851,7 +2851,7 @@ renderFiniteSetMath hints exprs =
 
 renderHintedMath :: HintMap -> HintCategory -> Marker -> [Expr] -> Html () -> Html ()
 renderHintedMath hints category marker args fallback =
-    case Map.lookup (category, marker) hints of
+    case Map.lookup (category, marker, length args) hints of
         Nothing ->
             fallback
         Just RenderHint{..}
@@ -2878,7 +2878,7 @@ renderHintedMath hints category marker args fallback =
 
 renderHintedMathRow :: HintMap -> HintCategory -> Marker -> [Expr] -> Html () -> Html ()
 renderHintedMathRow hints category marker args fallback =
-    case Map.lookup (category, marker) hints of
+    case Map.lookup (category, marker, length args) hints of
         Nothing ->
             fallback
         Just RenderHint{..}
