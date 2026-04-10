@@ -532,21 +532,25 @@ exportMegalodon file = do
 exportHtml :: MonadUnliftIO io => FilePath -> io Text
 exportHtml file = do
     hints <- findAndReadFile "lexicon.tsv"
-    blocks <- parseRootBlocks file
-    pure (Html.renderDocument file hints blocks)
+    (rootBlocks, theoryBlocks) <- parseHtmlBlocks file
+    pure (Html.renderDocument file hints rootBlocks theoryBlocks)
 
-parseRootBlocks :: MonadIO io => FilePath -> io [Raw.Block]
-parseRootBlocks file =
+parseHtmlBlocks :: MonadIO io => FilePath -> io ([Raw.Block], [Raw.Block])
+parseHtmlBlocks file =
     withTheoryLexicon file \lexicon chunksByFile -> do
-        rootChunks <- case [chunks | (path, chunks) <- chunksByFile, path == file] of
-            [chunks] -> pure chunks
-            _ -> error ("parseRootBlocks: could not find token chunks for " <> file)
-
         let parseChunk :: [Located Token] -> ([Raw.Block], Report Text [Located Token])
             parseChunk = fullParses (parser (grammar lexicon))
 
-        fmap concat $ for rootChunks \toks ->
-            parseChunkResult (parseChunk toks)
+        blocksByFile <- for chunksByFile \(path, chunks) -> do
+            blocks <- fmap concat $ for chunks \toks ->
+                parseChunkResult (parseChunk toks)
+            pure (path, blocks)
+
+        rootBlocks <- case [blocks | (path, blocks) <- blocksByFile, path == file] of
+            [blocks] -> pure blocks
+            _ -> error ("parseHtmlBlocks: could not find token chunks for " <> file)
+
+        pure (rootBlocks, concatMap snd blocksByFile)
 
 -- | Should we use caching?
 data WithCache = WithoutCache | WithCache deriving (Show, Eq)

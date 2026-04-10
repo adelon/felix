@@ -21,7 +21,7 @@ import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Data.Text.Lazy qualified as LazyText
-import Report.Location (Location, pattern Nowhere)
+import Report.Location (Location, locFile, pattern Nowhere)
 import Syntax.Token (VariableDisplay(..), VariableSuffix(..), displayVariable, tokToText)
 
 
@@ -45,6 +45,22 @@ data RenderHint = RenderHint
 type HintMap = Map (HintCategory, Marker) RenderHint
 type AnchorMap = Map Marker Text
 type BlockRenderInfo = (Int, Block, Text)
+type PreviewMap = Map Marker PreviewEntry
+
+data ReferenceContext = ReferenceContext
+    { referenceAnchors :: AnchorMap
+    , referencePreviews :: PreviewMap
+    }
+    deriving (Show, Eq)
+
+data PreviewEntry = PreviewEntry
+    { previewMarker :: Marker
+    , previewBlock :: Block
+    , previewSourceFile :: FilePath
+    , previewIsImported :: Bool
+    , previewId :: Text
+    }
+    deriving (Show, Eq)
 
 data StmtMathFragment
     = StmtMathProse Text
@@ -67,8 +83,8 @@ proofCollapseThreshold :: Int
 proofCollapseThreshold = 10
 
 
-renderDocument :: FilePath -> Text -> [Block] -> Text
-renderDocument inputPath hintsSource blocks =
+renderDocument :: FilePath -> Text -> [Block] -> [Block] -> Text
+renderDocument inputPath hintsSource blocks theoryBlocks =
     case formatMissingHintWarning missingHints of
         Nothing -> rendered
         Just warningText -> trace (Text.unpack warningText) rendered
@@ -84,6 +100,9 @@ renderDocument inputPath hintsSource blocks =
             | (index, block) <- indexedBlocks
             , Just marker <- [blockMarkerOf block]
             ]
+        referencedMarkers = collectReferencedMarkers blocks
+        previews = buildPreviewMap inputPath referencedMarkers theoryBlocks
+        referenceContext = ReferenceContext anchors previews
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -92,7 +111,7 @@ renderDocument inputPath hintsSource blocks =
                 title_ (toHtml (Text.pack inputPath))
                 style_ pageStyles
             body_ do
-                div_ do
+                div_ [class_ "page-layout"] do
                     aside_ [class_ "toc-column"] do
                         nav_ [class_ "toc"] do
                             h2_ [class_ "toc-heading"] "Contents"
@@ -106,8 +125,16 @@ renderDocument inputPath hintsSource blocks =
                                 traverse_ renderTocEntry tocBlocks
                     main_ do
                         h1_ (toHtml (Text.pack inputPath))
-                        traverse_ (renderBlock hintMap anchors) blockInfos
-                script_ [type_ "text/javascript"] (toHtmlRaw tocScript)
+                        traverse_ (renderBlock hintMap referenceContext) blockInfos
+                renderPreviewStore hintMap previews
+                div_
+                    [ id_ "reference-preview-popup"
+                    , class_ "reference-preview-popup"
+                    , makeAttributes "role" "tooltip"
+                    , makeAttributes "aria-hidden" "true"
+                    ]
+                    skip
+                script_ [type_ "text/javascript"] (toHtmlRaw (tocScript <> "\n" <> referencePreviewScript))
 
 
 pageStyles :: Text
@@ -128,6 +155,9 @@ pageStyles = Text.unlines
     , "  --toc-active-bg: #f3efe6;"
     , "  --toc-active-fg: #1b1b1b;"
     , "  --toc-active-accent: #b9aa7a;"
+    , "  --preview-bg: #fffdf8;"
+    , "  --preview-border: #cfc3a3;"
+    , "  --preview-shadow: rgba(0, 0, 0, 0.18);"
     , "}"
     , "html {"
     , "  height: 100%;"
@@ -140,7 +170,7 @@ pageStyles = Text.unlines
     , "  background: var(--page-bg);"
     , "  color: var(--page-fg);"
     , "}"
-    , "body > div {"
+    , ".page-layout {"
     , "  display: grid;"
     , "  grid-template-columns: minmax(16rem, 24rem) minmax(0, 1fr);"
     , "  grid-template-rows: minmax(0, 1fr);"
@@ -243,7 +273,8 @@ pageStyles = Text.unlines
     , "  font-weight: 400;"
     , "}"
     , "id-,"
-    , "main a[href^=\"#\"] {"
+    , "main a[href^=\"#\"],"
+    , ".ref-badge {"
     , "  display: inline-block;"
     , "  padding: 0.02rem 0.35rem;"
     , "  border: 1px solid var(--badge-border);"
@@ -258,8 +289,13 @@ pageStyles = Text.unlines
     , "  margin-left: 0.45rem;"
     , "}"
     , "main a[href^=\"#\"]:hover,"
-    , "main a[href^=\"#\"]:focus-visible {"
+    , "main a[href^=\"#\"]:focus-visible,"
+    , ".ref-badge.has-preview:hover,"
+    , ".ref-badge.has-preview:focus-visible {"
     , "  text-decoration: underline;"
+    , "}"
+    , ".ref-badge.has-preview {"
+    , "  cursor: help;"
     , "}"
     , "proof- > p:first-child,"
     , "proof- > details > summary + p {"
@@ -285,6 +321,92 @@ pageStyles = Text.unlines
     , "proof- > details > :not(summary) {"
     , "  margin-top: 0.5rem;"
     , "}"
+    , ".reference-preview-store {"
+    , "  display: none;"
+    , "}"
+    , ".reference-preview-popup {"
+    , "  position: fixed;"
+    , "  z-index: 1000;"
+    , "  box-sizing: border-box;"
+    , "  width: 34rem;"
+    , "  max-width: calc(100vw - 2rem);"
+    , "  max-height: 24rem;"
+    , "  max-height: min(24rem, calc(100vh - 2rem));"
+    , "  overflow: auto;"
+    , "  padding: 0.75rem 0.9rem;"
+    , "  border: 1px solid var(--preview-border);"
+    , "  border-radius: 0.45rem;"
+    , "  background: var(--preview-bg);"
+    , "  color: var(--page-fg);"
+    , "  box-shadow: 0 0.75rem 2.25rem var(--preview-shadow);"
+    , "  opacity: 0;"
+    , "  pointer-events: none;"
+    , "  transform: translateY(0.2rem);"
+    , "  transition: opacity 90ms ease, transform 90ms ease;"
+    , "}"
+    , ".reference-preview-popup[aria-hidden=\"true\"] {"
+    , "  visibility: hidden;"
+    , "}"
+    , ".reference-preview-popup.is-visible {"
+    , "  opacity: 1;"
+    , "  transform: translateY(0);"
+    , "}"
+    , ".reference-preview-popup * {"
+    , "  box-sizing: border-box;"
+    , "}"
+    , ".reference-preview-template {"
+    , "  display: flex;"
+    , "  flex-direction: column;"
+    , "  gap: 0.45rem;"
+    , "  width: 100%;"
+    , "}"
+    , ".reference-preview-heading {"
+    , "  display: block;"
+    , "  margin: 0;"
+    , "  width: 100%;"
+    , "  color: var(--muted-fg);"
+    , "  font-size: 0.82rem;"
+    , "  letter-spacing: 0.035em;"
+    , "  text-transform: uppercase;"
+    , "}"
+    , ".reference-preview-heading code {"
+    , "  color: var(--page-fg);"
+    , "  font-family: \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;"
+    , "  letter-spacing: 0;"
+    , "  text-transform: none;"
+    , "}"
+    , ".reference-preview-source {"
+    , "  display: block;"
+    , "  margin: 0;"
+    , "  color: var(--subtle-fg);"
+    , "  font-size: 0.78rem;"
+    , "  letter-spacing: 0;"
+    , "  text-transform: none;"
+    , "}"
+    , ".reference-preview-body {"
+    , "  display: block;"
+    , "  clear: both;"
+    , "  margin: 0;"
+    , "  width: 100%;"
+    , "}"
+    , ".reference-preview-body p {"
+    , "  margin: 0.35rem 0 0;"
+    , "}"
+    , ".reference-preview-body p:first-child {"
+    , "  margin-top: 0;"
+    , "}"
+    , ".reference-preview-statement {"
+    , "  display: block;"
+    , "  width: 100%;"
+    , "  white-space: normal;"
+    , "  overflow-wrap: break-word;"
+    , "}"
+    , ".reference-preview-statement math {"
+    , "  max-width: 100%;"
+    , "  overflow-x: auto;"
+    , "  overflow-y: hidden;"
+    , "  vertical-align: middle;"
+    , "}"
     , "math[display=\"block\"] {"
     , "  display: block;"
     , "  margin: 0.5rem 0;"
@@ -308,6 +430,9 @@ pageStyles = Text.unlines
     , "    --toc-active-bg: #2b271f;"
     , "    --toc-active-fg: #f0ebe1;"
     , "    --toc-active-accent: #99865a;"
+    , "    --preview-bg: #211f1a;"
+    , "    --preview-border: #776a50;"
+    , "    --preview-shadow: rgba(0, 0, 0, 0.55);"
     , "  }"
     , "}"
     , "@media (max-width: 900px) {"
@@ -315,7 +440,7 @@ pageStyles = Text.unlines
     , "    height: auto;"
     , "    overflow: auto;"
     , "  }"
-    , "  body > div {"
+    , "  .page-layout {"
     , "    grid-template-columns: 1fr;"
     , "    grid-template-rows: auto;"
     , "    gap: 1.5rem;"
@@ -485,6 +610,178 @@ tocScript = Text.unlines
     , "  scheduleUpdate();"
     , "})();"
     ]
+
+referencePreviewScript :: Text
+referencePreviewScript = Text.unlines
+    [ "(function () {"
+    , "  const content = document.querySelector('main');"
+    , "  const popup = document.getElementById('reference-preview-popup');"
+    , "  if (!content || !popup) return;"
+    , "  let activeTrigger = null;"
+    , "  let lastPointer = null;"
+    , "  const offset = 14;"
+    , "  const margin = 12;"
+    , ""
+    , "  const previewFor = (trigger) => {"
+    , "    const previewId = trigger.getAttribute('data-preview-id');"
+    , "    return previewId ? document.getElementById(previewId) : null;"
+    , "  };"
+    , ""
+    , "  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);"
+    , "  const findTrigger = (target) => target instanceof Element ? target.closest('[data-preview-id]') : null;"
+    , ""
+    , "  const hidePreview = () => {"
+    , "    activeTrigger = null;"
+    , "    lastPointer = null;"
+    , "    popup.classList.remove('is-visible');"
+    , "    popup.setAttribute('aria-hidden', 'true');"
+    , "    popup.innerHTML = '';"
+    , "  };"
+    , ""
+    , "  const placePreview = () => {"
+    , "    if (!activeTrigger) return;"
+    , "    const triggerRect = activeTrigger.getBoundingClientRect();"
+    , "    const popupRect = popup.getBoundingClientRect();"
+    , "    const fallbackWidth = Math.min(544, Math.max(0, window.innerWidth - margin * 2));"
+    , "    const popupWidth = popupRect.width || fallbackWidth;"
+    , "    const popupHeight = popupRect.height || 0;"
+    , "    const pointer = lastPointer;"
+    , "    const anchorX = pointer ? pointer.clientX : triggerRect.left;"
+    , "    const anchorY = pointer ? pointer.clientY : triggerRect.bottom;"
+    , "    let left = anchorX + (pointer ? offset : 0);"
+    , "    let top = anchorY + offset;"
+    , "    if (top + popupHeight + margin > window.innerHeight) {"
+    , "      const upperAnchor = pointer ? pointer.clientY : triggerRect.top;"
+    , "      top = Math.max(margin, upperAnchor - popupHeight - offset);"
+    , "    }"
+    , "    left = clamp(left, margin, Math.max(margin, window.innerWidth - popupWidth - margin));"
+    , "    popup.style.left = `${left}px`;"
+    , "    popup.style.top = `${top}px`;"
+    , "  };"
+    , ""
+    , "  const showPreview = (trigger, pointerEvent) => {"
+    , "    const source = previewFor(trigger);"
+    , "    if (!source) return;"
+    , "    activeTrigger = trigger;"
+    , "    lastPointer = pointerEvent ? { clientX: pointerEvent.clientX, clientY: pointerEvent.clientY } : null;"
+    , "    popup.innerHTML = source.innerHTML;"
+    , "    popup.setAttribute('aria-hidden', 'false');"
+    , "    popup.classList.add('is-visible');"
+    , "    placePreview();"
+    , "  };"
+    , ""
+    , "  content.addEventListener('pointerover', (event) => {"
+    , "    const trigger = findTrigger(event.target);"
+    , "    if (!trigger || !content.contains(trigger) || trigger === activeTrigger) return;"
+    , "    showPreview(trigger, event);"
+    , "  });"
+    , ""
+    , "  content.addEventListener('pointermove', (event) => {"
+    , "    const trigger = findTrigger(event.target);"
+    , "    if (!trigger || trigger !== activeTrigger) return;"
+    , "    lastPointer = { clientX: event.clientX, clientY: event.clientY };"
+    , "    placePreview();"
+    , "  });"
+    , ""
+    , "  content.addEventListener('pointerout', (event) => {"
+    , "    const trigger = findTrigger(event.target);"
+    , "    if (!trigger || trigger !== activeTrigger) return;"
+    , "    const related = event.relatedTarget;"
+    , "    if (related instanceof Node && trigger.contains(related)) return;"
+    , "    hidePreview();"
+    , "  });"
+    , ""
+    , "  content.addEventListener('focusin', (event) => {"
+    , "    const trigger = findTrigger(event.target);"
+    , "    if (!trigger || !content.contains(trigger)) return;"
+    , "    showPreview(trigger, null);"
+    , "  });"
+    , ""
+    , "  content.addEventListener('focusout', (event) => {"
+    , "    const trigger = findTrigger(event.target);"
+    , "    if (trigger && trigger === activeTrigger) hidePreview();"
+    , "  });"
+    , ""
+    , "  content.addEventListener('scroll', hidePreview, { passive: true });"
+    , "  window.addEventListener('resize', hidePreview);"
+    , "  window.addEventListener('hashchange', hidePreview);"
+    , "  document.addEventListener('keydown', (event) => {"
+    , "    if (event.key === 'Escape') hidePreview();"
+    , "  });"
+    , "})();"
+    ]
+
+collectReferencedMarkers :: [Block] -> Set Marker
+collectReferencedMarkers =
+    foldMap collectBlock
+    where
+        collectBlock :: Block -> Set Marker
+        collectBlock = \case
+            BlockProof _start proof _end ->
+                collectProof proof
+            _ ->
+                mempty
+
+        collectProof :: Proof -> Set Marker
+        collectProof = \case
+            Omitted ->
+                mempty
+            Qed _loc justification ->
+                collectJustification justification
+            ByCase _loc cases ->
+                foldMap collectCase cases
+            ByContradiction _loc proof ->
+                collectProof proof
+            BySetInduction _loc _term proof ->
+                collectProof proof
+            ByOrdInduction _loc proof ->
+                collectProof proof
+            Assume _loc _stmt proof ->
+                collectProof proof
+            FixSymbolic _loc _vars _bound proof ->
+                collectProof proof
+            FixSuchThat _loc _vars _stmt proof ->
+                collectProof proof
+            Calc _loc _maybeQuant calc proof ->
+                collectCalc calc <> collectProof proof
+            TakeVar _loc _vars _bound _stmt justification proof ->
+                collectJustification justification <> collectProof proof
+            TakeNoun _loc _np justification proof ->
+                collectJustification justification <> collectProof proof
+            Have _loc _maybeStmt _stmt justification proof ->
+                collectJustification justification <> collectProof proof
+            Suffices _loc _stmt justification proof ->
+                collectJustification justification <> collectProof proof
+            Subclaim _loc _stmt subproof proof ->
+                collectProof subproof <> collectProof proof
+            Define _loc _var _expr proof ->
+                collectProof proof
+            DefineFunction _loc _fun _arg _value _boundVar _boundExpr proof ->
+                collectProof proof
+            DefineFunctionLocal _loc _fun _arg _target _domVar _codVar _rules proof ->
+                collectProof proof
+
+        collectCase :: Case -> Set Marker
+        collectCase Case{caseProof} =
+            collectProof caseProof
+
+        collectCalc :: Calc -> Set Marker
+        collectCalc = \case
+            Equation _expr steps ->
+                foldMap (collectJustification . snd) steps
+            Biconditionals _formula steps ->
+                foldMap (collectJustification . snd) steps
+
+        collectJustification :: Justification -> Set Marker
+        collectJustification = \case
+            JustificationRef markers ->
+                Set.fromList (toList markers)
+            JustificationSetExt ->
+                mempty
+            JustificationEmpty ->
+                mempty
+            JustificationLocal ->
+                mempty
 
 collectMissingHints :: HintMap -> [Block] -> MissingHintMap
 collectMissingHints hints = foldMap collectBlock
@@ -979,14 +1276,14 @@ parseTemplate lineNo template = reverse (flush mempty (go mempty [] template))
         _unusedLineNo = lineNo
 
 
-renderBlock :: HintMap -> AnchorMap -> BlockRenderInfo -> Html ()
-renderBlock hints anchors (_index, block, blockId) = case block of
+renderBlock :: HintMap -> ReferenceContext -> BlockRenderInfo -> Html ()
+renderBlock hints references (_index, block, blockId) = case block of
     BlockAxiom _loc title marker axiom ->
         renderCustomBlock blockId "axiom-" "Axiom" (Just marker) title (renderAxiom hints axiom)
     BlockClaim kind _loc title marker claim ->
         renderCustomBlock blockId (claimKindElement kind) (claimKindPrefix kind) (Just marker) title (renderClaim hints claim)
     BlockProof _start proof _end ->
-        renderProofBlock hints anchors proof
+        renderProofBlock hints references proof
     BlockDefn _loc title marker defn ->
         renderCustomBlock blockId "definition-" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
@@ -1023,17 +1320,17 @@ renderCustomBlock blockId name prefix mmarker mtitle body =
         renderBlockLead prefix mmarker mtitle True
         body
 
-renderProofBlock :: HintMap -> AnchorMap -> Proof -> Html ()
-renderProofBlock hints anchors proof
+renderProofBlock :: HintMap -> ReferenceContext -> Proof -> Html ()
+renderProofBlock hints references proof
     | proofStepCount proof >= proofCollapseThreshold =
         term "proof-" do
             details_ do
                 summary_ (renderBlockLead "Proof" Nothing Nothing False)
-                renderProof hints anchors proof
+                renderProof hints references proof
     | otherwise =
         term "proof-" do
             renderBlockLead "Proof" Nothing Nothing True
-            renderProof hints anchors proof
+            renderProof hints references proof
 
 blockAnchorId :: Int -> Block -> Text
 blockAnchorId index block =
@@ -1380,18 +1677,103 @@ renderStructDefn hints StructDefn{..} = do
                 toHtml ("." :: Text)
 
 
-renderProof :: HintMap -> AnchorMap -> Proof -> Html ()
-renderProof hints anchors = \case
+buildPreviewMap :: FilePath -> Set Marker -> [Block] -> PreviewMap
+buildPreviewMap inputPath referencedMarkers blocks =
+    Map.fromList
+        [ (marker, PreviewEntry{..})
+        | (index, block) <- zip [1 :: Int ..] blocks
+        , isPreviewableBlock block
+        , Just marker <- [blockMarkerOf block]
+        , marker `Set.member` referencedMarkers
+        , let previewMarker = marker
+        , let previewBlock = block
+        , let previewSourceFile = locFile (blockLocationOf block)
+        , let previewIsImported = previewSourceFile /= inputPath && previewSourceFile /= "<nowhere>"
+        , let previewId = "reference-preview-" <> Text.pack (show index)
+        ]
+
+renderPreviewStore :: HintMap -> PreviewMap -> Html ()
+renderPreviewStore hints previews =
+    div_ [class_ "reference-preview-store", makeAttributes "aria-hidden" "true"] do
+        traverse_ (renderPreviewEntry hints) (Map.elems previews)
+
+renderPreviewEntry :: HintMap -> PreviewEntry -> Html ()
+renderPreviewEntry hints PreviewEntry{..} =
+    div_ [id_ previewId, class_ "reference-preview-template"] do
+        div_ [class_ "reference-preview-heading"] do
+            toHtml (blockPrefixText previewBlock)
+            toHtml (" " :: Text)
+            code_ (toHtml (markerText previewMarker))
+            case formatBlockTitle (blockTitleOf previewBlock) of
+                Nothing ->
+                    skip
+                Just title -> do
+                    toHtml (" (" :: Text)
+                    toHtml title
+                    toHtml (")" :: Text)
+        when previewIsImported do
+            div_ [class_ "reference-preview-source"] do
+                toHtml ("from " :: Text)
+                code_ (toHtml (Text.pack previewSourceFile))
+        div_ [class_ "reference-preview-body"] do
+            renderPreviewBlockBody hints previewBlock
+
+renderPreviewBlockBody :: HintMap -> Block -> Html ()
+renderPreviewBlockBody hints = \case
+    BlockAxiom _loc _title _marker axiom ->
+        previewStatement (renderAxiom hints axiom)
+    BlockClaim _kind _loc _title _marker claim ->
+        previewStatement (renderClaim hints claim)
+    BlockDefn _loc _title _marker defn ->
+        previewStatement (renderDefn hints defn)
+    BlockAbbr _loc _title _marker abbr ->
+        previewStatement (renderAbbreviation hints abbr)
+    BlockData _loc datatype ->
+        renderDatatype hints datatype
+    BlockInductive _loc _title _marker ind ->
+        renderInductive hints ind
+    BlockSig _loc _title _marker asms sig ->
+        renderSignatureBlock hints asms sig
+    BlockStruct _loc _title _marker structDefn ->
+        renderStructDefn hints structDefn
+    BlockProof{} ->
+        skip
+
+previewStatement :: Html () -> Html ()
+previewStatement =
+    p_ [class_ "reference-preview-statement"]
+
+isPreviewableBlock :: Block -> Bool
+isPreviewableBlock = \case
+    BlockProof{} -> False
+    BlockData{} -> False
+    _ -> True
+
+blockLocationOf :: Block -> Location
+blockLocationOf = \case
+    BlockAxiom loc _title _marker _axiom -> loc
+    BlockClaim _kind loc _title _marker _claim -> loc
+    BlockProof start _proof _end -> start
+    BlockDefn loc _title _marker _defn -> loc
+    BlockAbbr loc _title _marker _abbr -> loc
+    BlockData loc _datatype -> loc
+    BlockInductive loc _title _marker _ind -> loc
+    BlockSig loc _title _marker _asms _sig -> loc
+    BlockStruct loc _title _marker _structDefn -> loc
+
+
+renderProof :: HintMap -> ReferenceContext -> Proof -> Html ()
+renderProof hints references = \case
     Omitted ->
         p_ "Omitted."
     Qed mloc justification ->
         renderProofTerminal mloc justification
     ByCase _loc cases -> do
         p_ "Proof by cases."
-        term "proof-" (traverse_ (renderCase hints anchors) cases)
+        term "proof-" (traverse_ (renderCase hints references) cases)
     ByContradiction _loc proof -> do
         p_ "Proof by contradiction."
-        term "proof-" (renderProof hints anchors proof)
+        term "proof-" (renderProof hints references proof)
     BySetInduction _loc maybeTerm proof -> do
         p_ do
             toHtml ("Proof by set induction" :: Text)
@@ -1401,23 +1783,23 @@ renderProof hints anchors = \case
                     toHtml (" on " :: Text)
                     renderTermInline hints targetTerm
             toHtml ("." :: Text)
-        term "proof-" (renderProof hints anchors proof)
+        term "proof-" (renderProof hints references proof)
     ByOrdInduction _loc proof -> do
         p_ "Proof by ordinal induction."
-        term "proof-" (renderProof hints anchors proof)
+        term "proof-" (renderProof hints references proof)
     Assume _loc stmt proof -> do
         p_ do
             toHtml ("Assume " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     FixSymbolic _loc vars bound proof -> do
         p_ do
             toHtml ("Fix " :: Text)
             renderVarListInline vars
             renderBoundInline hints vars bound
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     FixSuchThat _loc vars stmt proof -> do
         p_ do
             toHtml ("Fix " :: Text)
@@ -1425,10 +1807,10 @@ renderProof hints anchors = \case
             toHtml (" such that " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     Calc _loc maybeQuant calc proof -> do
-        renderCalc hints anchors maybeQuant calc
-        renderProofContinuation hints anchors proof
+        renderCalc hints references maybeQuant calc
+        renderProofContinuation hints references proof
     TakeVar _loc vars bound stmt justification proof -> do
         p_ do
             toHtml ("Take " :: Text)
@@ -1436,16 +1818,16 @@ renderProof hints anchors = \case
             renderBoundInline hints vars bound
             toHtml (" such that " :: Text)
             renderStmtInline hints stmt
-            renderJustificationSuffix anchors justification
+            renderJustificationSuffix references justification
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     TakeNoun _loc np justification proof -> do
         p_ do
             toHtml ("Take " :: Text)
             renderNounPhraseList hints np
-            renderJustificationSuffix anchors justification
+            renderJustificationSuffix references justification
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     Have _loc maybeStmt stmt justification proof -> do
         p_ do
             case maybeStmt of
@@ -1462,29 +1844,29 @@ renderProof hints anchors = \case
                     toHtml (", we have " :: Text)
             unless (isContradictionStmt stmt) do
                 renderStmtInline hints stmt
-            renderJustificationSuffix anchors justification
+            renderJustificationSuffix references justification
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     Suffices _loc stmt justification proof -> do
         p_ do
             toHtml ("It suffices to show that " :: Text)
             renderStmtInline hints stmt
-            renderJustificationSuffix anchors justification
+            renderJustificationSuffix references justification
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     Subclaim _loc stmt subproof proof -> do
         p_ do
             toHtml ("Show " :: Text)
             renderStmtInline hints stmt
             toHtml ("." :: Text)
-        term "proof-" (renderProof hints anchors subproof)
-        renderProofContinuation hints anchors proof
+        term "proof-" (renderProof hints references subproof)
+        renderProofContinuation hints references proof
     Define _loc var expr proof -> do
         p_ do
             toHtml ("Let " :: Text)
             renderVarEqInline hints var expr
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     DefineFunction _loc fun arg value boundVar boundExpr proof -> do
         p_ do
             toHtml ("Let " :: Text)
@@ -1494,7 +1876,7 @@ renderProof hints anchors = \case
             toHtml (" in " :: Text)
             inlineMath (renderExprMathRow hints boundExpr)
             toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
     DefineFunctionLocal _loc fun arg _target domVar codVar rules proof -> do
         p_ do
             toHtml ("Let " :: Text)
@@ -1510,7 +1892,7 @@ renderProof hints anchors = \case
                 toHtml (" if " :: Text)
                 inlineMath (renderFormulaMath hints formula)
                 toHtml ("." :: Text)
-        renderProofContinuation hints anchors proof
+        renderProofContinuation hints references proof
 
     where
         renderProofTerminal :: Maybe Location -> Justification -> Html ()
@@ -1522,12 +1904,12 @@ renderProof hints anchors = \case
             _ ->
                 p_ do
                     toHtml ("Follows" :: Text)
-                    renderJustificationSuffix anchors justification
+                    renderJustificationSuffix references justification
                     toHtml ("." :: Text)
 
-renderProofContinuation :: HintMap -> AnchorMap -> Proof -> Html ()
-renderProofContinuation hints anchors proof =
-    unless (isImplicitProofEnd proof) (renderProof hints anchors proof)
+renderProofContinuation :: HintMap -> ReferenceContext -> Proof -> Html ()
+renderProofContinuation hints references proof =
+    unless (isImplicitProofEnd proof) (renderProof hints references proof)
 
 isImplicitProofEnd :: Proof -> Bool
 isImplicitProofEnd = \case
@@ -1569,17 +1951,17 @@ calcStepCount = \case
     Equation _ steps -> length steps
     Biconditionals _ steps -> length steps
 
-renderCase :: HintMap -> AnchorMap -> Case -> Html ()
-renderCase hints anchors Case{..} =
+renderCase :: HintMap -> ReferenceContext -> Case -> Html ()
+renderCase hints references Case{..} =
     term "proof-" do
         p_ do
             toHtml ("Case " :: Text)
             renderStmtInline hints caseOf
             toHtml ("." :: Text)
-        renderProof hints anchors caseProof
+        renderProof hints references caseProof
 
-renderCalc :: HintMap -> AnchorMap -> Maybe CalcQuantifier -> Calc -> Html ()
-renderCalc hints anchors maybeQuant calc = do
+renderCalc :: HintMap -> ReferenceContext -> Maybe CalcQuantifier -> Calc -> Html ()
+renderCalc hints references maybeQuant calc = do
     p_ do
         toHtml ("Calculation" :: Text)
         case maybeQuant of
@@ -1598,7 +1980,7 @@ renderCalc hints anchors maybeQuant calc = do
         renderStepJustification (_idx, JustificationEmpty) = skip
         renderStepJustification (idx, jst) = li_ do
             toHtml ("Step " <> Text.pack (show idx) <> ": " :: Text)
-            renderJustification anchors jst
+            renderJustification references jst
             toHtml ("." :: Text)
 
 renderCalcQuantifierInline :: HintMap -> CalcQuantifier -> Html ()
@@ -2618,11 +3000,11 @@ renderSymbolPatternMath :: HintMap -> SymbolPattern -> Html ()
 renderSymbolPatternMath hints (SymbolPattern symbol vars) =
     renderHintedMathRow hints OperatorHint (mixfixMarker symbol) (ExprVar <$> vars) (renderPatternFallback (mixfixPattern symbol) (renderVarMath <$> vars))
 
-renderJustification :: AnchorMap -> Justification -> Html ()
-renderJustification anchors = \case
+renderJustification :: ReferenceContext -> Justification -> Html ()
+renderJustification references = \case
     JustificationRef markers -> do
         toHtml ("by " :: Text)
-        joinHtml (toHtml (", " :: Text)) (renderMarkerLink anchors <$> toList markers)
+        joinHtml (toHtml (", " :: Text)) (renderMarkerReference references <$> toList markers)
     JustificationSetExt ->
         toHtml ("by set extensionality" :: Text)
     JustificationEmpty ->
@@ -2630,19 +3012,42 @@ renderJustification anchors = \case
     JustificationLocal ->
         toHtml ("by local assumptions" :: Text)
 
-renderJustificationSuffix :: AnchorMap -> Justification -> Html ()
+renderJustificationSuffix :: ReferenceContext -> Justification -> Html ()
 renderJustificationSuffix _ JustificationEmpty = skip
-renderJustificationSuffix anchors justification = do
+renderJustificationSuffix references justification = do
     toHtml (" " :: Text)
-    renderJustification anchors justification
+    renderJustification references justification
 
-renderMarkerLink :: AnchorMap -> Marker -> Html ()
-renderMarkerLink anchors marker =
-    case Map.lookup marker anchors of
-        Nothing ->
-            toHtml (markerText marker)
+renderMarkerReference :: ReferenceContext -> Marker -> Html ()
+renderMarkerReference ReferenceContext{..} marker =
+    case Map.lookup marker referenceAnchors of
         Just anchor ->
-            a_ [href_ ("#" <> anchor)] (toHtml (markerText marker))
+            a_ (href_ ("#" <> anchor) : referenceAttributes) (toHtml label)
+        Nothing ->
+            span_ spanAttributes (toHtml label)
+    where
+        label = markerText marker
+        preview = Map.lookup marker referencePreviews
+
+        referenceAttributes =
+            [ class_ (if hasPreview then "ref-badge has-preview" else "ref-badge")
+            , makeAttributes "data-reference-label" label
+            ]
+            <> foldMap previewAttributes preview
+
+        spanAttributes =
+            referenceAttributes
+            <> if hasPreview then [makeAttributes "tabindex" "0"] else []
+
+        hasPreview =
+            case preview of
+                Nothing -> False
+                Just _ -> True
+
+        previewAttributes entry =
+            [ makeAttributes "data-preview-id" (previewId entry)
+            , makeAttributes "aria-describedby" "reference-preview-popup"
+            ]
 
 
 markerText :: Marker -> Text

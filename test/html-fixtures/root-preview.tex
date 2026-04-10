@@ -1,0 +1,25 @@
+\import{test/html-fixtures/imported-preview.tex}
+
+\begin{proposition}\label{local_prop}
+    $a = a$.
+\end{proposition}
+
+\begin{proposition}\label{uses_refs}
+    $b = b$.
+\end{proposition}
+\begin{proof}
+    Follows by \cref{local_prop,imported_prop}.
+\end{proof}
+
+\begin{proposition}\label{calc_refs}
+    $c = c$.
+\end{proposition}
+\begin{proof}
+    \begin{align*}
+        c
+            &= c
+                \\
+            &= c
+                \explanation{by \cref{local_prop}}
+    \end{align*}
+\end{proof}

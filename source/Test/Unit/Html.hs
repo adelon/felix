@@ -1,0 +1,54 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+module Test.Unit.Html (unitTests) where
+
+import Base
+import Api qualified
+import Render.Html qualified as Html
+import Report.Location (pattern Nowhere)
+import Syntax.Abstract
+
+import Data.Text qualified as Text
+import Test.Tasty
+import Test.Tasty.HUnit
+
+unitTests :: TestTree
+unitTests = testGroup "HTML renderer"
+    [ testCase "reference previews are rendered for local and imported refs" referencePreviews
+    , testCase "missing reference preview data falls back to readable text" missingReferenceFallback
+    ]
+
+referencePreviews :: Assertion
+referencePreviews = do
+    html <- Api.exportHtml "test/html-fixtures/root-preview.tex"
+    assertContains "local references keep page anchors" "href=\"#local_prop\"" html
+    assertContains "local references get preview metadata" "data-reference-label=\"local_prop\"" html
+    assertContains "imported references get preview metadata" "data-reference-label=\"imported_prop\"" html
+    assertNotContains "imported references do not get broken page anchors" "href=\"#imported_prop\"" html
+    assertContains "page grid is scoped to an explicit shell" "class=\"page-layout\"" html
+    assertNotContains "page grid does not apply to every body div" "body > div" html
+    assertContains "imported preview records its source file" "test/html-fixtures/imported-preview.tex" html
+    assertContains "imported source renders on its own line" "class=\"reference-preview-source\"" html
+    assertContains "multi-reference rendering preserves the comma separator" ", <span class=\"ref-badge has-preview\" data-reference-label=\"imported_prop\"" html
+    assertContains "calculation justifications also use reference previews" "Step 2: by <a href=\"#local_prop\"" html
+    assertContains "preview statements use a full-width paragraph" "class=\"reference-preview-statement\"" html
+    assertContains "preview popup is emitted once" "id=\"reference-preview-popup\"" html
+
+missingReferenceFallback :: Assertion
+missingReferenceFallback = do
+    let proof = Qed (Just Nowhere) (JustificationRef ("missing_ref" :| []))
+        html = Html.renderDocument "synthetic.tex" "" [BlockProof Nowhere proof Nowhere] []
+    assertContains "missing references remain visible" "missing_ref" html
+    assertNotContains "missing references do not claim preview content" "data-preview-id=" html
+
+assertContains :: HasCallStack => String -> Text -> Text -> Assertion
+assertContains label needle haystack =
+    assertBool
+        (label <> "\nExpected to find: " <> Text.unpack needle)
+        (needle `Text.isInfixOf` haystack)
+
+assertNotContains :: HasCallStack => String -> Text -> Text -> Assertion
+assertNotContains label needle haystack =
+    assertBool
+        (label <> "\nDid not expect to find: " <> Text.unpack needle)
+        (not (needle `Text.isInfixOf` haystack))
