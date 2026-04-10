@@ -83,6 +83,9 @@ instance Monoid MissingHintMap where
 proofCollapseThreshold :: Int
 proofCollapseThreshold = 10
 
+referenceGroupThreshold :: Int
+referenceGroupThreshold = 5
+
 
 renderDocument :: FilePath -> Text -> [Block] -> [Block] -> Text
 renderDocument inputPath hintsSource blocks theoryBlocks =
@@ -298,6 +301,9 @@ pageStyles = Text.unlines
     , ".ref-badge.has-preview {"
     , "  cursor: help;"
     , "}"
+    , ".ref-badge-group {"
+    , "  user-select: none;"
+    , "}"
     , "proof- > p:first-child,"
     , "proof- > details > summary + p {"
     , "  display: inline;"
@@ -395,6 +401,17 @@ pageStyles = Text.unlines
     , "}"
     , ".reference-preview-body p:first-child {"
     , "  margin-top: 0;"
+    , "}"
+    , ".reference-preview-group-template {"
+    , "  display: flex;"
+    , "  flex-direction: column;"
+    , "  gap: 1rem;"
+    , "  margin: 0;"
+    , "  width: 100%;"
+    , "}"
+    , ".reference-preview-group-template > .reference-preview-template + .reference-preview-template {"
+    , "  padding-top: 1rem;"
+    , "  border-top: 1px solid var(--badge-border);"
     , "}"
     , ".reference-preview-statement {"
     , "  display: block;"
@@ -667,10 +684,43 @@ referencePreviewScript = Text.unlines
     , "    return template;"
     , "  };"
     , ""
-    , "  const previewFor = (trigger) => cloneHiddenPreview(trigger) || buildCurrentPreview(trigger);"
+    , "  const buildMissingPreview = (item) => {"
+    , "    const label = item.getAttribute('data-reference-label') || '';"
+    , "    const template = document.createElement('div');"
+    , "    template.className = 'reference-preview-template';"
+    , "    const heading = document.createElement('div');"
+    , "    heading.className = 'reference-preview-heading';"
+    , "    heading.append(document.createTextNode('Reference '));"
+    , "    const code = document.createElement('code');"
+    , "    code.textContent = label;"
+    , "    heading.append(code);"
+    , "    template.append(heading);"
+    , "    const body = document.createElement('div');"
+    , "    body.className = 'reference-preview-body';"
+    , "    const statement = document.createElement('p');"
+    , "    statement.className = 'reference-preview-statement';"
+    , "    statement.textContent = 'Preview unavailable.';"
+    , "    body.append(statement);"
+    , "    template.append(body);"
+    , "    return template;"
+    , "  };"
+    , ""
+    , "  const buildGroupPreview = (trigger) => {"
+    , "    if (!trigger.hasAttribute('data-preview-group')) return null;"
+    , "    const items = Array.from(trigger.querySelectorAll('.reference-preview-group-items > [data-reference-label]'));"
+    , "    if (!items.length) return null;"
+    , "    const template = document.createElement('div');"
+    , "    template.className = 'reference-preview-group-template';"
+    , "    for (const item of items) {"
+    , "      template.append(cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item));"
+    , "    }"
+    , "    return template;"
+    , "  };"
+    , ""
+    , "  const previewFor = (trigger) => buildGroupPreview(trigger) || cloneHiddenPreview(trigger) || buildCurrentPreview(trigger);"
     , ""
     , "  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);"
-    , "  const findTrigger = (target) => target instanceof Element ? target.closest('[data-preview-id], [data-preview-target-id]') : null;"
+    , "  const findTrigger = (target) => target instanceof Element ? target.closest('[data-preview-group], [data-preview-id], [data-preview-target-id]') : null;"
     , ""
     , "  const hidePreview = () => {"
     , "    activeTrigger = null;"
@@ -747,11 +797,26 @@ referencePreviewScript = Text.unlines
     , "    if (trigger && trigger === activeTrigger) hidePreview();"
     , "  });"
     , ""
+    , "  content.addEventListener('click', (event) => {"
+    , "    const trigger = findTrigger(event.target);"
+    , "    if (!trigger || !trigger.hasAttribute('data-preview-group') || !content.contains(trigger)) return;"
+    , "    event.preventDefault();"
+    , "    showPreview(trigger, event);"
+    , "  });"
+    , ""
     , "  content.addEventListener('scroll', hidePreview, { passive: true });"
     , "  window.addEventListener('resize', hidePreview);"
     , "  window.addEventListener('hashchange', hidePreview);"
     , "  document.addEventListener('keydown', (event) => {"
-    , "    if (event.key === 'Escape') hidePreview();"
+    , "    if (event.key === 'Escape') {"
+    , "      hidePreview();"
+    , "      return;"
+    , "    }"
+    , "    if (event.key !== 'Enter' && event.key !== ' ') return;"
+    , "    const trigger = findTrigger(document.activeElement);"
+    , "    if (!trigger || !trigger.hasAttribute('data-preview-group')) return;"
+    , "    event.preventDefault();"
+    , "    showPreview(trigger, null);"
     , "  });"
     , "})();"
     ]
@@ -3078,7 +3143,7 @@ renderJustification :: ReferenceContext -> Justification -> Html ()
 renderJustification references = \case
     JustificationRef markers -> do
         toHtml ("by " :: Text)
-        joinHtml (toHtml (", " :: Text)) (renderMarkerReference references <$> toList markers)
+        renderMarkerReferences references (toList markers)
     JustificationSetExt ->
         toHtml ("by set extensionality" :: Text)
     JustificationEmpty ->
@@ -3091,6 +3156,57 @@ renderJustificationSuffix _ JustificationEmpty = skip
 renderJustificationSuffix references justification = do
     toHtml (" " :: Text)
     renderJustification references justification
+
+renderMarkerReferences :: ReferenceContext -> [Marker] -> Html ()
+renderMarkerReferences references markers
+    | length markers >= referenceGroupThreshold =
+        renderMarkerReferenceGroup references markers
+    | otherwise =
+        joinHtml (toHtml (", " :: Text)) (renderMarkerReference references <$> markers)
+
+renderMarkerReferenceGroup :: ReferenceContext -> [Marker] -> Html ()
+renderMarkerReferenceGroup references markers =
+    span_ groupAttributes do
+        toHtml ("[...]" :: Text)
+        span_ [class_ "reference-preview-group-items", makeAttributes "hidden" "hidden"] do
+            traverse_ (renderMarkerReferenceGroupItem references) markers
+    where
+        referenceCountLabel = Text.pack (show (length markers)) <> " references"
+
+        groupAttributes =
+            [ class_ "ref-badge has-preview ref-badge-group"
+            , makeAttributes "data-preview-group" "true"
+            , makeAttributes "data-reference-label" referenceCountLabel
+            , makeAttributes "aria-describedby" "reference-preview-popup"
+            , makeAttributes "tabindex" "0"
+            , makeAttributes "role" "button"
+            , makeAttributes "aria-label" ("Show " <> referenceCountLabel)
+            ]
+
+renderMarkerReferenceGroupItem :: ReferenceContext -> Marker -> Html ()
+renderMarkerReferenceGroupItem ReferenceContext{..} marker =
+    span_ itemAttributes skip
+    where
+        label = markerText marker
+        baseAttributes =
+            [ class_ "reference-preview-group-item"
+            , makeAttributes "data-reference-label" label
+            ]
+
+        itemAttributes =
+            baseAttributes <> case Map.lookup marker referenceAnchors of
+                Just anchor ->
+                    [ makeAttributes "data-preview-link" ("#" <> anchor)
+                    , makeAttributes "data-preview-target-id" anchor
+                    ]
+                Nothing ->
+                    case Map.lookup marker referencePreviews of
+                        Nothing ->
+                            []
+                        Just preview ->
+                            [ makeAttributes "data-preview-link" (externalReferenceHref preview)
+                            , makeAttributes "data-preview-id" (previewId preview)
+                            ]
 
 renderMarkerReference :: ReferenceContext -> Marker -> Html ()
 renderMarkerReference ReferenceContext{..} marker =

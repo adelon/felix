@@ -37,6 +37,12 @@ referencePreviews = do
     assertContains "imported source renders on its own line" "class=\"reference-preview-source\"" html
     assertContains "multi-reference rendering preserves the comma separator" ", <a href=\"/test/html-fixtures/imported-preview#imported_prop\" class=\"ref-badge has-preview\" data-reference-label=\"imported_prop\"" html
     assertContains "calculation justifications also use target previews" "Step 2: by <a href=\"#local_prop\" class=\"ref-badge has-preview\" data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\"" html
+    assertContains "large reference lists collapse to an ellipsis trigger" "Follows by <span class=\"ref-badge has-preview ref-badge-group\" data-preview-group=\"true\" data-reference-label=\"5 references\"" html
+    assertContains "collapsed references keep current-page item metadata" "data-reference-label=\"group_source\" data-preview-link=\"#group_source\" data-preview-target-id=\"group_source\"" html
+    assertContains "collapsed references keep imported item metadata" "data-reference-label=\"imported_prop\" data-preview-link=\"/test/html-fixtures/imported-preview#imported_prop\" data-preview-id=\"reference-preview-" html
+    assertNotContains "collapsed references do not inline the long list" "Follows by <a href=\"#local_prop\" class=\"ref-badge has-preview\" data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\" aria-describedby=\"reference-preview-popup\">local_prop</a>, <a href=\"#uses_refs\"" html
+    assertContains "collapsed tooltips compose full preview templates" "template.append(cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item));" html
+    assertContains "collapsed tooltips use stacked preview sections" "className = 'reference-preview-group-template'" html
     assertContains "preview statements use a full-width paragraph" "class=\"reference-preview-statement\"" html
     assertContains "preview popup is emitted once" "id=\"reference-preview-popup\"" html
 
