@@ -1,5 +1,7 @@
 \import{set/suc.tex}
 \import{set.tex}
+\import{order/order.tex}
+\import{ordinal.tex}
 
 \section{Natural numbers}
 
@@ -47,3 +49,77 @@
 \begin{lemma}\label{num_naturals_is_equal_to_two_times_naturals}
     $\{x+y \mid x \in \naturals, y \in \naturals \} = \naturals$.
 \end{lemma}
+
+\begin{lemma}\label{naturals_addition_is_closed}
+  Suppose $x$ and $y$ are natural numbers.
+  Then $x+y$ is a natural number.
+\end{lemma}
+
+\begin{lemma}\label{naturals_addition_cancellation_left}
+  For all $x, y, z \in \naturals$ such that $x+y = x+z$ we have $y = z$.
+\end{lemma}
+\begin{proof}
+  Let $S = \{p \in \naturals \mid \text{for all $y,z \in \naturals$ we have if $p + y = p + z$ then $y = z$} \}$.
+  For all $y, z \in \naturals$ we have if $\zero + y = \zero + z$ then $y = z$.
+  For all $x \in \naturals$ such that $x \in S$, we have for all $y, z \in \naturals$ if $\suc{x} + y = \suc{x} + z$ then $y = z$.
+\end{proof}
+
+\begin{lemma}\label{naturals_addition_cancellation_right}
+  For all $x, y, z \in \naturals$ such that $y+x = z+x$ we have $y = z$.
+\end{lemma}
+\begin{proof}
+  Let $S = \{p \in \naturals \mid \text{for all $y,z \in \naturals$ we have if $y+p = z+p$ then $y = z$} \}$.
+  For all $y, z \in \naturals$ we have if $y + \zero = z + \zero$ then $y = z$.
+  For all $x \in \naturals$ such that $x \in S$, we have for all $y, z \in \naturals$ if $y + \suc{x} = z + \suc{x}$ then $y = z$.
+\end{proof}
+
+\begin{lemma}\label{naturals_addition_commutative}
+  For all $x, y \in \naturals$ we have $x+y = y+x$.
+\end{lemma}
+\begin{proof}
+  Let $S = \{p \in \naturals \mid \text{for all $y \in \naturals$ we have $p+y = y+p$} \}$.
+  For all $y \in \naturals$ we have $\zero + y = y + \zero$.
+  For all $x \in \naturals$ such that $x \in S$, we have for all $y \in \naturals$ $\suc{x} + y = y + \suc{x}$.
+\end{proof}
+
+\begin{lemma}\label{naturals_associative}
+  For all $x, y, z \in \naturals$ $x + (y + z) = (x + y) + z$.
+\end{lemma}
+\begin{proof}
+  Let $S = \{p \in \naturals \mid \text{for all $y,z \in \naturals$ we have $p + (y + z) = (p + y) + z$} \}$.
+  For all $y, z \in \naturals$ we have $\zero + (y + z) = (\zero + y) + z$.
+  For all $x \in \naturals$ such that $x \in S$, we have for all $y, z \in \naturals$ $\suc{x} + (y + z) = (\suc{x} + y) + z$.
+\end{proof}
+
+\begin{definition}\label{natural_order}
+  $\le = \{(n,m) \mid n \in \naturals, m \in \naturals \mid \text{there exists a natural number $k$ such that $n + k = m$}\}$.
+\end{definition}
+
+\begin{lemma}
+  \label{naturals_are_ordered_simpler}
+  $\le$ is an order on $\naturals$.
+\end{lemma}
+\begin{proof}
+  $\le$ is a binary relation on $\naturals$.
+
+  We show for all $x, y \in \naturals$ such that $x \mathrel{\le} y \mathrel{\le} x$ we have $x = y$.
+  \begin{subproof}
+    Fix $x, y \in \naturals$.
+    Assume $x \mathrel{\le} y \mathrel{\le} x$.
+    There exist $a, b, k \in \naturals$ such that $(x,y) = (a,b)$ and $a + k = b$.
+    There exist $a, b, k' \in \naturals$ such that $(y,x) = (a,b)$ and $a + k' = b$.
+  \end{subproof}
+  Therefore $\le$ is antisymmetric.
+
+  For all $x \in \naturals$ we have $x \mathrel{\le} x$.
+
+  We show for all $x, y, z$ such that $x \mathrel{\le} y \mathrel{\le} z$ we have $x \mathrel{\le} z$.
+  \begin{subproof}
+    Fix $x, y, z$.
+    Assume $x \mathrel{\le} y \mathrel{\le} z$.
+    Take $k \in \naturals$ such that $x + k = y$.
+    Take $k' \in \naturals$ such that $y + k' = z$.
+    Then $z = y + k' = (x + k) + k' = x + (k + k')$.
+    Therefore $x \mathrel{\le} z$.
+  \end{subproof}
+\end{proof}

@@ -303,12 +303,18 @@ makeForall, makeExists :: Foldable t => t VarSymbol -> Formula -> Formula
 makeForall xs e = Quantified Universally (abstractVarSymbols xs e)
 makeExists xs e = Quantified Existentially (abstractVarSymbols xs e)
 
-instantiateSome :: NonEmpty VarSymbol -> Scope VarSymbol ExprOf VarSymbol -> Scope VarSymbol ExprOf VarSymbol
-instantiateSome xs scope = toScope (instantiateEither inst scope)
+instantiateSome :: Bool -> NonEmpty VarSymbol -> Scope VarSymbol ExprOf VarSymbol -> ExprOf VarSymbol
+instantiateSome sameLength =
+  if sameLength
+  then instantiateSomeHelp id id id
+  else instantiateSomeHelp (Forall . toScope) F B
+
+instantiateSomeHelp :: (ExprOf a -> ExprOf VarSymbol) -> (VarSymbol -> a) -> (VarSymbol -> a) -> NonEmpty VarSymbol -> Scope VarSymbol ExprOf VarSymbol -> ExprOf VarSymbol
+instantiateSomeHelp complete f b xs scope = complete $ instantiateEither inst scope
     where
-        inst (Left x) | x `elem` xs = TermVar (F x)
-        inst (Left b) = TermVar (B b)
-        inst (Right fv) = TermVar (F fv)
+        inst (Left x) | x `elem` xs = TermVar (f x)
+        inst (Left y) = TermVar (b y)
+        inst (Right fv) = TermVar (f fv)
 
 -- | Bind all free variables not occuring in the given set universally
 forallClosure :: Set VarSymbol -> Formula -> Formula
