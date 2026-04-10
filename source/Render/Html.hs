@@ -101,7 +101,7 @@ renderDocument inputPath hintsSource blocks theoryBlocks =
             , Just marker <- [blockMarkerOf block]
             ]
         referencedMarkers = collectReferencedMarkers blocks
-        previews = buildPreviewMap inputPath referencedMarkers theoryBlocks
+        previews = buildPreviewMap inputPath referencedMarkers anchors theoryBlocks
         referenceContext = ReferenceContext anchors previews
 
         renderPage :: HintMap -> Html ()
@@ -622,20 +622,61 @@ referencePreviewScript = Text.unlines
     , "  const offset = 14;"
     , "  const margin = 12;"
     , ""
-    , "  const previewFor = (trigger) => {"
+    , "  const cloneHiddenPreview = (trigger) => {"
     , "    const previewId = trigger.getAttribute('data-preview-id');"
-    , "    return previewId ? document.getElementById(previewId) : null;"
+    , "    const template = previewId ? document.getElementById(previewId) : null;"
+    , "    if (!template) return null;"
+    , "    const clone = template.cloneNode(true);"
+    , "    clone.removeAttribute('id');"
+    , "    return clone;"
     , "  };"
     , ""
+    , "  const buildCurrentPreview = (trigger) => {"
+    , "    const targetId = trigger.getAttribute('data-preview-target-id');"
+    , "    const target = targetId ? document.getElementById(targetId) : null;"
+    , "    if (!target || !content.contains(target)) return null;"
+    , "    const template = document.createElement('div');"
+    , "    template.className = 'reference-preview-template';"
+    , "    const heading = document.createElement('div');"
+    , "    heading.className = 'reference-preview-heading';"
+    , "    const kind = target.getAttribute('data-preview-kind') || 'Reference';"
+    , "    const label = target.getAttribute('data-preview-label') || targetId;"
+    , "    const title = target.getAttribute('data-preview-title');"
+    , "    heading.append(document.createTextNode(kind + ' '));"
+    , "    const code = document.createElement('code');"
+    , "    code.textContent = label;"
+    , "    heading.append(code);"
+    , "    if (title) {"
+    , "      heading.append(document.createTextNode(' (' + title + ')'));"
+    , "    }"
+    , "    template.append(heading);"
+    , "    const body = document.createElement('div');"
+    , "    body.className = 'reference-preview-body';"
+    , "    const statement = document.createElement('div');"
+    , "    statement.className = 'reference-preview-statement';"
+    , "    const head = Array.from(target.children).find((child) => child.localName === 'head-');"
+    , "    const nodes = Array.from(target.childNodes);"
+    , "    const start = head ? nodes.indexOf(head) + 1 : 0;"
+    , "    for (const node of nodes.slice(start)) {"
+    , "      statement.append(node.cloneNode(true));"
+    , "    }"
+    , "    if (!statement.childNodes.length) return null;"
+    , "    body.append(statement);"
+    , "    template.append(body);"
+    , "    return template;"
+    , "  };"
+    , ""
+    , "  const previewFor = (trigger) => cloneHiddenPreview(trigger) || buildCurrentPreview(trigger);"
+    , ""
     , "  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);"
-    , "  const findTrigger = (target) => target instanceof Element ? target.closest('[data-preview-id]') : null;"
+    , "  const findTrigger = (target) => target instanceof Element ? target.closest('[data-preview-id], [data-preview-target-id]') : null;"
     , ""
     , "  const hidePreview = () => {"
     , "    activeTrigger = null;"
     , "    lastPointer = null;"
     , "    popup.classList.remove('is-visible');"
     , "    popup.setAttribute('aria-hidden', 'true');"
-    , "    popup.innerHTML = '';"
+    , "    popup.replaceChildren();"
     , "  };"
     , ""
     , "  const placePreview = () => {"
@@ -661,10 +702,13 @@ referencePreviewScript = Text.unlines
     , ""
     , "  const showPreview = (trigger, pointerEvent) => {"
     , "    const source = previewFor(trigger);"
-    , "    if (!source) return;"
+    , "    if (!source) {"
+    , "      hidePreview();"
+    , "      return;"
+    , "    }"
     , "    activeTrigger = trigger;"
     , "    lastPointer = pointerEvent ? { clientX: pointerEvent.clientX, clientY: pointerEvent.clientY } : null;"
-    , "    popup.innerHTML = source.innerHTML;"
+    , "    popup.replaceChildren(source);"
     , "    popup.setAttribute('aria-hidden', 'false');"
     , "    popup.classList.add('is-visible');"
     , "    placePreview();"
@@ -1316,9 +1360,24 @@ includeInToc = \case
 
 renderCustomBlock :: Text -> Text -> Text -> Maybe Marker -> Maybe BlockTitle -> Html () -> Html ()
 renderCustomBlock blockId name prefix mmarker mtitle body =
-    term name [id_ blockId] do
+    term name (id_ blockId : previewTargetAttributes prefix mmarker mtitle) do
         renderBlockLead prefix mmarker mtitle True
         body
+
+previewTargetAttributes :: Text -> Maybe Marker -> Maybe BlockTitle -> [Attributes]
+previewTargetAttributes prefix mmarker mtitle =
+    case formatMarker mmarker of
+        Nothing ->
+            []
+        Just marker ->
+            [ makeAttributes "data-preview-kind" prefix
+            , makeAttributes "data-preview-label" marker
+            ]
+            <> case formatBlockTitle mtitle of
+                Nothing ->
+                    []
+                Just title ->
+                    [makeAttributes "data-preview-title" title]
 
 renderProofBlock :: HintMap -> ReferenceContext -> Proof -> Html ()
 renderProofBlock hints references proof
@@ -1677,18 +1736,20 @@ renderStructDefn hints StructDefn{..} = do
                 toHtml ("." :: Text)
 
 
-buildPreviewMap :: FilePath -> Set Marker -> [Block] -> PreviewMap
-buildPreviewMap inputPath referencedMarkers blocks =
+buildPreviewMap :: FilePath -> Set Marker -> AnchorMap -> [Block] -> PreviewMap
+buildPreviewMap inputPath referencedMarkers anchors blocks =
     Map.fromList
         [ (marker, PreviewEntry{..})
         | (index, block) <- zip [1 :: Int ..] blocks
         , isPreviewableBlock block
         , Just marker <- [blockMarkerOf block]
         , marker `Set.member` referencedMarkers
+        , marker `Map.notMember` anchors
         , let previewMarker = marker
         , let previewBlock = block
         , let previewSourceFile = locFile (blockLocationOf block)
         , let previewIsImported = previewSourceFile /= inputPath && previewSourceFile /= "<nowhere>"
+        , previewIsImported
         , let previewId = "reference-preview-" <> Text.pack (show index)
         ]
 
@@ -3022,29 +3083,34 @@ renderMarkerReference :: ReferenceContext -> Marker -> Html ()
 renderMarkerReference ReferenceContext{..} marker =
     case Map.lookup marker referenceAnchors of
         Just anchor ->
-            a_ (href_ ("#" <> anchor) : referenceAttributes) (toHtml label)
+            a_ (href_ ("#" <> anchor) : referenceAttributes (Just (currentPreviewAttributes anchor))) (toHtml label)
         Nothing ->
-            span_ spanAttributes (toHtml label)
+            span_ (spanAttributes importedPreview) (toHtml label)
     where
         label = markerText marker
-        preview = Map.lookup marker referencePreviews
+        importedPreview = importedPreviewAttributes <$> Map.lookup marker referencePreviews
 
-        referenceAttributes =
-            [ class_ (if hasPreview then "ref-badge has-preview" else "ref-badge")
+        referenceAttributes preview =
+            [ class_ (if hasPreview preview then "ref-badge has-preview" else "ref-badge")
             , makeAttributes "data-reference-label" label
             ]
-            <> foldMap previewAttributes preview
+            <> foldMap id preview
 
-        spanAttributes =
-            referenceAttributes
-            <> if hasPreview then [makeAttributes "tabindex" "0"] else []
+        spanAttributes preview =
+            referenceAttributes preview
+            <> if hasPreview preview then [makeAttributes "tabindex" "0"] else []
 
         hasPreview =
-            case preview of
+            \case
                 Nothing -> False
                 Just _ -> True
 
-        previewAttributes entry =
+        currentPreviewAttributes anchor =
+            [ makeAttributes "data-preview-target-id" anchor
+            , makeAttributes "aria-describedby" "reference-preview-popup"
+            ]
+
+        importedPreviewAttributes entry =
             [ makeAttributes "data-preview-id" (previewId entry)
             , makeAttributes "aria-describedby" "reference-preview-popup"
             ]

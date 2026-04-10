@@ -22,15 +22,19 @@ referencePreviews :: Assertion
 referencePreviews = do
     html <- Api.exportHtml "test/html-fixtures/root-preview.tex"
     assertContains "local references keep page anchors" "href=\"#local_prop\"" html
-    assertContains "local references get preview metadata" "data-reference-label=\"local_prop\"" html
+    assertContains "local references point previews at the visible target block" "data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\"" html
+    assertNotContains "local references do not use hidden preview ids" "data-reference-label=\"local_prop\" data-preview-id=\"" html
+    assertContains "visible target blocks expose preview metadata" "id=\"local_prop\" data-preview-kind=\"Proposition\" data-preview-label=\"local_prop\"" html
     assertContains "imported references get preview metadata" "data-reference-label=\"imported_prop\"" html
+    assertContains "imported references still use hidden preview templates" "data-reference-label=\"imported_prop\" data-preview-id=\"reference-preview-" html
     assertNotContains "imported references do not get broken page anchors" "href=\"#imported_prop\"" html
+    assertCount "hidden preview store only contains the imported fixture preview" 1 "class=\"reference-preview-template\"" html
     assertContains "page grid is scoped to an explicit shell" "class=\"page-layout\"" html
     assertNotContains "page grid does not apply to every body div" "body > div" html
     assertContains "imported preview records its source file" "test/html-fixtures/imported-preview.tex" html
     assertContains "imported source renders on its own line" "class=\"reference-preview-source\"" html
     assertContains "multi-reference rendering preserves the comma separator" ", <span class=\"ref-badge has-preview\" data-reference-label=\"imported_prop\"" html
-    assertContains "calculation justifications also use reference previews" "Step 2: by <a href=\"#local_prop\"" html
+    assertContains "calculation justifications also use target previews" "Step 2: by <a href=\"#local_prop\" class=\"ref-badge has-preview\" data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\"" html
     assertContains "preview statements use a full-width paragraph" "class=\"reference-preview-statement\"" html
     assertContains "preview popup is emitted once" "id=\"reference-preview-popup\"" html
 
@@ -52,3 +56,10 @@ assertNotContains label needle haystack =
     assertBool
         (label <> "\nDid not expect to find: " <> Text.unpack needle)
         (not (needle `Text.isInfixOf` haystack))
+
+assertCount :: HasCallStack => String -> Int -> Text -> Text -> Assertion
+assertCount label expected needle haystack =
+    assertEqual
+        (label <> "\nExpected count for: " <> Text.unpack needle)
+        expected
+        (Text.count needle haystack)
