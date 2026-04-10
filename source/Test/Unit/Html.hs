@@ -43,6 +43,13 @@ referencePreviews = do
     assertNotContains "collapsed references do not inline the long list" "Follows by <a href=\"#local_prop\" class=\"ref-badge has-preview\" data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\" aria-describedby=\"reference-preview-popup\">local_prop</a>, <a href=\"#uses_refs\"" html
     assertContains "collapsed tooltips compose full preview templates" "template.append(cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item));" html
     assertContains "collapsed tooltips use stacked preview sections" "className = 'reference-preview-group-template'" html
+    assertContains "visible preview popup accepts pointer interaction" "pointer-events: auto;" html
+    assertContains "preview popup uses a wider bounded layout" "width: 44rem;" html
+    assertContains "preview popup uses a taller bounded layout" "max-height: min(34rem, calc(100vh - 2rem));" html
+    assertContains "preview popup cancels delayed hide on pointer entry" "popup.addEventListener('pointerenter', clearHideTimer);" html
+    assertContains "preview popup schedules delayed hide on pointer exit" "popup.addEventListener('pointerleave', scheduleHide);" html
+    assertContains "group click pins the preview popup" "showPreview(trigger, event, true);" html
+    assertContains "group keyboard activation pins the preview popup" "showPreview(trigger, null, true);" html
     assertContains "preview statements use a full-width paragraph" "class=\"reference-preview-statement\"" html
     assertContains "preview popup is emitted once" "id=\"reference-preview-popup\"" html
 
