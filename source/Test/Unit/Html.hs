@@ -41,7 +41,10 @@ referencePreviews = do
     assertContains "collapsed references keep current-page item metadata" "data-reference-label=\"group_source\" data-preview-link=\"#group_source\" data-preview-target-id=\"group_source\"" html
     assertContains "collapsed references keep imported item metadata" "data-reference-label=\"imported_prop\" data-preview-link=\"/test/html-fixtures/imported-preview#imported_prop\" data-preview-id=\"reference-preview-" html
     assertNotContains "collapsed references do not inline the long list" "Follows by <a href=\"#local_prop\" class=\"ref-badge has-preview\" data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\" aria-describedby=\"reference-preview-popup\">local_prop</a>, <a href=\"#uses_refs\"" html
-    assertContains "collapsed tooltips compose full preview templates" "template.append(cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item));" html
+    assertContains "collapsed tooltips compose full preview templates" "const preview = cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item);" html
+    assertContains "collapsed tooltip labels become links" "template.append(linkGroupHeading(item, preview));" html
+    assertContains "collapsed tooltip labels use generated reference links" "link.href = href;" html
+    assertContains "collapsed tooltip heading links have hover affordance" ".reference-preview-heading a:hover," html
     assertContains "collapsed tooltips use stacked preview sections" "className = 'reference-preview-group-template'" html
     assertContains "visible preview popup accepts pointer interaction" "pointer-events: auto;" html
     assertContains "preview popup uses a wider bounded layout" "width: 44rem;" html
