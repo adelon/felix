@@ -11,6 +11,8 @@ relation	meets	0	<mo>⋈</mo>
 relation	ni	0	<mo>∋</mo>
 relation	notmeets	0	<mo>⋈̸</mo>
 relation	notelem	0	<mo>∉</mo>
+relation	ordinal_prec	0	<mo>&lt;</mo>
+relation	ordinal_preceq	0	<mo>≤</mo>
 relation	subset	0	<mo>⊂</mo>
 relation	subseteq	0	<mo>⊆</mo>
 relation	supseteq	0	<mo>⊇</mo>
