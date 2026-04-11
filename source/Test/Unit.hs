@@ -7,6 +7,7 @@ import Test.Unit.Html qualified as Html
 import Test.Unit.Provers qualified as Provers
 import Test.Unit.Symdiff qualified as Symdiff
 import Test.Unit.Syntax qualified as Syntax
+import Test.Unit.Token qualified as Token
 
 unitTests :: TestTree
 unitTests = testGroup "unit tests"
@@ -14,6 +15,7 @@ unitTests = testGroup "unit tests"
     , Html.unitTests
     , Provers.unitTests
     , Syntax.unitTests  -- include the Syntax.DeBruijn tests
+    , Token.unitTests
     ]
 
 

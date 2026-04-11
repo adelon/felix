@@ -52,39 +52,65 @@ type Lexer = StateT LexerState (Parsec Void Text)
 
 
 data LexerState = LexerState
-    { textNesting :: !Int
-    -- ^ Represents nesting of braces inside of the @\text{...}@
-    -- command. When we encounter @\text@ the token mode switches
-    -- to text tokens. In order to switch back to math mode correctly
-    -- we need to count the braces.
-    , mode :: !Mode
+    { frames :: !(NonEmpty Frame)
     , currentFileId :: !FileId
     } deriving (Show, Eq)
 
+data Frame
+    = TopText
+    | MathFrame !Text
+    | TextFrame !Int
+    deriving (Show, Eq)
+
 initLexerState :: FileId -> LexerState
-initLexerState fileId = LexerState 0 TextMode fileId
+initLexerState fileId = LexerState (TopText :| []) fileId
 
-incrNesting, decrNesting :: LexerState -> LexerState
-incrNesting (LexerState n m fileId) = LexerState (succ n) m fileId
-decrNesting (LexerState n m fileId) = LexerState (pred n) m fileId
+topFrameOf :: LexerState -> Frame
+topFrameOf LexerState{frames = frame :| _} = frame
 
-data Mode = TextMode | MathMode deriving (Show, Eq)
+topFrame :: Lexer Frame
+topFrame = gets topFrameOf
 
-isTextMode, isMathMode :: Lexer Bool
-isTextMode = do
-    m <- gets mode
-    pure (m == TextMode)
-isMathMode = do
-    m <- gets mode
-    pure (m == MathMode)
+pushFrame :: Frame -> LexerState -> LexerState
+pushFrame frame st@LexerState{frames = top :| rest} =
+    st{frames = frame :| (top : rest)}
 
-setTextMode, setMathMode :: Lexer ()
-setTextMode = do
-    st <- get
-    put st{mode = TextMode}
-setMathMode = do
-    st <- get
-    put st{mode = MathMode}
+popFrame :: LexerState -> LexerState
+popFrame st@LexerState{frames = _ :| []} = st
+popFrame st@LexerState{frames = _ :| (top : rest)} =
+    st{frames = top :| rest}
+
+modifyTopFrame :: (Frame -> Frame) -> LexerState -> LexerState
+modifyTopFrame f st@LexerState{frames = top :| rest} =
+    st{frames = f top :| rest}
+
+-- Token recognizers only emit tokens; this is the single place that changes
+-- lexical context.
+advance :: Token -> LexerState -> LexerState
+advance tok st =
+    case (topFrameOf st, tok) of
+        (TopText, BeginEnv "math") ->
+            pushFrame (MathFrame "math") st
+        (TextFrame{}, BeginEnv "math") ->
+            pushFrame (MathFrame "math") st
+        (TopText, BeginEnv "align*") ->
+            pushFrame (MathFrame "align*") st
+        (TextFrame{}, BeginEnv "align*") ->
+            pushFrame (MathFrame "align*") st
+        (MathFrame env, EndEnv env')
+            | env == env' ->
+                popFrame st
+        (MathFrame{}, BeginEnv "text") ->
+            pushFrame (TextFrame 1) st
+        (TextFrame n, InvisibleBraceL) ->
+            modifyTopFrame (const (TextFrame (n + 1))) st
+        (TextFrame n, InvisibleBraceR)
+            | n > 1 ->
+                modifyTopFrame (const (TextFrame (n - 1))) st
+        (TextFrame 1, EndEnv "text") ->
+            popFrame st
+        _ ->
+            st
 
 -- |
 -- A token stream as input stream for a parser. Contains the raw input
@@ -317,68 +343,52 @@ beginToplevelEnvironment = lexeme do
     Char.char '}'
     pure env
 
--- | Parses tokens, switching tokenizing mode when encountering math environments.
+-- | Parses tokens, switching tokenizing frames when encountering math and text environments.
 environment :: Lexer [Located Token]
 environment = do
     env <- skipManyTill anySingle beginToplevelEnvironment
-    lts <- goNormal (unLocated env) id
+    lts <- go (unLocated env) id
     pure ((BeginEnv <$> env) : lts)
     where
-        goNormal env f = do
-            r <- optional tok
+        go env f = do
+            frame <- topFrame
+            r <- optional (nextTokenFor frame)
             case r of
-                Nothing -> pure (f [])
-                Just t@Located{unLocated = EndEnv env'} | env == env' -> pure (f [t])
-                Just t@Located{unLocated = BeginEnv "math"} -> goMath env (f . (t:))
-                Just t@Located{unLocated = BeginEnv "align*"} -> goMath env (f . (t:))
-                Just t -> goNormal env (f . (t:))
-        goText env f = do
-            r <- optional textToken
-            case r of
-                Nothing -> pure (f [])
-                Just t@Located{unLocated = BeginEnv "math"} -> goMathInText env (f . (t:))
-                Just t@Located{unLocated = EndEnv "text"} -> goMath env (f . (t:))
-                Just t@Located{unLocated = EndEnv "explanation"} -> goMath env (f . (t:))
-                Just t -> goText env (f . (t:))
-        goMath env f = do
-            r <- optional mathToken
-            case r of
-                Nothing -> pure (f [])
-                Just t@Located{unLocated = EndEnv "math"} -> goNormal env (f . (t:))
-                Just t@Located{unLocated = EndEnv "align*"} -> goNormal env (f . (t:))
-                Just t@Located{unLocated = BeginEnv "text"} -> goText env (f . (t:))
-                Just t@Located{unLocated = BeginEnv "explanation"} -> goText env (f . (t:))
-                Just t -> goMath env (f . (t:))
-        goMathInText env f = do
-            r <- optional mathToken
-            case r of
-                Nothing -> pure (f [])
-                Just t@(Located{unLocated = EndEnv "math"}) -> goText env (f . (t:))
-                Just t@(Located{unLocated = BeginEnv "text"}) -> goText env (f . (t:))
-                Just t -> goMathInText env (f . (t:))
+                Nothing ->
+                    pure (f [])
+                Just t@Located{unLocated = EndEnv env'}
+                    | frame == TopText && env == env' ->
+                        pure (f [t])
+                Just t -> do
+                    modify' (advance (unLocated t))
+                    go env (f . (t:))
 {-# INLINE environment #-}
 
--- | Parses a single normal mode token.
-tok :: Lexer (Located Token)
-tok =
-    word <|> var <|> symbol <|> beginMath <|> beginAlign <|> beginCases <|> subEnvironment <|> opening <|> closing <|> label <|> ref <|> end <|> command
+nextTokenFor :: Frame -> Lexer (Located Token)
+nextTokenFor = \case
+    TopText -> normalToken
+    MathFrame{} -> mathToken
+    TextFrame n -> textToken n
+
+-- | Parses a single normal-mode token.
+normalToken :: Lexer (Located Token)
+normalToken =
+    word <|> symbol <|> beginMath <|> beginAlign <|> subEnvironment <|> opening <|> closing <|> label <|> ref <|> end <|> command
 
 -- | Parses a single math mode token.
 mathToken :: Lexer (Located Token)
 mathToken =
-    var <|> symbol <|> number <|> endAlign <|> endCases <|> opening <|> closing <|> beginText <|> beginExplanation <|> endMath <|> command
+    var <|> symbol <|> number <|> beginCases <|> endAlign <|> endCases <|> opening <|> closing <|> beginText <|> beginExplanation <|> endMath <|> command
 
 beginText :: Lexer (Located Token)
 beginText = lexeme do
     Char.string "\\text{" <|> Char.string "\\textbox{"
-    setTextMode
     pure (BeginEnv "text")
 
 -- | Same as text modulo spacing, so we treat it synonymously
 beginExplanation :: Lexer (Located Token)
 beginExplanation = lexeme do
     Char.string "\\explanation{"
-    setTextMode
     pure (BeginEnv "text")
 
 subEnvironment :: Lexer (Located Token)
@@ -393,63 +403,58 @@ subEnvironment = beginOrEnd ["enumerate", "subproof", "byCase"]
             pure (EndEnv env)
 
 -- | Normal mode embedded into math mode via @\text{...}@.
-textToken :: Lexer (Located Token)
-textToken = word <|> symbol <|> textEnd <|> beginMath <|> beginAlign <|> opening' <|> closing' <|> ref <|> command
+textToken :: Int -> Lexer (Located Token)
+textToken n = word <|> symbol <|> textEnd <|> beginMath <|> beginAlign <|> opening' <|> closing' <|> ref <|> command
     where
         textEnd = lexeme do
-            0 <- gets textNesting -- Otherwise fail.
+            guard (n == 1)
             Char.char '}'
-            setMathMode
             pure (EndEnv "text")
 
         opening' = lexeme (group <|> optional (Char.string "\\left") *> (brace <|> paren <|> bracket))
             where
                 brace = VisibleBraceL <$ lexeme (Char.string "\\{")
-                group = InvisibleBraceL <$ lexeme (Char.char '{') <* modify' incrNesting
+                group = InvisibleBraceL <$ lexeme (Char.char '{')
                 paren = ParenL <$ lexeme (Char.char '(')
                 bracket = BracketL <$ lexeme (Char.char '[')
 
         closing' = lexeme (group <|> optional (Char.string "\\right") *> (brace <|> paren <|> bracket))
             where
                 brace = VisibleBraceR <$ lexeme (Char.string "\\}")
-                group = InvisibleBraceR <$ lexeme (Char.char '}') <* modify' decrNesting
+                group = InvisibleBraceR <$ lexeme (Char.char '}')
                 paren = ParenR <$ lexeme (Char.char ')')
                 bracket = BracketR <$ lexeme (Char.char ']')
 
 
 -- | Parses a single begin math token.
 beginMath :: Lexer (Located Token)
-beginMath = guardM isTextMode *> lexeme do
+beginMath = lexeme do
     Char.string "\\(" <|> Char.string "\\[" <|> Char.string "$"
-    setMathMode
     pure (BeginEnv "math")
 
 beginAlign :: Lexer (Located Token)
-beginAlign = guardM isTextMode *> lexeme do
+beginAlign = lexeme do
     Char.string "\\begin{align*}"
-    setMathMode
     pure (BeginEnv "align*")
 
 beginCases :: Lexer (Located Token)
-beginCases = guardM isTextMode *> lexeme do
+beginCases = lexeme do
     Char.string "\\begin{cases}"
     pure (BeginEnv "cases")
 
 -- | Parses a single end math token.
 endMath :: Lexer (Located Token)
-endMath = guardM isMathMode *> lexeme do
+endMath = lexeme do
     Char.string "\\)" <|> Char.string "\\]" <|> Char.string "$"
-    setTextMode
     pure (EndEnv "math")
 
 endAlign :: Lexer (Located Token)
-endAlign = guardM isMathMode *> lexeme do
+endAlign = lexeme do
     Char.string "\\end{align*}"
-    setTextMode
     pure (EndEnv "align*")
 
 endCases :: Lexer (Located Token)
-endCases = guardM isMathMode *> lexeme do
+endCases = lexeme do
     Char.string "\\end{cases}"
     pure (EndEnv "cases")
 
@@ -458,6 +463,7 @@ endCases = guardM isMathMode *> lexeme do
 -- Commits only after having seen "\end{".
 end :: Lexer (Located Token)
 end = lexeme do
+    notFollowedBy (Char.string "\\end{cases}")
     Char.string "\\end{"
     env <- some (Char.letterChar <|> Char.char '*')
     Char.char '}'
@@ -467,7 +473,7 @@ end = lexeme do
 
 -- | Parses a word. Words are returned casefolded, since we want to ignore their case later on.
 word :: Lexer (Located Token)
-word = guardM isTextMode *> lexeme do
+word = lexeme do
     w <- some (Char.letterChar <|> Char.char '\'' <|> Char.char '-')
     let t = Word (Text.toCaseFold (Text.pack w))
     pure t
@@ -477,7 +483,7 @@ number = lexeme $ Integer <$> Lexer.decimal
 
 
 var :: Lexer (Located Token)
-var = guardM isMathMode *> lexeme (fmap Variable var')
+var = lexeme (fmap Variable var')
     where
     var' = do
         alphabeticPart <- letter <|> bb <|> greek
