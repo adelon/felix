@@ -70,7 +70,7 @@ initialCheckingState dumpPremselTraining emitTask = CheckingState
     , blockLabel = Marker ""
     , stepLocation = Nowhere
     , blockEndLocation = Nowhere
-    , fixedVars = mempty
+    , localVars = mempty
     , checkingHypothesisCounter = 0
     , checkingEmitTask = emitTask
     }
@@ -125,8 +125,8 @@ data CheckingState = CheckingState
     , instantiatedStructOps :: HashMap StructSymbol VarSymbol
     -- ^ For annotation of structure operations.
     --
-    , fixedVars :: Set VarSymbol
-    -- ^ Keeps track of the variables that are locally constant (either introduced implicitly in the assumption or explicitly through the proof steps "take" or "fix").
+    , localVars :: Set VarSymbol
+    -- ^ Keeps track of the variables that are locally constant.
     --
     , definedMarkers :: HashSet Marker
     -- ^ Markers for toplevel sections need to be unique. This keeps track of the
@@ -186,16 +186,13 @@ assume asms = traverse_ go asms
             Asm phi -> do
                 phi' <- canonicalize phi
                 let phiContracted = contraction phi'
-                let addFixed st = st{fixedVars = freeVars phi' <> fixedVars st}
                 case phiContracted of
-                    Top -> modify addFixed
+                    Top -> skip
                     _ -> do
                         marker <- nextHypothesisMarker
                         let hypo = encodeHypothesisContracted marker phi' phiContracted
                         modify \st ->
-                            (addFixed st)
-                                { checkingAssumptions = hypo : checkingAssumptions st
-                                }
+                            st{checkingAssumptions = hypo : checkingAssumptions st}
             AsmStruct x sp ->
                 instantiateStruct x sp
 
@@ -247,6 +244,79 @@ nextHypothesisMarker = do
     let marker = Marker ("_local_" <> Text.pack (show next))
     put st{checkingHypothesisCounter = next}
     pure marker
+
+registerLemmaLocalVars :: [Asm] -> Formula -> Checking
+registerLemmaLocalVars asms goal =
+    addLocalVars (Set.unions (freeVars goal : (asmLocalVars <$> asms)))
+
+asmLocalVars :: Asm -> Set VarSymbol
+asmLocalVars = \case
+    Asm phi ->
+        freeVars phi
+    AsmStruct x _ ->
+        Set.singleton x
+
+addLocalVars :: Set VarSymbol -> Checking
+addLocalVars vars =
+    modify \st -> st{localVars = vars <> localVars st}
+
+checkFreshLocalVars :: Text -> [VarSymbol] -> Checking
+checkFreshLocalVars context vars = do
+    let duplicates = duplicateVars vars
+    unless (Set.null duplicates) do
+        throwCheckingError (context <> " introduces the same variable more than once: " <> formatVars duplicates)
+    inScope <- gets localVars
+    let shadowed = Set.fromList vars `Set.intersection` inScope
+    unless (Set.null shadowed) do
+        throwCheckingError (context <> " tries to introduce variable(s) already in scope: " <> formatVars shadowed)
+
+checkBinderVarsFresh :: Text -> [VarSymbol] -> Checking
+checkBinderVarsFresh context vars = do
+    let duplicates = duplicateVars vars
+    unless (Set.null duplicates) do
+        throwCheckingError (context <> " uses the same binder variable more than once: " <> formatVars duplicates)
+    inScope <- gets localVars
+    let shadowed = Set.fromList vars `Set.intersection` inScope
+    unless (Set.null shadowed) do
+        throwCheckingError (context <> " binder variable(s) shadow local variable(s): " <> formatVars shadowed)
+
+assertKnownFormulaVars :: Text -> Formula -> Checking
+assertKnownFormulaVars context phi = do
+    known <- gets localVars
+    assertKnownFormulaVarsWith context known phi
+
+assertKnownFormulaVarsWith :: Text -> Set VarSymbol -> Formula -> Checking
+assertKnownFormulaVarsWith context known phi = do
+    let unknown = freeVars phi `Set.difference` known
+    unless (Set.null unknown) do
+        throwCheckingError (context <> " mentions variable(s) that are not in scope: " <> formatVars unknown)
+
+assertKnownTermVars :: Text -> Term -> Checking
+assertKnownTermVars = assertKnownFormulaVars
+
+assertKnownTermVarsWith :: Text -> Set VarSymbol -> Term -> Checking
+assertKnownTermVarsWith = assertKnownFormulaVarsWith
+
+throwCheckingError :: Text -> CheckingM a
+throwCheckingError msg =
+    throwWithLocationAndMarker (CheckingError msg)
+
+duplicateVars :: [VarSymbol] -> Set VarSymbol
+duplicateVars =
+    snd . foldl' step (Set.empty, Set.empty)
+    where
+        step (seen, duplicates) x
+            | x `Set.member` seen = (seen, Set.insert x duplicates)
+            | otherwise = (Set.insert x seen, duplicates)
+
+formatVars :: Set VarSymbol -> Text
+formatVars vars =
+    Text.intercalate ", " (formatVar <$> Set.toList vars)
+
+formatVar :: VarSymbol -> Text
+formatVar = \case
+    NamedVar x -> x
+    FreshVar n -> "_" <> Text.pack (show n)
 
 
 -- | Create (and add) tasks based on facts, local assumptions, and goals.
@@ -446,6 +516,7 @@ withLabel loc marker ma = do
 checkLemmaWithProof :: Lemma -> Proof -> Checking
 checkLemmaWithProof (Lemma asms goal) proof = do
     locally do
+        registerLemmaLocalVars asms goal
         assume asms
         setGoals [goal]
         checkProof proof
@@ -456,6 +527,7 @@ checkLemmaWithProof (Lemma asms goal) proof = do
 checkLemma :: Lemma -> Checking
 checkLemma (Lemma asms goal) = do
     locally do
+        registerLemmaLocalVars asms goal
         assume asms
         setGoals [goal]
         tellTasks
@@ -486,6 +558,8 @@ checkProof = \case
             _ -> throwWithLocationAndMarker (ByContradictionOnMultipleGoals)
     ByCase loc splits -> do
         setLocation loc
+        for_ splits \(Case split _) ->
+            assertKnownFormulaVars "case split" split
         for_ splits checkCase
         setGoals [makeDisjunction (caseOf <$> splits)]
         tellTasks
@@ -501,10 +575,12 @@ checkProof = \case
                         _ -> throwWithMarker (AmbiguousInductionVar loc)
                     Just (TermVar z') -> pure z'
                     _ -> throwWithMarker (AmbiguousInductionVar loc)
+                checkFreshLocalVars "set induction" [z]
                 let y = NamedVar "IndAntecedent"
                 let ys = List.delete z zs
                 let anteInst bv = if bv == z then TermVar y else TermVar bv
                 let antecedent = makeForall (y : ys) ((isElementOf (TermVar y) (TermVar z)) `Implies` instantiate anteInst scope)
+                addLocalVars (Set.singleton z)
                 assume [Asm antecedent]
                 let consequent = instantiate TermVar scope
                 setGoals (consequent : goals')
@@ -521,11 +597,13 @@ checkProof = \case
                             [z'] | z' == bz -> pure z'
                             [_] -> error "induction variable does not match the variable with ordinal guard"
                             _ -> throwWithMarker (AmbiguousInductionVar loc')
+                    checkFreshLocalVars "ordinal induction" [z]
                     -- LATER: this is kinda sketchy:
                     -- we now use the induction variable in two ways:
                     -- we assume the induction hypothesis, where we recycle the induction variable both as a bound variable and a free variable
                     -- we then need to show that under that hypothesis the claim holds for the free variable...
                     let hypo = Forall (toScope (Implies (isElementOf (TermVar (B z)) (TermVar (F z))) rhs))
+                    addLocalVars (Set.singleton z)
                     assume [Asm (IsOrd loc' (TermVar z)), Asm hypo]
                     let goal' = unvar id id <$> rhs -- we "instantiate" the single bound variable on the rhs
                     setGoals (goal' : goals')
@@ -534,18 +612,24 @@ checkProof = \case
             _ -> error ("the first goal must be universally quantifier to apply transfinite induction: " <> show goals)
     Assume loc phi continue -> do
         setLocation loc
+        assertKnownFormulaVars "assumption step" phi
         goals' <- matchAssumptionWithGoal loc phi
         assume [Asm phi]
         setGoals goals'
         checkProof continue
     Fix loc xs suchThat continue -> do
         setLocation loc
+        checkFreshLocalVars "fix step" (toList xs)
         fixing xs
+        addLocalVars (Set.fromList (toList xs))
+        unless (suchThat == Top) do
+            assertKnownFormulaVars "fix constraint" suchThat
         checkProof case suchThat of
             Top -> continue
             _ ->  Assume loc suchThat continue
     Subclaim loc subclaim subproof continue -> do
         setLocation loc
+        assertKnownFormulaVars "subclaim" subclaim
         locally (checkLemmaWithProof (Lemma [] subclaim) subproof)
         assume [Asm subclaim]
         checkProof continue
@@ -553,6 +637,7 @@ checkProof = \case
         setGoals []
     Suffices loc reduction by proof -> do
         setLocation loc
+        assertKnownFormulaVars "suffices step" reduction
         goals <- gets checkingGoals
         setGoals [reduction `Implies` makeConjunction goals]
         justify by
@@ -562,14 +647,19 @@ checkProof = \case
         error $ "Error at " <> show loc <> "\nCannot justify existential statement with setext"
     Take loc witnesses suchThat by continue -> locally do
         setLocation loc
+        checkFreshLocalVars "take step" (toList witnesses)
+        known <- gets localVars
+        assertKnownFormulaVarsWith "take witness statement" (known <> Set.fromList (toList witnesses)) suchThat
         goals <- gets checkingGoals
         setGoals [makeExists witnesses suchThat]
         justify by
+        addLocalVars (Set.fromList (toList witnesses))
         assume [Asm suchThat]
         setGoals goals
         checkProof continue
     Have loc claim (JustificationRef ms) continue -> locally do
         setLocation loc
+        assertKnownFormulaVars "claim" claim
         goals <- gets checkingGoals
         setGoals [claim]
         byRef ms -- locally prove things with just refs and local assumptions
@@ -578,6 +668,7 @@ checkProof = \case
         checkProof continue
     Have loc claim JustificationLocal continue -> locally do
         setLocation loc
+        assertKnownFormulaVars "claim" claim
         goals <- gets checkingGoals
         setGoals [claim]
         byAssumption -- locally prove things with just local assumptions
@@ -586,6 +677,7 @@ checkProof = \case
         checkProof continue
     Have loc claim by continue -> do
         setLocation loc
+        assertKnownFormulaVars "claim" claim
         locally do
             goals <- gets checkingGoals
             claims <- case by of
@@ -601,6 +693,9 @@ checkProof = \case
             checkProof continue
     Define loc x t continue -> locally do
         setLocation loc
+        checkFreshLocalVars "definition step" [x]
+        assertKnownTermVars "definition right-hand side" t
+        addLocalVars (Set.singleton x)
         case t of
             TermSep y yBound phi ->
                 assume [Asm $
@@ -643,6 +738,14 @@ checkProof = \case
         checkProof continue
     DefineFunction loc funVar argVar valueExpr domExpr continue -> do
         setLocation loc
+        checkFreshLocalVars "function definition" [funVar]
+        checkBinderVarsFresh "function definition" [argVar]
+        when (funVar == argVar) do
+            throwCheckingError "function definition uses the same variable for the function and its argument"
+        known <- gets localVars
+        assertKnownTermVarsWith "function definition domain" known domExpr
+        assertKnownTermVarsWith "function definition value" (Set.insert argVar known) valueExpr
+        addLocalVars (Set.singleton funVar)
         -- we're given f, x, e, d
         assume
             [ Asm (Equals loc (TermOp Nowhere DomSymbol [TermVar funVar]) domExpr) -- dom(f) = d
@@ -653,11 +756,27 @@ checkProof = \case
         checkProof continue
     Calc loc quant calc continue -> do
         setLocation loc
+        for_ (calculation quant calc) \(goal, _) ->
+            assertKnownFormulaVars "calculation step" goal
+        assertKnownFormulaVars "calculation result" (calcResult quant calc)
         checkCalc quant calc
         assume [Asm (calcResult quant calc)]
         checkProof continue
     DefineFunctionLocal loc funVar argVar domVar ranExpr definitions continue -> do -- TODO refactor
         setLocation loc
+        checkFreshLocalVars "local function definition" [funVar]
+        checkBinderVarsFresh "local function definition" [argVar]
+        when (funVar == argVar) do
+            throwCheckingError "local function definition uses the same variable for the function and its argument"
+        known <- gets localVars
+        assertKnownFormulaVarsWith "local function definition range" known ranExpr
+        let knownWithArg = Set.insert argVar known
+        for_ definitions \(expr, frm) -> do
+            assertKnownTermVarsWith "local function definition case expression" knownWithArg expr
+            assertKnownFormulaVarsWith "local function definition case condition" knownWithArg frm
+        unless (domVar `Set.member` known) do
+            throwCheckingError ("local function definition domain variable is not in scope: " <> formatVars (Set.singleton domVar))
+        addLocalVars (Set.singleton funVar)
         -- We have f: X \to Y and x \mapsto ...
         -- definition is a nonempty list of (expresssion e, formula phi)
         -- such that f(x) =  e if phi(x)
@@ -672,9 +791,9 @@ checkProof = \case
         setGoals [makeForall [argVar] ((isElementOf (TermVar argVar) (TermVar domVar)) `Iff` localFunctionGoal definitions)]
         tellTasks
 
-        fixed <- gets fixedVars
+        locals <- gets localVars
         assume [Asm (makeForall [argVar] (isElementOf (TermVar argVar) (TermVar domVar) `Implies` isElementOf (TermOp Nowhere ApplySymbol [TermVar funVar, TermVar argVar]) ranExpr))] -- function f from \dom(f) \to \ran(f)
-        assume (functionSubdomianExpression funVar argVar domVar fixed (NonEmpty.toList definitions)) --behavior on the subdomians
+        assume (functionSubdomianExpression funVar argVar domVar locals (NonEmpty.toList definitions)) --behavior on the subdomians
         setGoals goals
         checkProof continue
 

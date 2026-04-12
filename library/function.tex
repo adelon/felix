@@ -341,6 +341,7 @@
 \end{proposition}
 \begin{proof}
     Every element of $\dom{g\circ f}$ is an element of $\dom{f}$.
+    Every element of $\dom{f}$ is an element of $\dom{g\circ f}$ by \cref{circ_iff,ran_iff,dom_iff}.
     Follows by set extensionality.
 \end{proof}
 
@@ -629,6 +630,9 @@
     Let $f$ be a function.
     Then $\converse{f}$ is injective. % i.e. an injective relation.
 \end{proposition}
+\begin{proof}
+    Follows by \cref{rightunique,injective,converse_elim}.
+\end{proof}
 
 \begin{proposition}\label{injective_converse_is_function}
     Suppose $f$ is injective. % NOTE: f need not be a function!
