@@ -255,4 +255,306 @@
         , locColumn = 1
         }
     )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 35
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "bounded_calc" )
+    ( Claim []
+        ( SymbolicQuantified
+            { loc = Location
+                { locFile = "test/examples/calc.tex"
+                , locLine = 36
+                , locColumn = 5
+                }
+            , quant = Universally
+            , vars = NamedVar "x" :| []
+            , b = Bounded
+                ( Location
+                    { locFile = "test/examples/calc.tex"
+                    , locLine = 36
+                    , locColumn = 16
+                    }
+                ) Positive
+                ( Relation
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 36
+                        , locColumn = 16
+                        }
+                    )
+                    ( RelationSymbol
+                        ( Command "in" )
+                        ( Marker "elem" )
+                    ) []
+                )
+                ( ExprVar
+                    ( NamedVar "A" )
+                )
+            , suchThat = Nothing
+            , stmt = StmtFormula
+                { formula = FormulaChain
+                    ( ChainBase
+                        ( ExprVar
+                            ( NamedVar "x" ) :| []
+                        ) Positive
+                        ( Relation
+                            ( Location
+                                { locFile = "test/examples/calc.tex"
+                                , locLine = 36
+                                , locColumn = 34
+                                }
+                            )
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            ) []
+                        )
+                        ( ExprVar
+                            ( NamedVar "x" ) :| []
+                        )
+                    )
+                }
+            }
+        )
+    )
+, BlockProof
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 38
+        , locColumn = 1
+        }
+    )
+    ( Calc
+        ( Location
+            { locFile = "test/examples/calc.tex"
+            , locLine = 39
+            , locColumn = 5
+            }
+        )
+        ( Just
+            ( CalcQuantifier
+                ( NamedVar "x" :| [] )
+                ( Bounded
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 39
+                        , locColumn = 16
+                        }
+                    ) Positive
+                    ( Relation
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 39
+                            , locColumn = 16
+                            }
+                        )
+                        ( RelationSymbol
+                            ( Command "in" )
+                            ( Marker "elem" )
+                        ) []
+                    )
+                    ( ExprVar
+                        ( NamedVar "A" )
+                    )
+                ) Nothing
+            )
+        )
+        ( Equation
+            ( ExprVar
+                ( NamedVar "x" )
+            )
+            (
+                ( ExprVar
+                    ( NamedVar "x" )
+                , JustificationEmpty
+                ) :| []
+            )
+        ) ( Qed Nothing JustificationEmpty )
+    )
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 44
+        , locColumn = 1
+        }
+    )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 46
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "bounded_calc_such_that" )
+    ( Claim []
+        ( SymbolicQuantified
+            { loc = Location
+                { locFile = "test/examples/calc.tex"
+                , locLine = 47
+                , locColumn = 5
+                }
+            , quant = Universally
+            , vars = NamedVar "x" :| []
+            , b = Bounded
+                ( Location
+                    { locFile = "test/examples/calc.tex"
+                    , locLine = 47
+                    , locColumn = 16
+                    }
+                ) Positive
+                ( Relation
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 47
+                        , locColumn = 16
+                        }
+                    )
+                    ( RelationSymbol
+                        ( Command "in" )
+                        ( Marker "elem" )
+                    ) []
+                )
+                ( ExprVar
+                    ( NamedVar "A" )
+                )
+            , suchThat = Just
+                ( StmtFormula
+                    { formula = FormulaChain
+                        ( ChainBase
+                            ( ExprVar
+                                ( NamedVar "x" ) :| []
+                            ) Positive
+                            ( Relation
+                                ( Location
+                                    { locFile = "test/examples/calc.tex"
+                                    , locLine = 47
+                                    , locColumn = 36
+                                    }
+                                )
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                ) []
+                            )
+                            ( ExprVar
+                                ( NamedVar "x" ) :| []
+                            )
+                        )
+                    }
+                )
+            , stmt = StmtFormula
+                { formula = FormulaChain
+                    ( ChainBase
+                        ( ExprVar
+                            ( NamedVar "x" ) :| []
+                        ) Positive
+                        ( Relation
+                            ( Location
+                                { locFile = "test/examples/calc.tex"
+                                , locLine = 47
+                                , locColumn = 52
+                                }
+                            )
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            ) []
+                        )
+                        ( ExprVar
+                            ( NamedVar "x" ) :| []
+                        )
+                    )
+                }
+            }
+        )
+    )
+, BlockProof
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 49
+        , locColumn = 1
+        }
+    )
+    ( Calc
+        ( Location
+            { locFile = "test/examples/calc.tex"
+            , locLine = 50
+            , locColumn = 5
+            }
+        )
+        ( Just
+            ( CalcQuantifier
+                ( NamedVar "x" :| [] )
+                ( Bounded
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 50
+                        , locColumn = 16
+                        }
+                    ) Positive
+                    ( Relation
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 50
+                            , locColumn = 16
+                            }
+                        )
+                        ( RelationSymbol
+                            ( Command "in" )
+                            ( Marker "elem" )
+                        ) []
+                    )
+                    ( ExprVar
+                        ( NamedVar "A" )
+                    )
+                )
+                ( Just
+                    ( StmtFormula
+                        { formula = FormulaChain
+                            ( ChainBase
+                                ( ExprVar
+                                    ( NamedVar "x" ) :| []
+                                ) Positive
+                                ( Relation
+                                    ( Location
+                                        { locFile = "test/examples/calc.tex"
+                                        , locLine = 50
+                                        , locColumn = 36
+                                        }
+                                    )
+                                    ( RelationSymbol
+                                        ( Symbol "=" )
+                                        ( Marker "eq" )
+                                    ) []
+                                )
+                                ( ExprVar
+                                    ( NamedVar "x" ) :| []
+                                )
+                            )
+                        }
+                    )
+                )
+            )
+        )
+        ( Equation
+            ( ExprVar
+                ( NamedVar "x" )
+            )
+            (
+                ( ExprVar
+                    ( NamedVar "x" )
+                , JustificationEmpty
+                ) :| []
+            )
+        ) ( Qed Nothing JustificationEmpty )
+    )
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 55
+        , locColumn = 1
+        }
+    )
 ]

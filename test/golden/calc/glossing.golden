@@ -245,4 +245,316 @@
             }
         )
     )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 35
+        , locColumn = 1
+        }
+    )
+    ( Marker "bounded_calc" )
+    ( Lemma []
+        ( Quantified Universally
+            ( Scope
+                ( Connected Implication
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 36
+                            , locColumn = 16
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Command "in" )
+                                    ( Marker "elem" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( F
+                                ( TermVar
+                                    ( NamedVar "A" )
+                                )
+                            )
+                        ]
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 36
+                            , locColumn = 34
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        ]
+                    )
+                )
+            )
+        )
+    )
+, BlockProof
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 38
+        , locColumn = 1
+        }
+    )
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 44
+        , locColumn = 1
+        }
+    )
+    ( Calc
+        ( Location
+            { locFile = "test/examples/calc.tex"
+            , locLine = 39
+            , locColumn = 5
+            }
+        )
+        ( CalcForall
+            ( NamedVar "x" :| [] )
+            ( Just
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 39
+                        , locColumn = 16
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Command "in" )
+                                ( Marker "elem" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( NamedVar "x" )
+                    , TermVar
+                        ( NamedVar "A" )
+                    ]
+                )
+            )
+        )
+        ( Equation
+            ( TermVar
+                ( NamedVar "x" )
+            )
+            (
+                ( TermVar
+                    ( NamedVar "x" )
+                , JustificationEmpty
+                ) :| []
+            )
+        )
+        ( Qed
+            { mloc = Nothing
+            , by = JustificationEmpty
+            }
+        )
+    )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 46
+        , locColumn = 1
+        }
+    )
+    ( Marker "bounded_calc_such_that" )
+    ( Lemma []
+        ( Quantified Universally
+            ( Scope
+                ( Connected Implication
+                    ( Connected Conjunction
+                        ( TermSymbol
+                            ( Location
+                                { locFile = "test/examples/calc.tex"
+                                , locLine = 47
+                                , locColumn = 16
+                                }
+                            )
+                            ( SymbolPredicate
+                                ( PredicateRelation
+                                    ( RelationSymbol
+                                        ( Command "in" )
+                                        ( Marker "elem" )
+                                    )
+                                )
+                            )
+                            [ TermVar
+                                ( B
+                                    ( NamedVar "x" )
+                                )
+                            , TermVar
+                                ( F
+                                    ( TermVar
+                                        ( NamedVar "A" )
+                                    )
+                                )
+                            ]
+                        )
+                        ( TermSymbol
+                            ( Location
+                                { locFile = "test/examples/calc.tex"
+                                , locLine = 47
+                                , locColumn = 36
+                                }
+                            )
+                            ( SymbolPredicate
+                                ( PredicateRelation
+                                    ( RelationSymbol
+                                        ( Symbol "=" )
+                                        ( Marker "eq" )
+                                    )
+                                )
+                            )
+                            [ TermVar
+                                ( B
+                                    ( NamedVar "x" )
+                                )
+                            , TermVar
+                                ( B
+                                    ( NamedVar "x" )
+                                )
+                            ]
+                        )
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 47
+                            , locColumn = 52
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        ]
+                    )
+                )
+            )
+        )
+    )
+, BlockProof
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 49
+        , locColumn = 1
+        }
+    )
+    ( Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 55
+        , locColumn = 1
+        }
+    )
+    ( Calc
+        ( Location
+            { locFile = "test/examples/calc.tex"
+            , locLine = 50
+            , locColumn = 5
+            }
+        )
+        ( CalcForall
+            ( NamedVar "x" :| [] )
+            ( Just
+                ( Connected Conjunction
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 50
+                            , locColumn = 16
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Command "in" )
+                                    ( Marker "elem" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( NamedVar "x" )
+                        , TermVar
+                            ( NamedVar "A" )
+                        ]
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 50
+                            , locColumn = 36
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( NamedVar "x" )
+                        , TermVar
+                            ( NamedVar "x" )
+                        ]
+                    )
+                )
+            )
+        )
+        ( Equation
+            ( TermVar
+                ( NamedVar "x" )
+            )
+            (
+                ( TermVar
+                    ( NamedVar "x" )
+                , JustificationEmpty
+                ) :| []
+            )
+        )
+        ( Qed
+            { mloc = Nothing
+            , by = JustificationEmpty
+            }
+        )
+    )
 ]

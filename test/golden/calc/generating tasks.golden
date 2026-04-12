@@ -672,4 +672,1045 @@
             ( NamedVar "y" )
         ]
     }
+, Task
+    { taskDirectness = Direct
+    , taskHypotheses =
+        [ Hypothesis Marker "trivial_biconditionals" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 23
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "alsotrivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 10
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "irrelevant" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 6
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "trivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 2
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        ]
+    , taskConjectureLabel = Marker "bounded_calc"
+    , taskLocation = Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 39
+        , locColumn = 5
+        }
+    , taskConjecture = Quantified Universally
+        ( Scope
+            ( Connected Implication
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 39
+                        , locColumn = 16
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Command "in" )
+                                ( Marker "elem" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( F
+                            ( TermVar
+                                ( NamedVar "A" )
+                            )
+                        )
+                    ]
+                )
+                ( TermSymbol
+                    ( Location
+                        { locFile = "<nowhere>"
+                        , locLine = -1
+                        , locColumn = -1
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        )
+    }
+, Task
+    { taskDirectness = Direct
+    , taskHypotheses =
+        [ Hypothesis Marker "trivial_biconditionals" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 23
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "alsotrivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 10
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "irrelevant" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 6
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "trivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 2
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "_local_1" Quantified Universally
+            ( Scope
+                ( Connected Implication
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 39
+                            , locColumn = 16
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Command "in" )
+                                    ( Marker "elem" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( F
+                                ( TermVar
+                                    ( NamedVar "A" )
+                                )
+                            )
+                        ]
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "<nowhere>"
+                            , locLine = -1
+                            , locColumn = -1
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        ]
+                    )
+                )
+            )
+        ]
+    , taskConjectureLabel = Marker "bounded_calc"
+    , taskLocation = Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 44
+        , locColumn = 1
+        }
+    , taskConjecture = Quantified Universally
+        ( Scope
+            ( Connected Implication
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 36
+                        , locColumn = 16
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Command "in" )
+                                ( Marker "elem" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( F
+                            ( TermVar
+                                ( NamedVar "A" )
+                            )
+                        )
+                    ]
+                )
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 36
+                        , locColumn = 34
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        )
+    }
+, Task
+    { taskDirectness = Direct
+    , taskHypotheses =
+        [ Hypothesis Marker "bounded_calc" Quantified Universally
+            ( Scope
+                ( Quantified Universally
+                    ( Scope
+                        ( Connected Implication
+                            ( TermSymbol
+                                ( Location
+                                    { locFile = "test/examples/calc.tex"
+                                    , locLine = 36
+                                    , locColumn = 16
+                                    }
+                                )
+                                ( SymbolPredicate
+                                    ( PredicateRelation
+                                        ( RelationSymbol
+                                            ( Command "in" )
+                                            ( Marker "elem" )
+                                        )
+                                    )
+                                )
+                                [ TermVar
+                                    ( B
+                                        ( NamedVar "x" )
+                                    )
+                                , TermVar
+                                    ( F
+                                        ( TermVar
+                                            ( B
+                                                ( NamedVar "A" )
+                                            )
+                                        )
+                                    )
+                                ]
+                            )
+                            ( TermSymbol
+                                ( Location
+                                    { locFile = "test/examples/calc.tex"
+                                    , locLine = 36
+                                    , locColumn = 34
+                                    }
+                                )
+                                ( SymbolPredicate
+                                    ( PredicateRelation
+                                        ( RelationSymbol
+                                            ( Symbol "=" )
+                                            ( Marker "eq" )
+                                        )
+                                    )
+                                )
+                                [ TermVar
+                                    ( B
+                                        ( NamedVar "x" )
+                                    )
+                                , TermVar
+                                    ( B
+                                        ( NamedVar "x" )
+                                    )
+                                ]
+                            )
+                        )
+                    )
+                )
+            )
+        , Hypothesis Marker "trivial_biconditionals" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 23
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "alsotrivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 10
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "irrelevant" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 6
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "trivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 2
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        ]
+    , taskConjectureLabel = Marker "bounded_calc_such_that"
+    , taskLocation = Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 50
+        , locColumn = 5
+        }
+    , taskConjecture = Quantified Universally
+        ( Scope
+            ( Connected Implication
+                ( Connected Conjunction
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 50
+                            , locColumn = 16
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Command "in" )
+                                    ( Marker "elem" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( F
+                                ( TermVar
+                                    ( NamedVar "A" )
+                                )
+                            )
+                        ]
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 50
+                            , locColumn = 36
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        ]
+                    )
+                )
+                ( TermSymbol
+                    ( Location
+                        { locFile = "<nowhere>"
+                        , locLine = -1
+                        , locColumn = -1
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        )
+    }
+, Task
+    { taskDirectness = Direct
+    , taskHypotheses =
+        [ Hypothesis Marker "bounded_calc" Quantified Universally
+            ( Scope
+                ( Quantified Universally
+                    ( Scope
+                        ( Connected Implication
+                            ( TermSymbol
+                                ( Location
+                                    { locFile = "test/examples/calc.tex"
+                                    , locLine = 36
+                                    , locColumn = 16
+                                    }
+                                )
+                                ( SymbolPredicate
+                                    ( PredicateRelation
+                                        ( RelationSymbol
+                                            ( Command "in" )
+                                            ( Marker "elem" )
+                                        )
+                                    )
+                                )
+                                [ TermVar
+                                    ( B
+                                        ( NamedVar "x" )
+                                    )
+                                , TermVar
+                                    ( F
+                                        ( TermVar
+                                            ( B
+                                                ( NamedVar "A" )
+                                            )
+                                        )
+                                    )
+                                ]
+                            )
+                            ( TermSymbol
+                                ( Location
+                                    { locFile = "test/examples/calc.tex"
+                                    , locLine = 36
+                                    , locColumn = 34
+                                    }
+                                )
+                                ( SymbolPredicate
+                                    ( PredicateRelation
+                                        ( RelationSymbol
+                                            ( Symbol "=" )
+                                            ( Marker "eq" )
+                                        )
+                                    )
+                                )
+                                [ TermVar
+                                    ( B
+                                        ( NamedVar "x" )
+                                    )
+                                , TermVar
+                                    ( B
+                                        ( NamedVar "x" )
+                                    )
+                                ]
+                            )
+                        )
+                    )
+                )
+            )
+        , Hypothesis Marker "trivial_biconditionals" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 23
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "alsotrivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 10
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "y" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "irrelevant" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 6
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "z" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "trivial" Quantified Universally
+            ( Scope
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 2
+                        , locColumn = 8
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        , Hypothesis Marker "_local_1" Quantified Universally
+            ( Scope
+                ( Connected Implication
+                    ( Connected Conjunction
+                        ( TermSymbol
+                            ( Location
+                                { locFile = "test/examples/calc.tex"
+                                , locLine = 50
+                                , locColumn = 16
+                                }
+                            )
+                            ( SymbolPredicate
+                                ( PredicateRelation
+                                    ( RelationSymbol
+                                        ( Command "in" )
+                                        ( Marker "elem" )
+                                    )
+                                )
+                            )
+                            [ TermVar
+                                ( B
+                                    ( NamedVar "x" )
+                                )
+                            , TermVar
+                                ( F
+                                    ( TermVar
+                                        ( NamedVar "A" )
+                                    )
+                                )
+                            ]
+                        )
+                        ( TermSymbol
+                            ( Location
+                                { locFile = "test/examples/calc.tex"
+                                , locLine = 50
+                                , locColumn = 36
+                                }
+                            )
+                            ( SymbolPredicate
+                                ( PredicateRelation
+                                    ( RelationSymbol
+                                        ( Symbol "=" )
+                                        ( Marker "eq" )
+                                    )
+                                )
+                            )
+                            [ TermVar
+                                ( B
+                                    ( NamedVar "x" )
+                                )
+                            , TermVar
+                                ( B
+                                    ( NamedVar "x" )
+                                )
+                            ]
+                        )
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "<nowhere>"
+                            , locLine = -1
+                            , locColumn = -1
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        ]
+                    )
+                )
+            )
+        ]
+    , taskConjectureLabel = Marker "bounded_calc_such_that"
+    , taskLocation = Location
+        { locFile = "test/examples/calc.tex"
+        , locLine = 55
+        , locColumn = 1
+        }
+    , taskConjecture = Quantified Universally
+        ( Scope
+            ( Connected Implication
+                ( Connected Conjunction
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 47
+                            , locColumn = 16
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Command "in" )
+                                    ( Marker "elem" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( F
+                                ( TermVar
+                                    ( NamedVar "A" )
+                                )
+                            )
+                        ]
+                    )
+                    ( TermSymbol
+                        ( Location
+                            { locFile = "test/examples/calc.tex"
+                            , locLine = 47
+                            , locColumn = 36
+                            }
+                        )
+                        ( SymbolPredicate
+                            ( PredicateRelation
+                                ( RelationSymbol
+                                    ( Symbol "=" )
+                                    ( Marker "eq" )
+                                )
+                            )
+                        )
+                        [ TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        , TermVar
+                            ( B
+                                ( NamedVar "x" )
+                            )
+                        ]
+                    )
+                )
+                ( TermSymbol
+                    ( Location
+                        { locFile = "test/examples/calc.tex"
+                        , locLine = 47
+                        , locColumn = 52
+                        }
+                    )
+                    ( SymbolPredicate
+                        ( PredicateRelation
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            )
+                        )
+                    )
+                    [ TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    , TermVar
+                        ( B
+                            ( NamedVar "x" )
+                        )
+                    ]
+                )
+            )
+        )
+    }
 ]

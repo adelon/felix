@@ -666,9 +666,11 @@ glossCalcQuantifier Nothing = pure Sem.CalcUnquantified
 glossCalcQuantifier (Just (Raw.CalcQuantifier xs bound maySuchThat)) = do
     bound' <- glossBound bound
     maySuchThat' <- glossStmt `each` maySuchThat
-    let maySuchThat'' = case (bound', maySuchThat') of
-            _ -> Nothing
-    pure (Sem.CalcForall xs maySuchThat'')
+    let constraints = bound' (toList xs) <> maybeToList maySuchThat'
+    let calcGuard = case constraints of
+            [] -> Nothing
+            _ -> Just (Sem.makeConjunction constraints)
+    pure (Sem.CalcForall xs calcGuard)
 
 glossLocalFunctionExprDef :: (Raw.Expr, Raw.Formula) -> Gloss (Sem.Term, Sem.Formula)
 glossLocalFunctionExprDef (definingExpression, localDomain) = do

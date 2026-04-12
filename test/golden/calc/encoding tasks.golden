@@ -28,3 +28,31 @@ fof(alsotrivial,axiom,![Xy]:Xy=Xy).
 fof(irrelevant,axiom,![Xz]:Xz=Xz).
 fof(trivial,axiom,![Xx]:Xx=Xx).
 fof('_local_1',axiom,fy=fy<=>fy=fy).
+------------------
+fof(bounded_calc,conjecture,![Xx]:(elem(Xx,fA)=>Xx=Xx),"test/examples/calc.tex 39:5").
+fof(trivial_biconditionals,axiom,![Xy]:Xy=Xy).
+fof(alsotrivial,axiom,![Xy]:Xy=Xy).
+fof(irrelevant,axiom,![Xz]:Xz=Xz).
+fof(trivial,axiom,![Xx]:Xx=Xx).
+------------------
+fof(bounded_calc,conjecture,![Xx]:(elem(Xx,fA)=>Xx=Xx),"test/examples/calc.tex 44:1").
+fof(trivial_biconditionals,axiom,![Xy]:Xy=Xy).
+fof(alsotrivial,axiom,![Xy]:Xy=Xy).
+fof(irrelevant,axiom,![Xz]:Xz=Xz).
+fof(trivial,axiom,![Xx]:Xx=Xx).
+fof('_local_1',axiom,![Xx]:(elem(Xx,fA)=>Xx=Xx)).
+------------------
+fof(bounded_calc_such_that,conjecture,![Xx]:((elem(Xx,fA)&Xx=Xx)=>Xx=Xx),"test/examples/calc.tex 50:5").
+fof(bounded_calc,axiom,![XA]:![Xx]:(elem(Xx,XA)=>Xx=Xx)).
+fof(trivial_biconditionals,axiom,![Xy]:Xy=Xy).
+fof(alsotrivial,axiom,![Xy]:Xy=Xy).
+fof(irrelevant,axiom,![Xz]:Xz=Xz).
+fof(trivial,axiom,![Xx]:Xx=Xx).
+------------------
+fof(bounded_calc_such_that,conjecture,![Xx]:((elem(Xx,fA)&Xx=Xx)=>Xx=Xx),"test/examples/calc.tex 55:1").
+fof(bounded_calc,axiom,![XA]:![Xx]:(elem(Xx,XA)=>Xx=Xx)).
+fof(trivial_biconditionals,axiom,![Xy]:Xy=Xy).
+fof(alsotrivial,axiom,![Xy]:Xy=Xy).
+fof(irrelevant,axiom,![Xz]:Xz=Xz).
+fof(trivial,axiom,![Xx]:Xx=Xx).
+fof('_local_1',axiom,![Xx]:((elem(Xx,fA)&Xx=Xx)=>Xx=Xx)).
