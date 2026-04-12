@@ -4,10 +4,13 @@ module Test.Unit.Checking (unitTests) where
 
 import Base
 import Checking
+import Encoding (encodeTaskText)
 import Report.Location
 import Syntax.Internal
+import Syntax.Lexicon (_Onesorted)
 
 import Control.Exception (try)
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -32,12 +35,34 @@ unitTests = testGroup "Checking"
         expectChecks (lemmaBlocks "fresh_fix" freshFixLemma freshFixProof)
     , testCase "take accepts fresh witnesses" do
         expectChecks (lemmaBlocks "fresh_take" freshTakeLemma freshTakeProof)
+    , testCase "struct axioms recursively rewrite carrier labels" do
+        text <- encodedTasksText structCarrierRewriteBlocks
+        assertContains "rewritten struct-rule carrier" "elem(Xx,s__carrier(XA))" text
+        assertNotContains "raw struct-rule carrier" "elem(Xx,XA)" text
+    , testCase "struct axioms annotate operations from the same structure" do
+        text <- encodedTasksText structOperationRewriteBlocks
+        assertContains "annotated struct operation in rule" "elem(s__fooop(XA),s__carrier(XA))" text
+    , testCase "exact structure claims introduce carrier labels for continuations" do
+        text <- encodedTasksText structClaimIntroducesContextBlocks
+        assertContains "claim continuation carrier" "conjecture,elem(fx,s__carrier(fA))" text
+    , testCase "bound variables do not inherit outer carrier labels" do
+        text <- encodedTasksText boundStructLabelBlocks
+        assertContains "bound carrier label remains raw" "![XA]:elem(fx,XA)" text
+        assertNotContains "bound carrier label not rewritten" "![XA]:elem(fx,s__carrier(XA))" text
     ]
 
 expectChecks :: [Block] -> Assertion
 expectChecks blocks = do
     _tasks <- check WithoutDumpPremselTraining blocks
     pure ()
+
+encodedTasksText :: [Block] -> IO Text
+encodedTasksText blocks = do
+    tasks <- check WithoutDumpPremselTraining blocks
+    if null tasks
+        then assertFailure "expected at least one generated task"
+        else pure ()
+    pure (Text.intercalate "\n------------------\n" (encodeTaskText <$> tasks))
 
 expectCheckingError :: Text -> [Block] -> Assertion
 expectCheckingError fragment blocks = do
@@ -49,6 +74,14 @@ expectCheckingError fragment blocks = do
             assertBool ("expected error containing " <> show fragment <> ", got " <> show err) (fragment `Text.isInfixOf` msg)
         Left err ->
             assertFailure ("expected generic CheckingError, got " <> show err)
+
+assertContains :: String -> Text -> Text -> Assertion
+assertContains label needle haystack =
+    assertBool (label <> ": expected to find " <> show needle <> " in " <> Text.unpack haystack) (needle `Text.isInfixOf` haystack)
+
+assertNotContains :: String -> Text -> Text -> Assertion
+assertNotContains label needle haystack =
+    assertBool (label <> ": expected not to find " <> show needle <> " in " <> Text.unpack haystack) (not (needle `Text.isInfixOf` haystack))
 
 lemmaBlocks :: Marker -> Lemma -> Proof -> [Block]
 lemmaBlocks marker lemma proof =
@@ -125,6 +158,58 @@ freshTakeLemma =
 freshTakeProof :: Proof
 freshTakeProof =
     Take Nowhere ("y" :| []) (var "y" `eq` var "b") JustificationLocal (Qed (Just Nowhere) JustificationEmpty)
+
+structCarrierRewriteBlocks :: [Block]
+structCarrierRewriteBlocks =
+    [ fooStructBlock "foo_struct" [("foo_rule", makeForall ["x"] ((var "x" `isElementOf` var "A") `Implies` (var "x" `isElementOf` var "A")))]
+    , BlockLemma Nowhere "foo_test" (Lemma [AsmStruct "A" fooStruct, Asm (var "x" `isElementOf` var "A")] (var "x" `isElementOf` var "A"))
+    , BlockProof Nowhere Nowhere (Qed (Just Nowhere) (JustificationRef ("foo_rule" :| [])))
+    ]
+
+structOperationRewriteBlocks :: [Block]
+structOperationRewriteBlocks =
+    [ fooStructBlock "foo_op_struct" [("foo_op_rule", TermSymbolStruct fooOp Nothing `isElementOf` var "A")]
+    , BlockLemma Nowhere "foo_op_test" (Lemma [AsmStruct "A" fooStruct] (TermSymbolStruct fooOp Nothing `isElementOf` var "A"))
+    , BlockProof Nowhere Nowhere (Qed (Just Nowhere) (JustificationRef ("foo_op_rule" :| [])))
+    ]
+
+structClaimIntroducesContextBlocks :: [Block]
+structClaimIntroducesContextBlocks =
+    [ fooStructBlock "foo_claim_struct" []
+    , BlockLemma Nowhere "foo_claim_test" (Lemma [] ((var "A" `eq` var "A") `And` (var "x" `eq` var "x")))
+    , BlockProof Nowhere Nowhere $
+        Have Nowhere (fooStructPredicate "A") JustificationEmpty $
+            Have Nowhere (var "x" `isElementOf` var "A") JustificationEmpty Omitted
+    ]
+
+boundStructLabelBlocks :: [Block]
+boundStructLabelBlocks =
+    [ fooStructBlock "foo_bound_struct" []
+    , BlockLemma Nowhere "foo_bound_test" (Lemma [AsmStruct "A" fooStruct] (makeForall ["A"] (var "x" `isElementOf` var "A")))
+    , BlockProof Nowhere Nowhere (Qed (Just Nowhere) JustificationEmpty)
+    ]
+
+fooStructBlock :: Marker -> [(Marker, Formula)] -> Block
+fooStructBlock marker assumes =
+    BlockStruct Nowhere marker StructDefn
+        { structPhrase = fooStruct
+        , structParents = Set.singleton _Onesorted
+        , structDefnLabel = "A"
+        , structDefnFixes = Set.singleton fooOp
+        , structDefnAssumes = assumes
+        }
+
+fooStruct :: StructPhrase
+fooStruct =
+    mkLexicalItemSgPl (unsafeReadPhraseSgPl "foo[/s]") "foo"
+
+fooOp :: StructSymbol
+fooOp =
+    StructSymbol "fooop"
+
+fooStructPredicate :: VarSymbol -> Formula
+fooStructPredicate x =
+    TermSymbol Nowhere (SymbolPredicate (PredicateNounStruct fooStruct)) [TermVar x]
 
 var :: VarSymbol -> Term
 var = TermVar

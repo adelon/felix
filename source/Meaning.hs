@@ -713,19 +713,9 @@ glossSignature sig = case sig of
 glossStructDefn :: Raw.StructDefn -> Gloss Sem.StructDefn
 glossStructDefn (Raw.StructDefn phrase base carrier fixes assumes) = do
     assumes' <- (\(m, stmt) -> (m,) <$> glossStmt stmt) `each` assumes
-    -- We substitute occurrences of the bare label with the builtin symbol @\carrier@.
-    -- let assumes'' = fmap (annotateCarrierFormula carrier) assumes'
-    let assumes'' = [(m, annotateCarrierFormula carrier phi) |(m, phi) <- assumes']
     let base' = Set.fromList base
     let fixes' = Set.fromList fixes
-    pure $ Sem.StructDefn phrase base' carrier fixes' assumes''
-
--- | Replace free variables corresponding to the label of a structure
--- with the abstract carrier symbol.
-annotateCarrierFormula :: Sem.VarSymbol -> Sem.Term -> Sem.Term
-annotateCarrierFormula lbl = \case
-    Sem.IsElementOf loc a (Sem.TermVar x) | x == lbl -> Sem.IsElementOf loc a (Sem.TermSymbolStruct CarrierSymbol (Just (Sem.TermVar lbl)))
-    x -> x
+    pure $ Sem.StructDefn phrase base' carrier fixes' assumes'
 
 
 glossAbbreviation :: Raw.Abbreviation -> Gloss Sem.Abbreviation

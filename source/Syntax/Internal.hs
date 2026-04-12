@@ -219,8 +219,8 @@ annotateWith = go
             TermSymbolStruct symb Nothing ->
                 -- TODO error if symbol is not instantiated, but only in theorems?
                 TermSymbolStruct symb (TermVar <$> HM.lookup symb ops)
-            e@TermSymbolStruct{} ->
-                e
+            TermSymbolStruct symb (Just e) ->
+                TermSymbolStruct symb (Just (go labels ops e))
             IsElementOf loc1 a (TermVar x) | x `Set.member` labels ->
                 IsElementOf loc1 (go labels ops a) (TermSymbolStruct CarrierSymbol (Just (TermVar x)))
             Not loc a ->

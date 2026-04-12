@@ -64,8 +64,7 @@ initialCheckingState dumpPremselTraining emitTask = CheckingState
     , checkingAbbreviations = initAbbreviations
     , checkingPredicateDefinitions = mempty
     , checkingStructs = initCheckingStructs
-    , instantiatedStructs = Set.empty
-    , instantiatedStructOps = HM.empty
+    , checkingStructContext = mempty
     , definedMarkers = HS.empty
     , blockLabel = Marker ""
     , stepLocation = Nowhere
@@ -119,11 +118,8 @@ data CheckingState = CheckingState
     , checkingStructs :: StructGraph
     -- ^ Graph of structs defined so far.
     --
-    , instantiatedStructs :: Set VarSymbol
-    -- ^ For checking which structure names are in scope to cast them to their carrier.
-    --
-    , instantiatedStructOps :: HashMap StructSymbol VarSymbol
-    -- ^ For annotation of structure operations.
+    , checkingStructContext :: StructContext
+    -- ^ Structure labels and operations in scope for carrier and operation annotation.
     --
     , localVars :: Set VarSymbol
     -- ^ Keeps track of the variables that are locally constant.
@@ -138,6 +134,18 @@ data CheckingState = CheckingState
     , checkingHypothesisCounter :: Int -- ^ Counter for labeling local hypotheses within a proof.
     , checkingEmitTask :: Task -> IO () -- ^ Callback for emitting proof tasks.
     }
+
+data StructContext = StructContext
+    { structContextLabels :: Set VarSymbol
+    , structContextOps :: HashMap StructSymbol VarSymbol
+    }
+
+instance Semigroup StructContext where
+    StructContext labels ops <> StructContext labels' ops' =
+        StructContext (labels <> labels') (ops <> ops')
+
+instance Monoid StructContext where
+    mempty = StructContext mempty mempty
 
 initCheckingStructs :: StructGraph
 initCheckingStructs = StructGraph.insert
@@ -184,42 +192,85 @@ assume asms = traverse_ go asms
         go :: Asm -> Checking
         go = \case
             Asm phi -> do
-                phi' <- canonicalize phi
-                let phiContracted = contraction phi'
-                case phiContracted of
-                    Top -> skip
-                    _ -> do
-                        marker <- nextHypothesisMarker
-                        let hypo = encodeHypothesisContracted marker phi' phiContracted
-                        modify \st ->
-                            st{checkingAssumptions = hypo : checkingAssumptions st}
+                ctx <- structContextFromAssertion phi
+                addStructContextAndRefreshGoals ctx
+                assumeFormula phi
             AsmStruct x sp ->
                 instantiateStruct x sp
 
+assumeFormula :: Formula -> Checking
+assumeFormula phi = do
+    phi' <- canonicalize phi
+    let phiContracted = contraction phi'
+    case phiContracted of
+        Top -> skip
+        _ -> do
+            marker <- nextHypothesisMarker
+            let hypo = encodeHypothesisContracted marker phi' phiContracted
+            modify \st ->
+                st{checkingAssumptions = hypo : checkingAssumptions st}
 
 instantiateStruct :: VarSymbol -> StructPhrase -> Checking
 instantiateStruct x sp = do
-    st <- get
-    let structGraph = checkingStructs st
+    ctx <- structContextFor x sp
+    addStructContextAndRefreshGoals ctx
+    assumeFormula (structPredicate x sp)
+
+structPredicate :: VarSymbol -> StructPhrase -> Formula
+structPredicate x sp =
+    TermSymbol Nowhere (SymbolPredicate (PredicateNounStruct sp)) [TermVar x]
+
+structContextFromAssertion :: Formula -> CheckingM StructContext
+structContextFromAssertion = \case
+    TermSymbol _ (SymbolPredicate (PredicateNounStruct sp)) [TermVar x] ->
+        structContextFor x sp
+    _ ->
+        pure mempty
+
+structContextFor :: VarSymbol -> StructPhrase -> CheckingM StructContext
+structContextFor x sp = do
+    structGraph <- gets checkingStructs
     let struct = lookupStruct structGraph sp
-    let fixes = StructGraph.structSymbols struct structGraph
-    let phi = (TermSymbol (stepLocation st) (SymbolPredicate (PredicateNounStruct sp)) [TermVar x])
-    let phiContracted = contraction phi
-    --
-    -- NOTE: this will always cause shadowing of operations, ideally this should be type-directed instead.
-    let ops = HM.fromList [(op, x) | op <- Set.toList fixes]
-    let st' = st
-            { instantiatedStructs = Set.insert x (instantiatedStructs st)
-            , instantiatedStructOps = ops <> instantiatedStructOps st -- left-biased union
-            }
-    case phiContracted of
-        Top -> put st'
-        _ -> do
-            marker <- nextHypothesisMarker
-            let hypo = encodeHypothesisContracted marker phi phiContracted
-            put st'
-                { checkingAssumptions = hypo : checkingAssumptions st
-                }
+    pure (structContextFromSymbols x (StructGraph.structSymbols struct structGraph))
+
+structContextFromSymbols :: VarSymbol -> Set StructSymbol -> StructContext
+structContextFromSymbols x symbols =
+    StructContext (Set.singleton x) (HM.fromList [(op, x) | op <- Set.toList symbols])
+
+addStructContext :: StructContext -> Checking
+addStructContext ctx =
+    modify \st -> st
+        { checkingStructContext = ctx <> checkingStructContext st
+        }
+
+addStructContextAndRefreshGoals :: StructContext -> Checking
+addStructContextAndRefreshGoals ctx
+    | structContextIsEmpty ctx = skip
+    | otherwise = do
+        addStructContext ctx
+        goals <- gets checkingGoals
+        setGoals goals
+
+structContextIsEmpty :: StructContext -> Bool
+structContextIsEmpty StructContext{..} =
+    Set.null structContextLabels && HM.null structContextOps
+
+registerAssumptionStructContexts :: [Asm] -> Checking
+registerAssumptionStructContexts asms = do
+    ctx <- assumptionStructContext asms
+    addStructContext ctx
+
+assumptionStructContext :: [Asm] -> CheckingM StructContext
+assumptionStructContext asms = do
+    contexts <- traverse asmStructContext asms
+    pure (foldl' (\older newer -> newer <> older) mempty contexts)
+
+asmStructContext :: Asm -> CheckingM StructContext
+asmStructContext = \case
+    Asm phi ->
+        structContextFromAssertion phi
+    AsmStruct x sp ->
+        structContextFor x sp
 
 
 lookupStruct :: StructGraph -> StructPhrase -> Struct
@@ -354,9 +405,9 @@ addFacts phis = do
 
 addFactWithAsms :: [Asm] -> Formula -> Checking
 addFactWithAsms asms stmt = do
-    (asms', structs, structOps) <- mergeAssumptions asms
-    asms'' <- traverse (canonicalizeWith structs structOps) asms'
-    stmt' <- canonicalizeWith structs structOps stmt
+    (asms', structContext) <- mergeAssumptions asms
+    asms'' <- traverse (canonicalizeWith structContext) asms'
+    stmt' <- canonicalizeWith structContext stmt
     m <- gets blockLabel
     modify $ \st ->
         let phi = case asms'' of
@@ -517,6 +568,7 @@ checkLemmaWithProof :: Lemma -> Proof -> Checking
 checkLemmaWithProof (Lemma asms goal) proof = do
     locally do
         registerLemmaLocalVars asms goal
+        registerAssumptionStructContexts asms
         assume asms
         setGoals [goal]
         checkProof proof
@@ -528,6 +580,7 @@ checkLemma :: Lemma -> Checking
 checkLemma (Lemma asms goal) = do
     locally do
         registerLemmaLocalVars asms goal
+        registerAssumptionStructContexts asms
         assume asms
         setGoals [goal]
         tellTasks
@@ -991,35 +1044,33 @@ checkSig asms sig = case sig of
         SignaturePredicate _predi _vs -> do
             skip -- TODO
 
--- | Annotate plain structure operations in a formula with the label of a suitable in-scope struct.
-annotateStructOps :: Formula -> CheckingM Formula
-annotateStructOps phi = do
-    ops <- gets instantiatedStructOps
-    labels <- gets instantiatedStructs
-    pure (annotateWith labels ops phi)
+mergeAssumptions :: [Asm] -> CheckingM ([Formula], StructContext)
+mergeAssumptions asms = do
+    ctx <- assumptionStructContext asms
+    phis <- traverse asmFormula asms
+    pure (phis, ctx)
 
-
-mergeAssumptions :: [Asm] -> CheckingM ([Formula], Set VarSymbol, HashMap StructSymbol VarSymbol)
-mergeAssumptions [] = pure ([], mempty, mempty)
-mergeAssumptions (asm : asms) = case asm of
+asmFormula :: Asm -> CheckingM Formula
+asmFormula = \case
     Asm phi ->
-        (\(phis, xs, ops) -> (phi : phis, xs, ops)) <$> mergeAssumptions asms
-    AsmStruct x phrase -> do
-        st <- get
-        let structGraph = checkingStructs st
-        let struct = lookupStruct structGraph phrase
-        let fixes = StructGraph.structSymbols struct structGraph
-        let ops' = HM.fromList [(op, x) | op <- Set.toList fixes]
-        (\(phis, xs, ops) -> (TermSymbol Nowhere (SymbolPredicate (PredicateNounStruct phrase)) [TermVar x] : phis, Set.insert x xs, ops' <> ops)) <$> mergeAssumptions asms
+        pure phi
+    AsmStruct x phrase ->
+        pure (structPredicate x phrase)
 
 canonicalize :: Formula -> CheckingM Formula
-canonicalize = unabbreviate >=> annotateStructOps >=> desugarComprehensionsA
+canonicalize phi = do
+    ctx <- gets checkingStructContext
+    canonicalizeWith ctx phi
 
-canonicalizeWith :: Set VarSymbol -> HashMap StructSymbol VarSymbol -> Formula -> CheckingM Formula
-canonicalizeWith labels ops = unabbreviate >=> annotateWithA labels ops >=> desugarComprehensionsA
+-- | Canonicalize using an explicit structure context instead of the checker state's current one.
+canonicalizeWith :: StructContext -> Formula -> CheckingM Formula
+canonicalizeWith ctx phi = do
+    phi' <- unabbreviate phi
+    desugarComprehensionsA (annotateWithStructContext ctx phi')
 
-annotateWithA :: Applicative f => Set VarSymbol -> HashMap StructSymbol VarSymbol -> Formula -> f Formula
-annotateWithA labels ops phi = pure (annotateWith labels ops phi)
+annotateWithStructContext :: StructContext -> Formula -> Formula
+annotateWithStructContext StructContext{..} =
+    annotateWith structContextLabels structContextOps
 
 unabbreviate :: ExprOf a -> CheckingM (ExprOf a)
 unabbreviate phi = do
@@ -1137,16 +1188,18 @@ checkStructDefn StructDefn{..} = do
     let m@(Marker m_) = blockLabel st
     let structAncestors = Set.unions (Set.map (`StructGraph.lookupAncestors` structGraph) structParents)
     let structAncestors' = structParents <> structAncestors
+    let parentSymbols = Set.unions (Set.map (`StructGraph.lookupSymbols` structGraph) structParents)
+    let structContext = structContextFromSymbols structDefnLabel (structDefnFixes <> parentSymbols)
     let isStruct p = TermSymbol Nowhere (SymbolPredicate (PredicateNounStruct p)) [TermVar structDefnLabel]
-    let intro = forallClosure mempty if structParents == Set.singleton _Onesorted
+    let intro = if structParents == Set.singleton _Onesorted
             then makeConjunction (snd <$> structDefnAssumes) `Implies` isStruct structPhrase
             else makeConjunction ([isStruct parent | parent <- toList structParents] <> (snd <$> structDefnAssumes)) `Implies` isStruct structPhrase
     let intro' = (m, intro)
-    let inherit' = (Marker (m_ <> "inherit"), forallClosure mempty (isStruct structPhrase `Implies` makeConjunction [isStruct parent | parent <- toList structParents]))
-    let elims' = [(marker, forallClosure mempty (isStruct structPhrase `Implies` phi)) | (marker, phi) <- structDefnAssumes]
+    let inherit' = (Marker (m_ <> "inherit"), isStruct structPhrase `Implies` makeConjunction [isStruct parent | parent <- toList structParents])
+    let elims' = [(marker, isStruct structPhrase `Implies` phi) | (marker, phi) <- structDefnAssumes]
     rules' <- forM (InsOrdMap.toList (InsOrdMap.fromList (intro' : inherit' : elims'))) \(marker, phi) -> do
-        phi' <- canonicalize phi
-        pure (marker, encodeHypothesis marker phi')
+        phi' <- canonicalizeWith structContext phi
+        pure (marker, encodeHypothesis marker (forallClosure mempty phi'))
     let rules'' = InsOrdMap.fromList rules'
     put st
             { checkingStructs = StructGraph.insert structPhrase structAncestors' structDefnFixes (checkingStructs st)
