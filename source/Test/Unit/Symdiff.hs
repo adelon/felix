@@ -8,6 +8,8 @@ import Syntax.Internal
 import Filter
 import Report.Location
 
+import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 
 mixfix :: [Maybe Token] -> FunctionSymbol
@@ -29,6 +31,21 @@ adjDisjointFrom = mkLexicalItem [Just (Word "disjoint"), Just (Word "from"), Not
 
 filtersWell :: Bool
 filtersWell = badFact `notElem` (hypothesisFormula <$> taskHypotheses (filterTask symdiff))
+
+
+handlesStructAndApply :: Bool
+handlesStructAndApply =
+    let
+        structOp = StructSymbol "foo_op"
+        structTerm = TermSymbolStruct structOp (Just (TermVar (NamedVar "A")))
+        formula = Apply (TermVar (NamedVar "f")) (structTerm :| [])
+        hypo = Hypothesis
+            { hypothesisMarker = Marker "struct_apply"
+            , hypothesisFormula = formula
+            , hypothesisEncoded = mempty
+            , hypothesisLine = mempty
+            }
+    in Map.member hypo (relevantFacts passmark formula (Set.singleton hypo))
 
 
 badFact :: ExprOf a

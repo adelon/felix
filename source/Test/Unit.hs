@@ -24,3 +24,4 @@ unitTests = testGroup "unit tests"
 filtersWell :: Assertion
 filtersWell = do
     assertBool "Filter works on symdiff problem" Symdiff.filtersWell
+    assertBool "Filter handles struct/app syntax" Symdiff.handlesStructAndApply
