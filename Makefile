@@ -1,5 +1,8 @@
 all: test lib
 
+DEPLOY_DEST ?= vps:/var/www/naproche.org/
+RSYNC_FLAGS ?= -az --delete-delay --itemize-changes --exclude=".DS_Store"
+
 .PHONY: lib
 lib:
 	stack build
@@ -17,6 +20,10 @@ build:
 .PHONY: test
 test:
 	stack test --test-arguments "--accept"
+
+.PHONY: publish
+publish:
+	rsync $(RSYNC_FLAGS) html/ $(DEPLOY_DEST)
 
 .PHONE: profile
 profile:
