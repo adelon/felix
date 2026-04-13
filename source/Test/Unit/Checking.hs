@@ -11,6 +11,7 @@ import Syntax.Lexicon (_Onesorted, pattern ApplySymbol)
 
 import Bound.Scope (toScope)
 import Control.Exception (try)
+import Data.HashSet qualified as HS
 import Data.InsOrdMap qualified as InsOrdMap
 import Data.Set qualified as Set
 import Data.Text qualified as Text
@@ -69,12 +70,18 @@ unitTests = testGroup "Checking"
         expectCheckingError "function application" [badApplyConstructorDatatypeBlock]
     , testCase "datatype generates trusted fact markers" do
         expectFactMarkers datatypeGeneratedMarkers [goodDatatypeBlock]
+    , testCase "datatype generated fact markers are reserved globally" do
+        expectDefinedMarkers datatypeGeneratedMarkers [goodDatatypeBlock]
     , testCase "datatype generated intro facts are usable by reference" do
         expectChecks datatypeIntroReferenceBlocks
     , testCase "datatype generated distinctness fact is usable by reference" do
         expectChecks datatypeDistinctReferenceBlocks
     , testCase "datatype generated injective fact is usable by reference" do
         expectChecks datatypeInjectiveReferenceBlocks
+    , testCase "datatype generated fact markers cannot be reused by later blocks" do
+        expectDuplicateMarker "propform_cases" datatypeGeneratedMarkerReuseBlocks
+    , testCase "datatype rejects synthetic fact marker collisions within one datatype" do
+        expectDuplicateMarker "propform_dup_intro" [badDuplicateGeneratedMarkerDatatypeBlock]
     ]
 
 expectChecks :: [Block] -> Assertion
@@ -107,6 +114,24 @@ expectFactMarkers markers blocks = do
     let facts = checkingFacts checkingState
     for_ markers \marker ->
         assertBool ("expected generated fact marker " <> show marker) (isJust (InsOrdMap.lookup marker facts))
+
+expectDefinedMarkers :: [Marker] -> [Block] -> Assertion
+expectDefinedMarkers markers blocks = do
+    checkingState <- runCheckingBlocks blocks (initialCheckingState WithoutDumpPremselTraining (\_task -> pure ()))
+    let reserved = definedMarkers checkingState
+    for_ markers \marker ->
+        assertBool ("expected reserved marker " <> show marker) (HS.member marker reserved)
+
+expectDuplicateMarker :: Marker -> [Block] -> Assertion
+expectDuplicateMarker expectedMarker blocks = do
+    result <- try (check WithoutDumpPremselTraining blocks) :: IO (Either CheckingError [Task])
+    case result of
+        Right _ ->
+            assertFailure "expected a DuplicateMarker error, but checking succeeded"
+        Left (DuplicateMarker _ actualMarker) ->
+            assertEqual "duplicate marker" expectedMarker actualMarker
+        Left err ->
+            assertFailure ("expected DuplicateMarker, got " <> show err)
 
 assertContains :: String -> Text -> Text -> Assertion
 assertContains label needle haystack =
@@ -319,6 +344,20 @@ datatypeInjectiveReferenceBlocks =
     , BlockProof Nowhere Nowhere
         (Qed (Just Nowhere) (JustificationRef ("propform_propvar_injective" :| [])))
     ]
+
+datatypeGeneratedMarkerReuseBlocks :: [Block]
+datatypeGeneratedMarkerReuseBlocks =
+    [ goodDatatypeBlock
+    , BlockLemma Nowhere "propform_cases" (Lemma [] Top)
+    ]
+
+badDuplicateGeneratedMarkerDatatypeBlock :: Block
+badDuplicateGeneratedMarkerDatatypeBlock =
+    datatypeBlock "bad_duplicate_generated_marker_datatype"
+        ( DatatypeClause (SymbolPattern (unarySymbol "dup") ["n"]) [("n", naturalsTerm)] :|
+            [ DatatypeClause (SymbolPattern (infixSymbol "dup") ["p", "q"]) [("p", propformTerm), ("q", propformTerm)]
+            ]
+        )
 
 badNestedRecursiveDatatypeBlock :: Block
 badNestedRecursiveDatatypeBlock =

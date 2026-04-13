@@ -383,7 +383,7 @@ checkDatatype datatype@Datatype{datatypeHead = SymbolPattern datatypeSymbol data
     unless (Set.null duplicateConstructors) do
         throwCheckingError ("datatype constructor patterns must be distinct: " <> formatDatatypeConstructors duplicateConstructors)
     traverse_ (checkDatatypeClause datatypeSymbol) datatypeClauses
-    addFacts (InsOrdMap.fromList (datatypeFacts datatype))
+    addFacts (datatypeFacts datatype)
 
 checkDatatypeClause :: FunctionSymbol -> DatatypeClause -> Checking
 checkDatatypeClause datatypeSymbol DatatypeClause
@@ -664,13 +664,34 @@ addFact phi = do
 
 
 -- | Make a fact available to all future paragraphs.
-addFacts :: InsOrdMap Marker Formula -> Checking
+addFacts :: [(Marker, Formula)] -> Checking
 addFacts phis = do
-    phis' <- forM (InsOrdMap.toList phis) \(m, phi) -> do
+    loc <- gets stepLocation
+    reserveMarkers loc (fst <$> phis)
+    phis' <- forM phis \(m, phi) -> do
         phi' <- canonicalize phi
         let hypo = encodeHypothesis m phi'
         pure (m, hypo)
     modify $ \st -> st{checkingFacts = InsOrdMap.fromList phis' <> (checkingFacts st)}
+
+
+reserveMarkers :: Location -> [Marker] -> Checking
+reserveMarkers loc markers = do
+    existing <- gets definedMarkers
+    case firstDuplicateMarker existing HS.empty markers of
+        Just marker ->
+            throwIO (DuplicateMarker loc marker)
+        Nothing ->
+            modify \st -> st{definedMarkers = foldr HS.insert (definedMarkers st) markers}
+    where
+        firstDuplicateMarker :: HashSet Marker -> HashSet Marker -> [Marker] -> Maybe Marker
+        firstDuplicateMarker _seenGlobals _seenLocals [] =
+            Nothing
+        firstDuplicateMarker seenGlobals seenLocals (marker:rest)
+            | HS.member marker seenGlobals || HS.member marker seenLocals =
+                Just marker
+            | otherwise =
+                firstDuplicateMarker seenGlobals (HS.insert marker seenLocals) rest
 
 
 
@@ -853,12 +874,7 @@ checkBlocks = \case
 -- | Add the given label to the set of in-scope markers and set it as the current label for error reporting.
 withLabel :: Location -> Marker -> CheckingM a -> CheckingM a
 withLabel loc marker ma = do
-    -- Add a new marker to the set. It is a checking error if the marker has already been used.
-    st <- get
-    let markers = definedMarkers st
-    if HS.member marker markers
-        then throwIO (DuplicateMarker loc marker)
-        else put st{definedMarkers = HS.insert marker markers}
+    reserveMarkers loc [marker]
     -- Set the marker as the label of the current block and upate the step location.
     modify \st -> st{blockLabel = marker, stepLocation = loc, checkingHypothesisCounter = 0}
     ma
