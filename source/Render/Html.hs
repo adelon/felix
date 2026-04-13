@@ -5,6 +5,8 @@
 
 module Render.Html
     ( renderDocument
+    , supportScriptAssetOutputPath
+    , supportScriptAssetContents
     ) where
 
 import Syntax.Abstract
@@ -24,7 +26,7 @@ import Data.Text qualified as Text
 import Data.Text.Lazy qualified as LazyText
 import Report.Location (Location, locFile, pattern Nowhere)
 import Syntax.Token (VariableDisplay(..), VariableSuffix(..), displayVariable, tokToText)
-import System.FilePath.Posix (dropExtension)
+import System.FilePath.Posix (dropExtension, replaceExtension, splitDirectories, takeDirectory, (</>))
 
 
 data HintCategory
@@ -50,7 +52,8 @@ type BlockRenderInfo = (Int, Block, Text)
 type PreviewMap = Map Marker PreviewEntry
 
 data ReferenceContext = ReferenceContext
-    { referenceAnchors :: AnchorMap
+    { referenceInputPath :: FilePath
+    , referenceAnchors :: AnchorMap
     , referencePreviews :: PreviewMap
     }
 
@@ -116,7 +119,7 @@ renderDocument inputPath hintsSource blocks theoryBlocks =
             ]
         referencedMarkers = collectReferencedMarkers blocks
         previews = buildPreviewMap inputPath referencedMarkers anchors theoryBlocks
-        referenceContext = ReferenceContext anchors previews
+        referenceContext = ReferenceContext inputPath anchors previews
 
         renderPage :: HintMap -> Html ()
         renderPage hintMap = doctypehtml_ do
@@ -148,7 +151,7 @@ renderDocument inputPath hintsSource blocks theoryBlocks =
                     , makeAttributes "aria-hidden" "true"
                     ]
                     skip
-                script_ [type_ "text/javascript"] (toHtmlRaw (tocScript <> "\n" <> referencePreviewScript))
+                script_ [src_ (Text.pack (supportScriptAssetRelativePath inputPath))] ("" :: Text)
 
 
 pageStyles :: Text
@@ -510,6 +513,19 @@ pageStyles = Text.unlines
     , "  }"
     , "}"
     ]
+
+supportScriptAssetOutputPath :: FilePath
+supportScriptAssetOutputPath = "_static" </> "naproche-html.js"
+
+supportScriptAssetRelativePath :: FilePath -> FilePath
+supportScriptAssetRelativePath inputPath =
+    foldr1 (</>) (replicate depth ".." <> ["_static", "naproche-html.js"])
+    where
+        outputDir = takeDirectory (replaceExtension inputPath "html")
+        depth = length (List.filter (`notElem` [".", ""]) (splitDirectories outputDir))
+
+supportScriptAssetContents :: Text
+supportScriptAssetContents = tocScript <> "\n" <> referencePreviewScript
 
 
 tocScript :: Text
@@ -2282,17 +2298,40 @@ renderPreviewEntry hints PreviewEntry{..} =
         div_ [class_ "reference-preview-body"] do
             previewBody hints
 
-externalReferenceHref :: PreviewEntry -> Text
-externalReferenceHref PreviewEntry{..} =
+externalReferenceHref :: FilePath -> PreviewEntry -> Text
+externalReferenceHref inputPath PreviewEntry{..} =
     "/" <> routePath <> "#" <> markerText previewMarker
     where
-        sourceRoute = Text.pack (dropExtension previewSourceFile)
-        routePath =
-            case Text.stripPrefix "library/" sourceRoute of
-                Nothing ->
-                    sourceRoute
-                Just stripped ->
-                    stripped
+        routePath = Text.pack (prefixRouteNamespace inputPath (dropExtension previewSourceFile))
+
+prefixRouteNamespace :: FilePath -> FilePath -> FilePath
+prefixRouteNamespace inputPath sourceRoute =
+    case topLevelRouteNamespace inputPath of
+        Nothing ->
+            sourceRoute
+        Just namespace
+            | startsWithTopLevelNamespace namespace sourceRoute ->
+                sourceRoute
+            | otherwise ->
+                namespace </> sourceRoute
+
+topLevelRouteNamespace :: FilePath -> Maybe FilePath
+topLevelRouteNamespace inputPath =
+    case List.filter (/= ".") (splitDirectories inputPath) of
+        [] ->
+            Nothing
+        [_] ->
+            Nothing
+        namespace : _ ->
+            Just namespace
+
+startsWithTopLevelNamespace :: FilePath -> FilePath -> Bool
+startsWithTopLevelNamespace namespace sourceRoute =
+    case List.filter (/= ".") (splitDirectories sourceRoute) of
+        first : _ ->
+            first == namespace
+        [] ->
+            False
 
 renderPreviewBlockBody :: HintMap -> Block -> Html ()
 renderPreviewBlockBody hints = \case
@@ -3667,7 +3706,7 @@ renderMarkerReferenceGroupItem ReferenceContext{..} marker =
                         Nothing ->
                             []
                         Just preview ->
-                            [ makeAttributes "data-preview-link" (externalReferenceHref preview)
+                            [ makeAttributes "data-preview-link" (externalReferenceHref referenceInputPath preview)
                             , makeAttributes "data-preview-id" (previewId preview)
                             ]
 
@@ -3682,7 +3721,7 @@ renderMarkerReference ReferenceContext{..} marker =
                     span_ (referenceAttributes Nothing) (toHtml label)
                 Just preview ->
                     a_
-                        ( href_ (externalReferenceHref preview)
+                        ( href_ (externalReferenceHref referenceInputPath preview)
                         : referenceAttributes (Just (importedPreviewAttributes preview))
                         )
                         (toHtml label)

@@ -1,5 +1,5 @@
 :1111 {
-	root library
+	root .
 	try_files {path}.html # elaborate urls by appending .html if needed
 	encode gzip
 	file_server

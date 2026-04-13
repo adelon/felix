@@ -6,6 +6,7 @@ module CommandLine where
 import Api
 import Base
 import Provers qualified
+import Render.Html qualified as Html
 import Version qualified
 import Report.Location
 
@@ -58,8 +59,11 @@ run = do
         (WithoutParseOnly, WithoutMegalodon, WithHtml) -> do
             html <- exportHtml (inputPath opts)
             let outputFile = "html" </> replaceExtension (inputPath opts) "html"
+            let supportScriptFile = "html" </> Html.supportScriptAssetOutputPath
             createDirectoryIfMissing True (takeDirectory outputFile)
+            createDirectoryIfMissing True (takeDirectory supportScriptFile)
             liftIO (Text.writeFile outputFile html)
+            liftIO (Text.writeFile supportScriptFile Html.supportScriptAssetContents)
         (WithoutParseOnly, WithoutMegalodon, WithoutHtml) -> do
             liftIO (Text.putStrLn "\ESC[1;96mStart of verification.\ESC[0m")
             prover <- case withProver opts of

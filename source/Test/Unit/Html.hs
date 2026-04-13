@@ -15,6 +15,8 @@ import Test.Tasty.HUnit
 unitTests :: TestTree
 unitTests = testGroup "HTML renderer"
     [ testCase "reference previews are rendered for local and imported refs" referencePreviews
+    , testCase "imported references inherit the page route namespace" libraryPrefixedImportedRoutes
+    , testCase "nested library pages load the shared script asset relatively" nestedLibraryScriptAsset
     , testCase "missing reference preview data falls back to readable text" missingReferenceFallback
     , testCase "datatype derived facts render as collapsed local reference targets" datatypeDerivedFactTargets
     , testCase "imported datatype derived facts get hidden preview templates" importedDatatypeDerivedFactPreviews
@@ -23,6 +25,7 @@ unitTests = testGroup "HTML renderer"
 referencePreviews :: Assertion
 referencePreviews = do
     html <- Api.exportHtml "test/html-fixtures/root-preview.tex"
+    let supportScript = Html.supportScriptAssetContents
     assertContains "local references keep page anchors" "href=\"#local_prop\"" html
     assertContains "local references point previews at the visible target block" "data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\"" html
     assertNotContains "local references do not use hidden preview ids" "data-reference-label=\"local_prop\" data-preview-id=\"" html
@@ -43,20 +46,39 @@ referencePreviews = do
     assertContains "collapsed references keep current-page item metadata" "data-reference-label=\"group_source\" data-preview-link=\"#group_source\" data-preview-target-id=\"group_source\"" html
     assertContains "collapsed references keep imported item metadata" "data-reference-label=\"imported_prop\" data-preview-link=\"/test/html-fixtures/imported-preview#imported_prop\" data-preview-id=\"reference-preview-" html
     assertNotContains "collapsed references do not inline the long list" "Follows by <a href=\"#local_prop\" class=\"ref-badge has-preview\" data-reference-label=\"local_prop\" data-preview-target-id=\"local_prop\" aria-describedby=\"reference-preview-popup\">local_prop</a>, <a href=\"#uses_refs\"" html
-    assertContains "collapsed tooltips compose full preview templates" "const preview = cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item);" html
-    assertContains "collapsed tooltip labels become links" "template.append(linkGroupHeading(item, preview));" html
-    assertContains "collapsed tooltip labels use generated reference links" "link.href = href;" html
+    assertContains "collapsed tooltips compose full preview templates" "const preview = cloneHiddenPreview(item) || buildCurrentPreview(item) || buildMissingPreview(item);" supportScript
+    assertContains "collapsed tooltip labels become links" "template.append(linkGroupHeading(item, preview));" supportScript
+    assertContains "collapsed tooltip labels use generated reference links" "link.href = href;" supportScript
     assertContains "collapsed tooltip heading links have hover affordance" ".reference-preview-heading a:hover," html
-    assertContains "collapsed tooltips use stacked preview sections" "className = 'reference-preview-group-template'" html
+    assertContains "collapsed tooltips use stacked preview sections" "className = 'reference-preview-group-template'" supportScript
     assertContains "visible preview popup accepts pointer interaction" "pointer-events: auto;" html
     assertContains "preview popup uses a wider bounded layout" "width: 44rem;" html
     assertContains "preview popup uses a taller bounded layout" "max-height: min(34rem, calc(100vh - 2rem));" html
-    assertContains "preview popup cancels delayed hide on pointer entry" "popup.addEventListener('pointerenter', clearHideTimer);" html
-    assertContains "preview popup schedules delayed hide on pointer exit" "popup.addEventListener('pointerleave', scheduleHide);" html
-    assertContains "group click pins the preview popup" "showPreview(trigger, event, true);" html
-    assertContains "group keyboard activation pins the preview popup" "showPreview(trigger, null, true);" html
+    assertContains "behavior loads from the shared external script asset" "src=\"../../_static/naproche-html.js\"" html
+    assertNotContains "inline script bundles are not emitted" "<script type=\"text/javascript\">" html
+    assertContains "preview popup cancels delayed hide on pointer entry" "popup.addEventListener('pointerenter', clearHideTimer);" supportScript
+    assertContains "preview popup schedules delayed hide on pointer exit" "popup.addEventListener('pointerleave', scheduleHide);" supportScript
+    assertContains "group click pins the preview popup" "showPreview(trigger, event, true);" supportScript
+    assertContains "group keyboard activation pins the preview popup" "showPreview(trigger, null, true);" supportScript
     assertContains "preview statements use a full-width paragraph" "class=\"reference-preview-statement\"" html
     assertContains "preview popup is emitted once" "id=\"reference-preview-popup\"" html
+
+libraryPrefixedImportedRoutes :: Assertion
+libraryPrefixedImportedRoutes = do
+    importedLoc <- fileLocation "set.tex"
+    let importedBlock = BlockClaim Proposition importedLoc Nothing "imported_prop" (Claim [] (StmtFormula (PropositionalConstant Nowhere IsTop)))
+        rootBlocks =
+            [ referenceClaimBlock "uses_library_import"
+            , referenceProofBlock "imported_prop"
+            ]
+        html = Html.renderDocument "library/root.tex" "" rootBlocks [importedBlock]
+    assertContains "library pages keep imported links under /library" "href=\"/library/set#imported_prop\"" html
+    assertContains "library-prefixed imported refs still expose preview metadata" "data-reference-label=\"imported_prop\" data-preview-id=\"reference-preview-" html
+
+nestedLibraryScriptAsset :: Assertion
+nestedLibraryScriptAsset = do
+    let html = Html.renderDocument "library/set/powerset.tex" "" [] []
+    assertContains "nested library pages use a relative script src that survives extensionless routes" "src=\"../../_static/naproche-html.js\"" html
 
 missingReferenceFallback :: Assertion
 missingReferenceFallback = do
@@ -77,7 +99,7 @@ datatypeDerivedFactTargets = do
     assertContains "local datatype fact refs keep page anchors" "href=\"#propform_propbot_intro\"" html
     assertContains "local datatype fact refs point previews at the derived fact target" "data-reference-label=\"propform_propbot_intro\" data-preview-target-id=\"propform_propbot_intro\"" html
     assertContains "derived fact targets expose preview metadata" "id=\"propform_propbot_intro\" data-preview-kind=\"Datatype Fact\" data-preview-label=\"propform_propbot_intro\"" html
-    assertContains "local hash navigation opens collapsed ancestors before scrolling" "revealTarget(target);" html
+    assertContains "local hash navigation opens collapsed ancestors before scrolling" "revealTarget(target);" Html.supportScriptAssetContents
 
 importedDatatypeDerivedFactPreviews :: Assertion
 importedDatatypeDerivedFactPreviews = do
