@@ -16,6 +16,7 @@ import Lucid.Math
 
 import Control.Monad (guard, unless, when)
 import Data.Char (digitToInt, isAlphaNum, isDigit, isSpace, toUpper)
+import Data.List qualified as List
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
@@ -52,16 +53,25 @@ data ReferenceContext = ReferenceContext
     { referenceAnchors :: AnchorMap
     , referencePreviews :: PreviewMap
     }
-    deriving (Show, Eq)
 
 data PreviewEntry = PreviewEntry
     { previewMarker :: Marker
-    , previewBlock :: Block
+    , previewKind :: Text
+    , previewTitle :: Maybe Text
     , previewSourceFile :: FilePath
     , previewIsImported :: Bool
     , previewId :: Text
+    , previewBody :: HintMap -> Html ()
     }
-    deriving (Show, Eq)
+
+data ReferenceTarget = ReferenceTarget
+    { targetMarker :: Marker
+    , targetAnchorId :: Text
+    , targetKind :: Text
+    , targetTitle :: Maybe Text
+    , targetSourceFile :: FilePath
+    , targetBody :: HintMap -> Html ()
+    }
 
 data StmtMathFragment
     = StmtMathProse Text
@@ -98,11 +108,11 @@ renderDocument inputPath hintsSource blocks theoryBlocks =
         rendered = LazyText.toStrict (renderText (renderPage hints))
         indexedBlocks = zip [1 :: Int ..] blocks
         blockInfos = [(index, block, blockAnchorId index block) | (index, block) <- indexedBlocks]
+        rootTargets = concatMap referenceTargetsOfBlockRenderInfo blockInfos
         tocBlocks = [(index, blockId, block) | (index, block, blockId) <- blockInfos, includeInToc block]
         anchors = Map.fromList
-            [ (marker, blockAnchorId index block)
-            | (index, block) <- indexedBlocks
-            , Just marker <- [blockMarkerOf block]
+            [ (targetMarker, targetAnchorId)
+            | ReferenceTarget{targetMarker, targetAnchorId} <- rootTargets
             ]
         referencedMarkers = collectReferencedMarkers blocks
         previews = buildPreviewMap inputPath referencedMarkers anchors theoryBlocks
@@ -327,6 +337,23 @@ pageStyles = Text.unlines
     , "}"
     , "proof- > details > :not(summary) {"
     , "  margin-top: 0.5rem;"
+    , "}"
+    , "datatype- > details {"
+    , "  margin-top: 0.75rem;"
+    , "}"
+    , "datatype- > details > summary {"
+    , "  cursor: pointer;"
+    , "  font-weight: 700;"
+    , "}"
+    , "datatype- > details > :not(summary) {"
+    , "  margin-top: 0.5rem;"
+    , "}"
+    , ".datatype-derived-facts {"
+    , "  margin: 0;"
+    , "  padding-left: 1.5rem;"
+    , "}"
+    , ".datatype-derived-facts > li {"
+    , "  margin: 0.35rem 0;"
     , "}"
     , ".reference-preview-store {"
     , "  display: none;"
@@ -582,9 +609,20 @@ tocScript = Text.unlines
     , "    suspendUntil = performance.now() + 1500;"
     , "  };"
     , ""
+    , "  const revealTarget = (target) => {"
+    , "    let parent = target.parentElement;"
+    , "    while (parent) {"
+    , "      if (parent.localName === 'details') {"
+    , "        parent.open = true;"
+    , "      }"
+    , "      parent = parent.parentElement;"
+    , "    }"
+    , "  };"
+    , ""
     , "  const scrollToTarget = (targetId) => {"
     , "    const target = document.getElementById(targetId);"
     , "    if (!target || !content.contains(target)) return false;"
+    , "    revealTarget(target);"
     , "    target.scrollIntoView({ block: 'start', inline: 'nearest' });"
     , "    setActiveTarget(targetId);"
     , "    return true;"
@@ -1781,6 +1819,14 @@ renderDatatype hints Datatype{..} = do
     toHtml ("." :: Text)
     ul_ do
         traverse_ renderDatatypeClause (toList datatypeClauses)
+    case datatypeDerivedFacts (Datatype{..}) of
+        [] ->
+            skip
+        derivedFacts ->
+            details_ do
+                summary_ (toHtml ("Derived facts" :: Text))
+                ul_ [class_ "datatype-derived-facts"] do
+                    traverse_ (renderDatatypeDerivedFact hints) derivedFacts
     where
         renderDatatypeClause :: DatatypeClause -> Html ()
         renderDatatypeClause DatatypeClause{..} = li_ do
@@ -1797,6 +1843,313 @@ renderDatatype hints Datatype{..} = do
         renderDatatypePremise :: (VarSymbol, Expr) -> Html ()
         renderDatatypePremise (x, domain) =
             inlineMath (renderRelationApplication hints Positive [ExprVar x] (Relation Nowhere ElementSymbol []) [domain])
+
+renderDatatypeDerivedFact :: HintMap -> DatatypeDerivedFact -> Html ()
+renderDatatypeDerivedFact hints DatatypeDerivedFact{datatypeDerivedFactMarker, datatypeDerivedFactFormula} =
+    li_ (id_ (markerText datatypeDerivedFactMarker) : previewTargetAttributes "Datatype Fact" (Just datatypeDerivedFactMarker) Nothing) do
+        term "head-" do
+            code_ (toHtml (markerText datatypeDerivedFactMarker))
+            toHtml (": " :: Text)
+        inlineMath (renderFormulaMath hints datatypeDerivedFactFormula)
+        toHtml ("." :: Text)
+
+data DatatypeDerivedFact = DatatypeDerivedFact
+    { datatypeDerivedFactMarker :: Marker
+    , datatypeDerivedFactFormula :: Formula
+    }
+
+data DatatypeRenderInfo = DatatypeRenderInfo
+    { datatypeFactBaseText :: Text
+    , datatypeCarrierExpr :: Expr
+    , datatypeRenderClauses :: NonEmpty DatatypeRenderClause
+    }
+
+data DatatypeRenderClause = DatatypeRenderClause
+    { datatypeRenderClauseSymbolText :: Text
+    , datatypeRenderClauseExpr :: Expr
+    , datatypeRenderClauseArgs :: [VarSymbol]
+    , datatypeRenderClausePremises :: [(VarSymbol, Expr)]
+    }
+
+datatypeDerivedFacts :: Datatype -> [DatatypeDerivedFact]
+datatypeDerivedFacts datatype = case datatypeRenderInfo datatype of
+    Nothing ->
+        []
+    Just info ->
+        datatypeIntroFacts info
+            <> datatypeDistinctFacts info
+            <> datatypeInjectiveFacts info
+            <> [ DatatypeDerivedFact (datatypeCasesMarker info) (datatypeCasesFormula info)
+               , DatatypeDerivedFact (datatypeInductMarker info) (datatypeInductFormula info)
+               ]
+
+datatypeRenderInfo :: Datatype -> Maybe DatatypeRenderInfo
+datatypeRenderInfo Datatype{datatypeHeadExpr, datatypeClauses} = do
+    datatypeFactBaseText <- datatypeFactBase datatypeHeadExpr
+    datatypeRenderClauses <- traverse datatypeRenderClause datatypeClauses
+    pure DatatypeRenderInfo{datatypeFactBaseText, datatypeCarrierExpr = datatypeHeadExpr, datatypeRenderClauses}
+
+datatypeRenderClause :: DatatypeClause -> Maybe DatatypeRenderClause
+datatypeRenderClause DatatypeClause{datatypeClauseConstructorExpr, datatypeClausePremises} = do
+    (constructorSymbol, constructorArgs) <- exprOp datatypeClauseConstructorExpr
+    datatypeRenderClauseArgs <- traverse exprVar constructorArgs
+    let datatypeRenderClauseSymbolText = markerText (mixfixMarker constructorSymbol)
+    pure DatatypeRenderClause
+        { datatypeRenderClauseSymbolText
+        , datatypeRenderClauseExpr = datatypeClauseConstructorExpr
+        , datatypeRenderClauseArgs
+        , datatypeRenderClausePremises = datatypeClausePremises
+        }
+
+datatypeIntroFacts :: DatatypeRenderInfo -> [DatatypeDerivedFact]
+datatypeIntroFacts info =
+    [ DatatypeDerivedFact (datatypeIntroMarker info clause) (datatypeIntroFormula info clause)
+    | clause <- NonEmpty.toList (datatypeRenderClauses info)
+    ]
+
+datatypeDistinctFacts :: DatatypeRenderInfo -> [DatatypeDerivedFact]
+datatypeDistinctFacts info =
+    [ DatatypeDerivedFact (datatypeDistinctMarker info leftClause rightClause) (datatypeDistinctFormula leftClause rightClause)
+    | (leftClause, rightClause) <- unorderedPairs (NonEmpty.toList (datatypeRenderClauses info))
+    ]
+
+datatypeInjectiveFacts :: DatatypeRenderInfo -> [DatatypeDerivedFact]
+datatypeInjectiveFacts info =
+    [ DatatypeDerivedFact (datatypeInjectiveMarker info clause) (datatypeInjectiveFormula clause)
+    | clause <- NonEmpty.toList (datatypeRenderClauses info)
+    , not (null (datatypeRenderClauseArgs clause))
+    ]
+
+datatypeIntroMarker :: DatatypeRenderInfo -> DatatypeRenderClause -> Marker
+datatypeIntroMarker info clause =
+    Marker (datatypeFactBaseText info <> "_" <> datatypeRenderClauseSymbolText clause <> "_intro")
+
+datatypeDistinctMarker :: DatatypeRenderInfo -> DatatypeRenderClause -> DatatypeRenderClause -> Marker
+datatypeDistinctMarker info leftClause rightClause =
+    Marker
+        ( datatypeFactBaseText info
+            <> "_"
+            <> datatypeRenderClauseSymbolText leftClause
+            <> "_"
+            <> datatypeRenderClauseSymbolText rightClause
+            <> "_distinct"
+        )
+
+datatypeInjectiveMarker :: DatatypeRenderInfo -> DatatypeRenderClause -> Marker
+datatypeInjectiveMarker info clause =
+    Marker (datatypeFactBaseText info <> "_" <> datatypeRenderClauseSymbolText clause <> "_injective")
+
+datatypeCasesMarker :: DatatypeRenderInfo -> Marker
+datatypeCasesMarker info =
+    Marker (datatypeFactBaseText info <> "_cases")
+
+datatypeInductMarker :: DatatypeRenderInfo -> Marker
+datatypeInductMarker info =
+    Marker (datatypeFactBaseText info <> "_induct")
+
+datatypeFactBase :: Expr -> Maybe Text
+datatypeFactBase expr = do
+    (datatypeSymbol, datatypeArgs) <- exprOp expr
+    guard (null datatypeArgs)
+    pure (markerText (mixfixMarker datatypeSymbol))
+
+datatypeIntroFormula :: DatatypeRenderInfo -> DatatypeRenderClause -> Formula
+datatypeIntroFormula info clause =
+    forallIfNeeded premiseVars (impliesFrom premiseFormulas conclusion)
+    where
+        premiseVars = datatypeClausePremiseVars clause
+        premiseFormulas = datatypeClausePremiseFormulas clause
+        conclusion = elementOfFormula (datatypeRenderClauseExpr clause) (datatypeCarrierExpr info)
+
+datatypeDistinctFormula :: DatatypeRenderClause -> DatatypeRenderClause -> Formula
+datatypeDistinctFormula leftClause rightClause =
+    forallIfNeeded (leftVars <> rightVars) (notEqualsFormula (datatypeRenderClauseExpr leftClause) rightTerm)
+    where
+        leftVars = datatypeRenderClauseArgs leftClause
+        rightVars = renameDatatypeVars (Set.fromList leftVars) (datatypeRenderClauseArgs rightClause)
+        rightTerm = substituteExpr (Map.fromList (zip (datatypeRenderClauseArgs rightClause) (ExprVar <$> rightVars))) (datatypeRenderClauseExpr rightClause)
+
+datatypeInjectiveFormula :: DatatypeRenderClause -> Formula
+datatypeInjectiveFormula clause =
+    forallIfNeeded (leftVars <> rightVars) (impliesFormula (equalsFormula leftTerm rightTerm) (formulaConjunction equalities))
+    where
+        leftVars = datatypeRenderClauseArgs clause
+        rightVars = renameDatatypeVars (Set.fromList leftVars) leftVars
+        leftTerm = datatypeRenderClauseExpr clause
+        rightTerm = substituteExpr (Map.fromList (zip leftVars (ExprVar <$> rightVars))) leftTerm
+        equalities =
+            zipWith (\leftVar rightVar -> equalsFormula (ExprVar leftVar) (ExprVar rightVar)) leftVars rightVars
+
+datatypeCasesFormula :: DatatypeRenderInfo -> Formula
+datatypeCasesFormula info =
+    forallIfNeeded [witnessVar] (impliesFormula (elementOfFormula (ExprVar witnessVar) (datatypeCarrierExpr info)) (formulaDisjunction disjuncts))
+    where
+        usedVars = datatypeUsedVars info
+        witnessVar = freshDatatypeVar usedVars "x"
+        disjuncts = datatypeCaseDisjunct witnessVar <$> NonEmpty.toList (datatypeRenderClauses info)
+        datatypeCaseDisjunct x clause =
+            existsIfNeeded premiseVars (formulaConjunction (premises <> [equalsFormula (ExprVar x) (datatypeRenderClauseExpr clause)]))
+            where
+                premiseVars = datatypeClausePremiseVars clause
+                premises = datatypeClausePremiseFormulas clause
+
+datatypeInductFormula :: DatatypeRenderInfo -> Formula
+datatypeInductFormula info =
+    forallIfNeeded [subsetVar] (impliesFrom closureAssumptions conclusion)
+    where
+        usedVars = datatypeUsedVars info
+        subsetVar = freshDatatypeVar usedVars "S"
+        witnessVar = freshDatatypeVar (Set.insert subsetVar usedVars) "x"
+        conclusion =
+            forallIfNeeded [witnessVar]
+                (impliesFormula
+                    (elementOfFormula (ExprVar witnessVar) (datatypeCarrierExpr info))
+                    (elementOfFormula (ExprVar witnessVar) (ExprVar subsetVar))
+                )
+        closureAssumptions = datatypeInductionClosure info subsetVar <$> NonEmpty.toList (datatypeRenderClauses info)
+
+datatypeInductionClosure :: DatatypeRenderInfo -> VarSymbol -> DatatypeRenderClause -> Formula
+datatypeInductionClosure info subsetVar clause =
+    forallIfNeeded premiseVars (impliesFrom inductionPremises conclusion)
+    where
+        premiseVars = datatypeClausePremiseVars clause
+        inductionPremises = datatypeInductionPremise info subsetVar <$> datatypeRenderClausePremises clause
+        conclusion = elementOfFormula (datatypeRenderClauseExpr clause) (ExprVar subsetVar)
+
+datatypeInductionPremise :: DatatypeRenderInfo -> VarSymbol -> (VarSymbol, Expr) -> Formula
+datatypeInductionPremise info subsetVar (x, domain)
+    | sameDatatypeCarrier domain (datatypeCarrierExpr info) =
+        elementOfFormula (ExprVar x) (ExprVar subsetVar)
+    | otherwise =
+        elementOfFormula (ExprVar x) domain
+
+datatypeClausePremiseVars :: DatatypeRenderClause -> [VarSymbol]
+datatypeClausePremiseVars DatatypeRenderClause{datatypeRenderClausePremises} =
+    fst <$> datatypeRenderClausePremises
+
+datatypeClausePremiseFormulas :: DatatypeRenderClause -> [Formula]
+datatypeClausePremiseFormulas DatatypeRenderClause{datatypeRenderClausePremises} =
+    [ elementOfFormula (ExprVar x) domain
+    | (x, domain) <- datatypeRenderClausePremises
+    ]
+
+datatypeUsedVars :: DatatypeRenderInfo -> Set VarSymbol
+datatypeUsedVars info =
+    Set.fromList
+        [ var
+        | clause <- NonEmpty.toList (datatypeRenderClauses info)
+        , var <- datatypeRenderClauseArgs clause <> datatypeClausePremiseVars clause
+        ]
+
+sameDatatypeCarrier :: Expr -> Expr -> Bool
+sameDatatypeCarrier left right = case (exprOp left, exprOp right) of
+    (Just (leftSymbol, []), Just (rightSymbol, [])) ->
+        leftSymbol == rightSymbol
+    _ ->
+        False
+
+exprOp :: Expr -> Maybe (MixfixItem, [Expr])
+exprOp = \case
+    ExprOp _loc symbol args ->
+        Just (symbol, args)
+    _ ->
+        Nothing
+
+exprVar :: Expr -> Maybe VarSymbol
+exprVar = \case
+    ExprVar x ->
+        Just x
+    _ ->
+        Nothing
+
+substituteExpr :: Map.Map VarSymbol Expr -> Expr -> Expr
+substituteExpr env = \case
+    ExprVar x ->
+        fromMaybe (ExprVar x) (Map.lookup x env)
+    ExprInteger loc n ->
+        ExprInteger loc n
+    ExprOp loc symbol args ->
+        ExprOp loc symbol (substituteExpr env <$> args)
+    ExprStructOp loc symbol expr ->
+        ExprStructOp loc symbol (substituteExpr env <$> expr)
+    ExprFiniteSet loc exprs ->
+        ExprFiniteSet loc (substituteExpr env <$> exprs)
+    ExprSep loc x bound stmt ->
+        ExprSep loc x (substituteExpr env bound) stmt
+    ExprReplace loc expr bounds maybeStmt ->
+        ExprReplace loc (substituteExpr env expr) ((\(x, bound) -> (x, substituteExpr env bound)) <$> bounds) maybeStmt
+    ExprReplacePred loc x y expr stmt ->
+        ExprReplacePred loc x y (substituteExpr env expr) stmt
+
+elementOfFormula :: Expr -> Expr -> Formula
+elementOfFormula left right =
+    FormulaChain (ChainBase (left :| []) Positive (Relation Nowhere ElementSymbol []) (right :| []))
+
+equalsFormula :: Expr -> Expr -> Formula
+equalsFormula left right =
+    FormulaChain (ChainBase (left :| []) Positive (Relation Nowhere EqSymbol []) (right :| []))
+
+notEqualsFormula :: Expr -> Expr -> Formula
+notEqualsFormula left right =
+    FormulaChain (ChainBase (left :| []) Positive (Relation Nowhere NeqSymbol []) (right :| []))
+
+impliesFormula :: Formula -> Formula -> Formula
+impliesFormula left right =
+    Connected Nowhere Implication left right
+
+formulaConjunction :: [Formula] -> Formula
+formulaConjunction = \case
+    [] ->
+        PropositionalConstant Nowhere IsTop
+    phi : rest ->
+        foldl' (\left right -> Connected Nowhere Conjunction left right) phi rest
+
+formulaDisjunction :: [Formula] -> Formula
+formulaDisjunction = \case
+    [] ->
+        PropositionalConstant Nowhere IsBottom
+    phi : rest ->
+        foldl' (\left right -> Connected Nowhere Disjunction left right) phi rest
+
+forallIfNeeded :: [VarSymbol] -> Formula -> Formula
+forallIfNeeded [] phi = phi
+forallIfNeeded vars phi =
+    FormulaQuantified Nowhere Universally (NonEmpty.fromList vars) Unbounded phi
+
+existsIfNeeded :: [VarSymbol] -> Formula -> Formula
+existsIfNeeded [] phi = phi
+existsIfNeeded vars phi =
+    FormulaQuantified Nowhere Existentially (NonEmpty.fromList vars) Unbounded phi
+
+impliesFrom :: [Formula] -> Formula -> Formula
+impliesFrom [] conclusion = conclusion
+impliesFrom premises conclusion = impliesFormula (formulaConjunction premises) conclusion
+
+unorderedPairs :: [a] -> [(a, a)]
+unorderedPairs = \case
+    [] -> []
+    x : xs -> [(x, y) | y <- xs] <> unorderedPairs xs
+
+renameDatatypeVars :: Set VarSymbol -> [VarSymbol] -> [VarSymbol]
+renameDatatypeVars _ [] = []
+renameDatatypeVars used (x:xs) =
+    let x' = freshDatatypeLikeVar used x
+    in x' : renameDatatypeVars (Set.insert x' used) xs
+
+freshDatatypeLikeVar :: Set VarSymbol -> VarSymbol -> VarSymbol
+freshDatatypeLikeVar used = \case
+    NamedVar name ->
+        freshDatatypeVar used (name <> "_rhs")
+    FreshVar n ->
+        freshDatatypeVar used ("_" <> Text.pack (show n) <> "_rhs")
+
+freshDatatypeVar :: Set VarSymbol -> Text -> VarSymbol
+freshDatatypeVar used base =
+    List.head
+        [ NamedVar candidate
+        | candidate <- base : [base <> Text.pack (show n) | n <- [(1 :: Int) ..]]
+        , NamedVar candidate `Set.notMember` used
+        ]
 
 renderInductive :: HintMap -> Inductive -> Html ()
 renderInductive hints Inductive{..} = do
@@ -1886,18 +2239,22 @@ buildPreviewMap :: FilePath -> Set Marker -> AnchorMap -> [Block] -> PreviewMap
 buildPreviewMap inputPath referencedMarkers anchors blocks =
     Map.fromList
         [ (marker, PreviewEntry{..})
-        | (index, block) <- zip [1 :: Int ..] blocks
-        , isPreviewableBlock block
-        , Just marker <- [blockMarkerOf block]
+        | (index, target) <- zip [1 :: Int ..] (concatMap referenceTargetsOfBlockRenderInfo blockInfos)
+        , let marker = targetMarker target
         , marker `Set.member` referencedMarkers
         , marker `Map.notMember` anchors
         , let previewMarker = marker
-        , let previewBlock = block
-        , let previewSourceFile = locFile (blockLocationOf block)
+        , let previewKind = targetKind target
+        , let previewTitle = targetTitle target
+        , let previewSourceFile = targetSourceFile target
         , let previewIsImported = previewSourceFile /= inputPath && previewSourceFile /= "<nowhere>"
         , previewIsImported
         , let previewId = "reference-preview-" <> Text.pack (show index)
+        , let previewBody = targetBody target
         ]
+    where
+        indexedBlocks = zip [1 :: Int ..] blocks
+        blockInfos = [(index, block, blockAnchorId index block) | (index, block) <- indexedBlocks]
 
 renderPreviewStore :: HintMap -> PreviewMap -> Html ()
 renderPreviewStore hints previews =
@@ -1908,10 +2265,10 @@ renderPreviewEntry :: HintMap -> PreviewEntry -> Html ()
 renderPreviewEntry hints PreviewEntry{..} =
     div_ [id_ previewId, class_ "reference-preview-template"] do
         div_ [class_ "reference-preview-heading"] do
-            toHtml (blockPrefixText previewBlock)
+            toHtml previewKind
             toHtml (" " :: Text)
             code_ (toHtml (markerText previewMarker))
-            case formatBlockTitle (blockTitleOf previewBlock) of
+            case previewTitle of
                 Nothing ->
                     skip
                 Just title -> do
@@ -1923,7 +2280,7 @@ renderPreviewEntry hints PreviewEntry{..} =
                 toHtml ("from " :: Text)
                 code_ (toHtml (Text.pack previewSourceFile))
         div_ [class_ "reference-preview-body"] do
-            renderPreviewBlockBody hints previewBlock
+            previewBody hints
 
 externalReferenceHref :: PreviewEntry -> Text
 externalReferenceHref PreviewEntry{..} =
@@ -1962,12 +2319,6 @@ previewStatement :: Html () -> Html ()
 previewStatement =
     p_ [class_ "reference-preview-statement"]
 
-isPreviewableBlock :: Block -> Bool
-isPreviewableBlock = \case
-    BlockProof{} -> False
-    BlockData{} -> False
-    _ -> True
-
 blockLocationOf :: Block -> Location
 blockLocationOf = \case
     BlockAxiom loc _title _marker _axiom -> loc
@@ -1979,6 +2330,38 @@ blockLocationOf = \case
     BlockInductive loc _title _marker _ind -> loc
     BlockSig loc _title _marker _asms _sig -> loc
     BlockStruct loc _title _marker _structDefn -> loc
+
+referenceTargetsOfBlockRenderInfo :: BlockRenderInfo -> [ReferenceTarget]
+referenceTargetsOfBlockRenderInfo (_index, block, blockId) =
+    maybeToList blockTarget <> datatypeTargets
+    where
+        sourceFile = locFile (blockLocationOf block)
+
+        blockTarget = do
+            marker <- blockMarkerOf block
+            pure ReferenceTarget
+                { targetMarker = marker
+                , targetAnchorId = blockId
+                , targetKind = blockPrefixText block
+                , targetTitle = formatBlockTitle (blockTitleOf block)
+                , targetSourceFile = sourceFile
+                , targetBody = \hints -> renderPreviewBlockBody hints block
+                }
+
+        datatypeTargets = case block of
+            BlockData _loc _title _marker datatype ->
+                [ ReferenceTarget
+                    { targetMarker = datatypeDerivedFactMarker
+                    , targetAnchorId = markerText datatypeDerivedFactMarker
+                    , targetKind = "Datatype Fact"
+                    , targetTitle = Nothing
+                    , targetSourceFile = sourceFile
+                    , targetBody = \hints -> previewStatement (inlineMath (renderFormulaMath hints datatypeDerivedFactFormula))
+                    }
+                | DatatypeDerivedFact{datatypeDerivedFactMarker, datatypeDerivedFactFormula} <- datatypeDerivedFacts datatype
+                ]
+            _ ->
+                []
 
 
 renderProof :: HintMap -> ReferenceContext -> Proof -> Html ()

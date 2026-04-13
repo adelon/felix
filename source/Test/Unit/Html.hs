@@ -5,7 +5,7 @@ module Test.Unit.Html (unitTests) where
 import Base
 import Api qualified
 import Render.Html qualified as Html
-import Report.Location (pattern Nowhere)
+import Report.Location (Location, mkLocation, pattern Nowhere, registerFilePath)
 import Syntax.Abstract
 
 import Data.Text qualified as Text
@@ -16,6 +16,8 @@ unitTests :: TestTree
 unitTests = testGroup "HTML renderer"
     [ testCase "reference previews are rendered for local and imported refs" referencePreviews
     , testCase "missing reference preview data falls back to readable text" missingReferenceFallback
+    , testCase "datatype derived facts render as collapsed local reference targets" datatypeDerivedFactTargets
+    , testCase "imported datatype derived facts get hidden preview templates" importedDatatypeDerivedFactPreviews
     ]
 
 referencePreviews :: Assertion
@@ -62,6 +64,78 @@ missingReferenceFallback = do
         html = Html.renderDocument "synthetic.tex" "" [BlockProof Nowhere proof Nowhere] []
     assertContains "missing references remain visible" "missing_ref" html
     assertNotContains "missing references do not claim preview content" "data-preview-id=" html
+
+datatypeDerivedFactTargets :: Assertion
+datatypeDerivedFactTargets = do
+    let blocks =
+            [ propformDatatypeBlock Nowhere
+            , referenceClaimBlock "uses_local_datatype_fact"
+            , referenceProofBlock "propform_propbot_intro"
+            ]
+        html = Html.renderDocument "synthetic.tex" "" blocks []
+    assertContains "datatype blocks render derived facts inside a details element" "<summary>Derived facts</summary>" html
+    assertContains "local datatype fact refs keep page anchors" "href=\"#propform_propbot_intro\"" html
+    assertContains "local datatype fact refs point previews at the derived fact target" "data-reference-label=\"propform_propbot_intro\" data-preview-target-id=\"propform_propbot_intro\"" html
+    assertContains "derived fact targets expose preview metadata" "id=\"propform_propbot_intro\" data-preview-kind=\"Datatype Fact\" data-preview-label=\"propform_propbot_intro\"" html
+    assertContains "local hash navigation opens collapsed ancestors before scrolling" "revealTarget(target);" html
+
+importedDatatypeDerivedFactPreviews :: Assertion
+importedDatatypeDerivedFactPreviews = do
+    importedLoc <- fileLocation "test/html-fixtures/imported-datatype.tex"
+    let rootBlocks =
+            [ referenceClaimBlock "uses_imported_datatype_fact"
+            , referenceProofBlock "propform_propbot_intro"
+            ]
+        html = Html.renderDocument "test/html-fixtures/root-datatype.tex" "" rootBlocks [propformDatatypeBlock importedLoc]
+    assertContains "imported datatype fact refs link to the imported theory route" "href=\"/test/html-fixtures/imported-datatype#propform_propbot_intro\"" html
+    assertContains "imported datatype fact refs use hidden preview ids" "data-reference-label=\"propform_propbot_intro\" data-preview-id=\"reference-preview-" html
+    assertContains "imported datatype fact previews identify their kind" "Datatype Fact <code>propform_propbot_intro</code>" html
+    assertContains "imported datatype fact previews record their source file" "test/html-fixtures/imported-datatype.tex" html
+
+fileLocation :: FilePath -> IO Location
+fileLocation path = do
+    fileId <- registerFilePath path
+    pure (mkLocation fileId 1 1)
+
+propformDatatypeBlock :: Location -> Block
+propformDatatypeBlock blockLoc =
+    BlockData blockLoc Nothing "propform" propformDatatype
+
+propformDatatype :: Datatype
+propformDatatype =
+    Datatype
+        { datatypeHeadExpr = ExprOp Nowhere (constSymbol "propform") []
+        , datatypeClauses =
+            DatatypeClause (ExprOp Nowhere (constSymbol "propbot") []) (ExprOp Nowhere (constSymbol "propform") []) [] :|
+                [ DatatypeClause (ExprOp Nowhere (unarySymbol "propvar") [ExprVar "n"]) (ExprOp Nowhere (constSymbol "propform") []) [("n", ExprOp Nowhere (constSymbol "naturals") [])]
+                , DatatypeClause
+                    (ExprOp Nowhere (infixSymbol "propto") [ExprVar "p", ExprVar "q"])
+                    (ExprOp Nowhere (constSymbol "propform") [])
+                    [ ("p", ExprOp Nowhere (constSymbol "propform") [])
+                    , ("q", ExprOp Nowhere (constSymbol "propform") [])
+                    ]
+                ]
+        }
+
+referenceClaimBlock :: Marker -> Block
+referenceClaimBlock marker =
+    BlockClaim Proposition Nowhere Nothing marker (Claim [] (StmtFormula (PropositionalConstant Nowhere IsTop)))
+
+referenceProofBlock :: Marker -> Block
+referenceProofBlock marker =
+    BlockProof Nowhere (Qed (Just Nowhere) (JustificationRef (marker :| []))) Nowhere
+
+constSymbol :: Text -> FunctionSymbol
+constSymbol name =
+    mkMixfixItem [Just (Command name)] (Marker name) NonAssoc
+
+unarySymbol :: Text -> FunctionSymbol
+unarySymbol name =
+    mkMixfixItem [Just (Command name), Just InvisibleBraceL, Nothing, Just InvisibleBraceR] (Marker name) NonAssoc
+
+infixSymbol :: Text -> FunctionSymbol
+infixSymbol name =
+    mkMixfixItem [Nothing, Just (Command name), Nothing] (Marker name) NonAssoc
 
 assertContains :: HasCallStack => String -> Text -> Text -> Assertion
 assertContains label needle haystack =
