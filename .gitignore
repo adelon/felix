@@ -45,3 +45,4 @@ check/
 *.ps
 html/
 /notes
+library/naprochelibrary*.tex

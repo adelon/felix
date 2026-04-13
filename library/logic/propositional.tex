@@ -2,34 +2,69 @@
 \import{nat.tex}
 
 
-\begin{datatype}
-The set $\propform$ is generated as follows.
-\begin{enumerate}
-    \item if $n\in\naturals$, then $\propvar{n}\in\propform$
-    \item $\propbot\in\propform$
-    \item if $p, q\in\propform$, then $p\propto q\in\propform$
-\end{enumerate}
+\begin{datatype}\label{propform}
+    Define $\propform$ inductively as follows.
+    \begin{enumerate}
+        \item $\propbot \in \propform$.
+        \item $\propvar{n} \in \propform$ for $n \in \naturals$.
+        \item $(p \propto q) \in \propform$ for $p \in \propform$ and $q \in \propform$.
+    \end{enumerate}
 \end{datatype}
 
-\begin{abbreviation}
-    $\propnot p = p\propto\propbot$.
+\begin{abbreviation}\label{propnot}
+    $\propnot{p} = (p \propto \propbot)$.
 \end{abbreviation}
 
-\begin{inductive}
-    \begin{enumerate}
-        \item (Detachment) If $\deducible{p}$ and $\deducible{p\propto q}$, then $\deducible{q}$
-        \item (Implosion) $\deducible{p\propto q\propto p}$
-        \item (Chain) $\deducible{(p\propto q\propto r)\propto(p\propto q)\propto(p\propto r)}$
-        \item (Negation) $\propnot\propnot p\to p$
-    \end{enumerate}
-\end{inductive}
+\begin{proposition}\label{propform_bot_intro}
+    $\propbot \in \propform$.
+\end{proposition}
+\begin{proof}
+    Follows by \cref{propform_propbot_intro}.
+\end{proof}
 
-\begin{lemma}
-    Suppose $\deducible{q}$.
-    Then $\deducible{p\propto q}$.
-\end{lemma}
+\begin{proposition}\label{propform_var_intro}
+    Suppose $n \in \naturals$.
+    Then $\propvar{n} \in \propform$.
+\end{proposition}
+\begin{proof}
+    Follows by \cref{propform_propvar_intro}.
+\end{proof}
 
-\begin{primrec}
-    Recursively define a predicate $\propeval{-}{-}$ on $\propform$ as follows.
-    % TODO continue...
-\end{primrec}
+\begin{proposition}\label{propform_imp_intro}
+    Suppose $p \in \propform$ and $q \in \propform$.
+    Then $(p \propto q) \in \propform$.
+\end{proposition}
+\begin{proof}
+    Follows by \cref{propform_propto_intro}.
+\end{proof}
+
+\begin{proposition}\label{propnot_intro}
+    Suppose $p \in \propform$.
+    Then $\propnot{p} \in \propform$.
+\end{proposition}
+\begin{proof}
+    Follows by \cref{propform_propbot_intro,propform_propto_intro}.
+\end{proof}
+
+\begin{proposition}\label{propform_induction_sanity}
+    For every $x \in \propform$ we have $x \in \propform$.
+\end{proposition}
+\begin{proof}
+    Follows by \cref{propform_induct,propform_propbot_intro,propform_propvar_intro,propform_propto_intro}.
+\end{proof}
+
+% Predicate-level inductive derivability remains pending support for
+% inductively defined predicates.
+%\begin{inductive}\label{propcalc}
+%    \begin{enumerate}
+%        \item (Detachment) If $\deducible{p}$ and $\deducible{p\propto q}$, then $\deducible{q}$.
+%        \item (Implosion) $\deducible{p\propto q\propto p}$.
+%        \item (Chain) $\deducible{(p\propto q\propto r)\propto(p\propto q)\propto(p\propto r)}$.
+%        \item (Negation) $\propnot{\propnot{p}} \propto p$.
+%    \end{enumerate}
+%\end{inductive}
+%
+%\begin{lemma}\label{weaken}
+%    Suppose $\deducible{q}$.
+%    Then $\deducible{p\propto q}$.
+%\end{lemma}

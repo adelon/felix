@@ -28,6 +28,7 @@ import Syntax.Abstract
     , pattern NamedVar
     , pattern FreshVar
     , FunctionSymbol
+    , SymbolPattern(..)
     , MixfixItem(..)
     , Pattern(..)
     , LexicalItem
@@ -583,8 +584,17 @@ collectBiconditionals quant = \case
     _ -> []
 
 
-newtype Datatype
-    = DatatypeFin (NonEmpty Text)
+data Datatype
+    = Datatype
+        { datatypeHead :: SymbolPattern
+        , datatypeClauses :: NonEmpty DatatypeClause
+        }
+    deriving (Show, Eq, Ord)
+
+data DatatypeClause = DatatypeClause
+    { datatypeClauseConstructor :: SymbolPattern
+    , datatypeClausePremises :: [(VarSymbol, Expr)]
+    }
     deriving (Show, Eq, Ord)
 
 
@@ -632,6 +642,7 @@ data Block
     | BlockStruct Location Marker StructDefn
     | BlockInductive Location Marker Inductive
     | BlockSig Location Marker [Asm] Signature
+    | BlockData Location Marker Datatype
     deriving (Show, Eq, Ord)
 
 

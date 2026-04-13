@@ -1,0 +1,649 @@
+[ BlockData
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 1
+        , locColumn = 1
+        }
+    )
+    ( Marker "propform" )
+    ( Datatype
+        { datatypeHead = SymbolPattern
+            ( MixfixItem
+                ( TokenCons
+                    ( Command "propform" ) End
+                )
+                ( Marker "propform" ) NonAssoc
+            ) []
+        , datatypeClauses = DatatypeClause
+            { datatypeClauseConstructor = SymbolPattern
+                ( MixfixItem
+                    ( TokenCons
+                        ( Command "propbot" ) End
+                    )
+                    ( Marker "propbot" ) NonAssoc
+                ) []
+            , datatypeClausePremises = []
+            } :|
+            [ DatatypeClause
+                { datatypeClauseConstructor = SymbolPattern
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propvar" )
+                            ( TokenCons InvisibleBraceL
+                                ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                            )
+                        )
+                        ( Marker "propvar" ) NonAssoc
+                    )
+                    [ NamedVar "n" ]
+                , datatypeClausePremises =
+                    [
+                        ( NamedVar "n"
+                        , TermSymbol
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 5
+                                , locColumn = 54
+                                }
+                            )
+                            ( SymbolMixfix
+                                ( MixfixItem
+                                    ( TokenCons
+                                        ( Command "cons" )
+                                        ( TokenCons InvisibleBraceL
+                                            ( HoleCons
+                                                ( TokenCons InvisibleBraceR
+                                                    ( TokenCons InvisibleBraceL
+                                                        ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                    ( Marker "cons" ) NonAssoc
+                                )
+                            )
+                            [ TermSymbol
+                                ( Location
+                                    { locFile = "test/examples/datatype.tex"
+                                    , locLine = 5
+                                    , locColumn = 56
+                                    }
+                                )
+                                ( SymbolMixfix
+                                    ( MixfixItem
+                                        ( TokenCons
+                                            ( Command "emptyset" ) End
+                                        )
+                                        ( Marker "emptyset" ) NonAssoc
+                                    )
+                                ) []
+                            , TermSymbol
+                                ( Location
+                                    { locFile = "test/examples/datatype.tex"
+                                    , locLine = 5
+                                    , locColumn = 54
+                                    }
+                                )
+                                ( SymbolMixfix
+                                    ( MixfixItem
+                                        ( TokenCons
+                                            ( Command "emptyset" ) End
+                                        )
+                                        ( Marker "emptyset" ) NonAssoc
+                                    )
+                                ) []
+                            ]
+                        )
+                    ]
+                }
+            , DatatypeClause
+                { datatypeClauseConstructor = SymbolPattern
+                    ( MixfixItem
+                        ( HoleCons
+                            ( TokenCons
+                                ( Command "propto" ) ( HoleCons End )
+                            )
+                        )
+                        ( Marker "propto" ) NonAssoc
+                    )
+                    [ NamedVar "p"
+                    , NamedVar "q"
+                    ]
+                , datatypeClausePremises =
+                    [
+                        ( NamedVar "p"
+                        , TermSymbol
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 6
+                                , locColumn = 56
+                                }
+                            )
+                            ( SymbolMixfix
+                                ( MixfixItem
+                                    ( TokenCons
+                                        ( Command "propform" ) End
+                                    )
+                                    ( Marker "propform" ) NonAssoc
+                                )
+                            ) []
+                        )
+                    ,
+                        ( NamedVar "q"
+                        , TermSymbol
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 6
+                                , locColumn = 78
+                                }
+                            )
+                            ( SymbolMixfix
+                                ( MixfixItem
+                                    ( TokenCons
+                                        ( Command "propform" ) End
+                                    )
+                                    ( Marker "propform" ) NonAssoc
+                                )
+                            ) []
+                        )
+                    ]
+                }
+            ]
+        }
+    )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 10
+        , locColumn = 1
+        }
+    )
+    ( Marker "propform_bot_test" )
+    ( Lemma []
+        ( TermSymbol
+            ( Location
+                { locFile = "test/examples/datatype.tex"
+                , locLine = 11
+                , locColumn = 15
+                }
+            )
+            ( SymbolPredicate
+                ( PredicateRelation
+                    ( RelationSymbol
+                        ( Command "in" )
+                        ( Marker "elem" )
+                    )
+                )
+            )
+            [ TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 11
+                    , locColumn = 6
+                    }
+                )
+                ( SymbolMixfix
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propbot" ) End
+                        )
+                        ( Marker "propbot" ) NonAssoc
+                    )
+                ) []
+            , TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 11
+                    , locColumn = 19
+                    }
+                )
+                ( SymbolMixfix
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propform" ) End
+                        )
+                        ( Marker "propform" ) NonAssoc
+                    )
+                ) []
+            ]
+        )
+    )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 14
+        , locColumn = 1
+        }
+    )
+    ( Marker "propform_var_test" )
+    ( Lemma []
+        ( Connected Implication
+            ( TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 15
+                    , locColumn = 19
+                    }
+                )
+                ( SymbolPredicate
+                    ( PredicateRelation
+                        ( RelationSymbol
+                            ( Command "in" )
+                            ( Marker "elem" )
+                        )
+                    )
+                )
+                [ TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 15
+                        , locColumn = 9
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "emptyset" ) End
+                            )
+                            ( Marker "emptyset" ) NonAssoc
+                        )
+                    ) []
+                , TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 15
+                        , locColumn = 23
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "cons" )
+                                ( TokenCons InvisibleBraceL
+                                    ( HoleCons
+                                        ( TokenCons InvisibleBraceR
+                                            ( TokenCons InvisibleBraceL
+                                                ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                            ( Marker "cons" ) NonAssoc
+                        )
+                    )
+                    [ TermSymbol
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 15
+                            , locColumn = 25
+                            }
+                        )
+                        ( SymbolMixfix
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "emptyset" ) End
+                                )
+                                ( Marker "emptyset" ) NonAssoc
+                            )
+                        ) []
+                    , TermSymbol
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 15
+                            , locColumn = 23
+                            }
+                        )
+                        ( SymbolMixfix
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "emptyset" ) End
+                                )
+                                ( Marker "emptyset" ) NonAssoc
+                            )
+                        ) []
+                    ]
+                ]
+            )
+            ( TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 15
+                    , locColumn = 65
+                    }
+                )
+                ( SymbolPredicate
+                    ( PredicateRelation
+                        ( RelationSymbol
+                            ( Command "in" )
+                            ( Marker "elem" )
+                        )
+                    )
+                )
+                [ TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 15
+                        , locColumn = 45
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propvar" )
+                                ( TokenCons InvisibleBraceL
+                                    ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                )
+                            )
+                            ( Marker "propvar" ) NonAssoc
+                        )
+                    )
+                    [ TermSymbol
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 15
+                            , locColumn = 54
+                            }
+                        )
+                        ( SymbolMixfix
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "emptyset" ) End
+                                )
+                                ( Marker "emptyset" ) NonAssoc
+                            )
+                        ) []
+                    ]
+                , TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 15
+                        , locColumn = 69
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propform" ) End
+                            )
+                            ( Marker "propform" ) NonAssoc
+                        )
+                    ) []
+                ]
+            )
+        )
+    )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 18
+        , locColumn = 1
+        }
+    )
+    ( Marker "propform_imp_test" )
+    ( Lemma []
+        ( TermSymbol
+            ( Location
+                { locFile = "test/examples/datatype.tex"
+                , locLine = 19
+                , locColumn = 34
+                }
+            )
+            ( SymbolPredicate
+                ( PredicateRelation
+                    ( RelationSymbol
+                        ( Command "in" )
+                        ( Marker "elem" )
+                    )
+                )
+            )
+            [ TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 19
+                    , locColumn = 7
+                    }
+                )
+                ( SymbolMixfix
+                    ( MixfixItem
+                        ( HoleCons
+                            ( TokenCons
+                                ( Command "propto" ) ( HoleCons End )
+                            )
+                        )
+                        ( Marker "propto" ) NonAssoc
+                    )
+                )
+                [ TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 19
+                        , locColumn = 7
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propbot" ) End
+                            )
+                            ( Marker "propbot" ) NonAssoc
+                        )
+                    ) []
+                , TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 19
+                        , locColumn = 24
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propbot" ) End
+                            )
+                            ( Marker "propbot" ) NonAssoc
+                        )
+                    ) []
+                ]
+            , TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 19
+                    , locColumn = 38
+                    }
+                )
+                ( SymbolMixfix
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propform" ) End
+                        )
+                        ( Marker "propform" ) NonAssoc
+                    )
+                ) []
+            ]
+        )
+    )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 22
+        , locColumn = 1
+        }
+    )
+    ( Marker "propform_distinct_test" )
+    ( Lemma []
+        ( TermSymbol
+            ( Location
+                { locFile = "test/examples/datatype.tex"
+                , locLine = 23
+                , locColumn = 15
+                }
+            )
+            ( SymbolPredicate
+                ( PredicateRelation
+                    ( RelationSymbol
+                        ( Command "neq" )
+                        ( Marker "neq" )
+                    )
+                )
+            )
+            [ TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 23
+                    , locColumn = 6
+                    }
+                )
+                ( SymbolMixfix
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propbot" ) End
+                        )
+                        ( Marker "propbot" ) NonAssoc
+                    )
+                ) []
+            , TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 23
+                    , locColumn = 21
+                    }
+                )
+                ( SymbolMixfix
+                    ( MixfixItem
+                        ( HoleCons
+                            ( TokenCons
+                                ( Command "propto" ) ( HoleCons End )
+                            )
+                        )
+                        ( Marker "propto" ) NonAssoc
+                    )
+                )
+                [ TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 23
+                        , locColumn = 21
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propbot" ) End
+                            )
+                            ( Marker "propbot" ) NonAssoc
+                        )
+                    ) []
+                , TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 23
+                        , locColumn = 38
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propbot" ) End
+                            )
+                            ( Marker "propbot" ) NonAssoc
+                        )
+                    ) []
+                ]
+            ]
+        )
+    )
+, BlockLemma
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 26
+        , locColumn = 1
+        }
+    )
+    ( Marker "propform_injective_test" )
+    ( Lemma []
+        ( Connected Implication
+            ( TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 27
+                    , locColumn = 21
+                    }
+                )
+                ( SymbolPredicate
+                    ( PredicateRelation
+                        ( RelationSymbol
+                            ( Symbol "=" )
+                            ( Marker "eq" )
+                        )
+                    )
+                )
+                [ TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 27
+                        , locColumn = 9
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propvar" )
+                                ( TokenCons InvisibleBraceL
+                                    ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                )
+                            )
+                            ( Marker "propvar" ) NonAssoc
+                        )
+                    )
+                    [ TermVar
+                        ( NamedVar "x" )
+                    ]
+                , TermSymbol
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 27
+                        , locColumn = 23
+                        }
+                    )
+                    ( SymbolMixfix
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propvar" )
+                                ( TokenCons InvisibleBraceL
+                                    ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                )
+                            )
+                            ( Marker "propvar" ) NonAssoc
+                        )
+                    )
+                    [ TermVar
+                        ( NamedVar "y" )
+                    ]
+                ]
+            )
+            ( TermSymbol
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 27
+                    , locColumn = 45
+                    }
+                )
+                ( SymbolPredicate
+                    ( PredicateRelation
+                        ( RelationSymbol
+                            ( Symbol "=" )
+                            ( Marker "eq" )
+                        )
+                    )
+                )
+                [ TermVar
+                    ( NamedVar "x" )
+                , TermVar
+                    ( NamedVar "y" )
+                ]
+            )
+        )
+    )
+]

@@ -1,0 +1,647 @@
+[ BlockData
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 1
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "propform" )
+    ( Datatype
+        { datatypeHeadExpr = ExprOp
+            ( Location
+                { locFile = "test/examples/datatype.tex"
+                , locLine = 2
+                , locColumn = 13
+                }
+            )
+            ( MixfixItem
+                ( TokenCons
+                    ( Command "propform" ) End
+                )
+                ( Marker "propform" ) NonAssoc
+            ) []
+        , datatypeClauses = DatatypeClause
+            { datatypeClauseConstructorExpr = ExprOp
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 4
+                    , locColumn = 16
+                    }
+                )
+                ( MixfixItem
+                    ( TokenCons
+                        ( Command "propbot" ) End
+                    )
+                    ( Marker "propbot" ) NonAssoc
+                ) []
+            , datatypeClauseTargetExpr = ExprOp
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 4
+                    , locColumn = 29
+                    }
+                )
+                ( MixfixItem
+                    ( TokenCons
+                        ( Command "propform" ) End
+                    )
+                    ( Marker "propform" ) NonAssoc
+                ) []
+            , datatypeClausePremises = []
+            } :|
+            [ DatatypeClause
+                { datatypeClauseConstructorExpr = ExprOp
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 5
+                        , locColumn = 16
+                        }
+                    )
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propvar" )
+                            ( TokenCons InvisibleBraceL
+                                ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                            )
+                        )
+                        ( Marker "propvar" ) NonAssoc
+                    )
+                    [ ExprVar
+                        ( NamedVar "n" )
+                    ]
+                , datatypeClauseTargetExpr = ExprOp
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 5
+                        , locColumn = 32
+                        }
+                    )
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propform" ) End
+                        )
+                        ( Marker "propform" ) NonAssoc
+                    ) []
+                , datatypeClausePremises =
+                    [
+                        ( NamedVar "n"
+                        , ExprFiniteSet
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 5
+                                , locColumn = 54
+                                }
+                            )
+                            ( ExprOp
+                                ( Location
+                                    { locFile = "test/examples/datatype.tex"
+                                    , locLine = 5
+                                    , locColumn = 56
+                                    }
+                                )
+                                ( MixfixItem
+                                    ( TokenCons
+                                        ( Command "emptyset" ) End
+                                    )
+                                    ( Marker "emptyset" ) NonAssoc
+                                ) [] :| []
+                            )
+                        )
+                    ]
+                }
+            , DatatypeClause
+                { datatypeClauseConstructorExpr = ExprOp
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 6
+                        , locColumn = 17
+                        }
+                    )
+                    ( MixfixItem
+                        ( HoleCons
+                            ( TokenCons
+                                ( Command "propto" ) ( HoleCons End )
+                            )
+                        )
+                        ( Marker "propto" ) NonAssoc
+                    )
+                    [ ExprVar
+                        ( NamedVar "p" )
+                    , ExprVar
+                        ( NamedVar "q" )
+                    ]
+                , datatypeClauseTargetExpr = ExprOp
+                    ( Location
+                        { locFile = "test/examples/datatype.tex"
+                        , locLine = 6
+                        , locColumn = 34
+                        }
+                    )
+                    ( MixfixItem
+                        ( TokenCons
+                            ( Command "propform" ) End
+                        )
+                        ( Marker "propform" ) NonAssoc
+                    ) []
+                , datatypeClausePremises =
+                    [
+                        ( NamedVar "p"
+                        , ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 6
+                                , locColumn = 56
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propform" ) End
+                                )
+                                ( Marker "propform" ) NonAssoc
+                            ) []
+                        )
+                    ,
+                        ( NamedVar "q"
+                        , ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 6
+                                , locColumn = 78
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propform" ) End
+                                )
+                                ( Marker "propform" ) NonAssoc
+                            ) []
+                        )
+                    ]
+                }
+            ]
+        }
+    )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 10
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "propform_bot_test" )
+    ( Claim []
+        ( StmtFormula
+            { formula = FormulaChain
+                ( ChainBase
+                    ( ExprOp
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 11
+                            , locColumn = 6
+                            }
+                        )
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propbot" ) End
+                            )
+                            ( Marker "propbot" ) NonAssoc
+                        ) [] :| []
+                    ) Positive
+                    ( Relation
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 11
+                            , locColumn = 15
+                            }
+                        )
+                        ( RelationSymbol
+                            ( Command "in" )
+                            ( Marker "elem" )
+                        ) []
+                    )
+                    ( ExprOp
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 11
+                            , locColumn = 19
+                            }
+                        )
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propform" ) End
+                            )
+                            ( Marker "propform" ) NonAssoc
+                        ) [] :| []
+                    )
+                )
+            }
+        )
+    )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 14
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "propform_var_test" )
+    ( Claim []
+        ( StmtConnected
+            { conn = Implication
+            , mloc = Just
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 15
+                    , locColumn = 5
+                    }
+                )
+            , stmt1 = StmtFormula
+                { formula = FormulaChain
+                    ( ChainBase
+                        ( ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 15
+                                , locColumn = 9
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "emptyset" ) End
+                                )
+                                ( Marker "emptyset" ) NonAssoc
+                            ) [] :| []
+                        ) Positive
+                        ( Relation
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 15
+                                , locColumn = 19
+                                }
+                            )
+                            ( RelationSymbol
+                                ( Command "in" )
+                                ( Marker "elem" )
+                            ) []
+                        )
+                        ( ExprFiniteSet
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 15
+                                , locColumn = 23
+                                }
+                            )
+                            ( ExprOp
+                                ( Location
+                                    { locFile = "test/examples/datatype.tex"
+                                    , locLine = 15
+                                    , locColumn = 25
+                                    }
+                                )
+                                ( MixfixItem
+                                    ( TokenCons
+                                        ( Command "emptyset" ) End
+                                    )
+                                    ( Marker "emptyset" ) NonAssoc
+                                ) [] :| []
+                            ) :| []
+                        )
+                    )
+                }
+            , stmt2 = StmtFormula
+                { formula = FormulaChain
+                    ( ChainBase
+                        ( ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 15
+                                , locColumn = 45
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propvar" )
+                                    ( TokenCons InvisibleBraceL
+                                        ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                    )
+                                )
+                                ( Marker "propvar" ) NonAssoc
+                            )
+                            [ ExprOp
+                                ( Location
+                                    { locFile = "test/examples/datatype.tex"
+                                    , locLine = 15
+                                    , locColumn = 54
+                                    }
+                                )
+                                ( MixfixItem
+                                    ( TokenCons
+                                        ( Command "emptyset" ) End
+                                    )
+                                    ( Marker "emptyset" ) NonAssoc
+                                ) []
+                            ] :| []
+                        ) Positive
+                        ( Relation
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 15
+                                , locColumn = 65
+                                }
+                            )
+                            ( RelationSymbol
+                                ( Command "in" )
+                                ( Marker "elem" )
+                            ) []
+                        )
+                        ( ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 15
+                                , locColumn = 69
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propform" ) End
+                                )
+                                ( Marker "propform" ) NonAssoc
+                            ) [] :| []
+                        )
+                    )
+                }
+            }
+        )
+    )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 18
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "propform_imp_test" )
+    ( Claim []
+        ( StmtFormula
+            { formula = FormulaChain
+                ( ChainBase
+                    ( ExprOp
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 19
+                            , locColumn = 7
+                            }
+                        )
+                        ( MixfixItem
+                            ( HoleCons
+                                ( TokenCons
+                                    ( Command "propto" ) ( HoleCons End )
+                                )
+                            )
+                            ( Marker "propto" ) NonAssoc
+                        )
+                        [ ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 19
+                                , locColumn = 7
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propbot" ) End
+                                )
+                                ( Marker "propbot" ) NonAssoc
+                            ) []
+                        , ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 19
+                                , locColumn = 24
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propbot" ) End
+                                )
+                                ( Marker "propbot" ) NonAssoc
+                            ) []
+                        ] :| []
+                    ) Positive
+                    ( Relation
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 19
+                            , locColumn = 34
+                            }
+                        )
+                        ( RelationSymbol
+                            ( Command "in" )
+                            ( Marker "elem" )
+                        ) []
+                    )
+                    ( ExprOp
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 19
+                            , locColumn = 38
+                            }
+                        )
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propform" ) End
+                            )
+                            ( Marker "propform" ) NonAssoc
+                        ) [] :| []
+                    )
+                )
+            }
+        )
+    )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 22
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "propform_distinct_test" )
+    ( Claim []
+        ( StmtFormula
+            { formula = FormulaChain
+                ( ChainBase
+                    ( ExprOp
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 23
+                            , locColumn = 6
+                            }
+                        )
+                        ( MixfixItem
+                            ( TokenCons
+                                ( Command "propbot" ) End
+                            )
+                            ( Marker "propbot" ) NonAssoc
+                        ) [] :| []
+                    ) Positive
+                    ( Relation
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 23
+                            , locColumn = 15
+                            }
+                        )
+                        ( RelationSymbol
+                            ( Command "neq" )
+                            ( Marker "neq" )
+                        ) []
+                    )
+                    ( ExprOp
+                        ( Location
+                            { locFile = "test/examples/datatype.tex"
+                            , locLine = 23
+                            , locColumn = 21
+                            }
+                        )
+                        ( MixfixItem
+                            ( HoleCons
+                                ( TokenCons
+                                    ( Command "propto" ) ( HoleCons End )
+                                )
+                            )
+                            ( Marker "propto" ) NonAssoc
+                        )
+                        [ ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 23
+                                , locColumn = 21
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propbot" ) End
+                                )
+                                ( Marker "propbot" ) NonAssoc
+                            ) []
+                        , ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 23
+                                , locColumn = 38
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propbot" ) End
+                                )
+                                ( Marker "propbot" ) NonAssoc
+                            ) []
+                        ] :| []
+                    )
+                )
+            }
+        )
+    )
+, BlockClaim Proposition
+    ( Location
+        { locFile = "test/examples/datatype.tex"
+        , locLine = 26
+        , locColumn = 1
+        }
+    ) Nothing
+    ( Marker "propform_injective_test" )
+    ( Claim []
+        ( StmtConnected
+            { conn = Implication
+            , mloc = Just
+                ( Location
+                    { locFile = "test/examples/datatype.tex"
+                    , locLine = 27
+                    , locColumn = 5
+                    }
+                )
+            , stmt1 = StmtFormula
+                { formula = FormulaChain
+                    ( ChainBase
+                        ( ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 27
+                                , locColumn = 9
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propvar" )
+                                    ( TokenCons InvisibleBraceL
+                                        ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                    )
+                                )
+                                ( Marker "propvar" ) NonAssoc
+                            )
+                            [ ExprVar
+                                ( NamedVar "x" )
+                            ] :| []
+                        ) Positive
+                        ( Relation
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 27
+                                , locColumn = 21
+                                }
+                            )
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            ) []
+                        )
+                        ( ExprOp
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 27
+                                , locColumn = 23
+                                }
+                            )
+                            ( MixfixItem
+                                ( TokenCons
+                                    ( Command "propvar" )
+                                    ( TokenCons InvisibleBraceL
+                                        ( HoleCons ( TokenCons InvisibleBraceR End ) )
+                                    )
+                                )
+                                ( Marker "propvar" ) NonAssoc
+                            )
+                            [ ExprVar
+                                ( NamedVar "y" )
+                            ] :| []
+                        )
+                    )
+                }
+            , stmt2 = StmtFormula
+                { formula = FormulaChain
+                    ( ChainBase
+                        ( ExprVar
+                            ( NamedVar "x" ) :| []
+                        ) Positive
+                        ( Relation
+                            ( Location
+                                { locFile = "test/examples/datatype.tex"
+                                , locLine = 27
+                                , locColumn = 45
+                                }
+                            )
+                            ( RelationSymbol
+                                ( Symbol "=" )
+                                ( Marker "eq" )
+                            ) []
+                        )
+                        ( ExprVar
+                            ( NamedVar "y" ) :| []
+                        )
+                    )
+                }
+            }
+        )
+    )
+]

@@ -975,7 +975,7 @@ collectMissingHints hints = foldMap collectBlock
                 collectDefn defn
             BlockAbbr _loc _title _marker abbr ->
                 collectAbbreviation abbr
-            BlockData _loc datatype ->
+            BlockData _loc _title _marker datatype ->
                 collectDatatype datatype
             BlockInductive _loc _title _marker ind ->
                 collectInductive ind
@@ -1039,9 +1039,15 @@ collectMissingHints hints = foldMap collectBlock
                     <> collectExpr expr
 
         collectDatatype :: Datatype -> MissingHintMap
-        collectDatatype = \case
-            DatatypeFin noun _labels ->
-                collectNoun noun
+        collectDatatype Datatype{..} =
+            collectExpr datatypeHeadExpr
+                <> foldMap collectDatatypeClause datatypeClauses
+
+        collectDatatypeClause :: DatatypeClause -> MissingHintMap
+        collectDatatypeClause DatatypeClause{..} =
+            collectExpr datatypeClauseConstructorExpr
+                <> collectExpr datatypeClauseTargetExpr
+                <> foldMap (collectExpr . snd) datatypeClausePremises
 
         collectInductive :: Inductive -> MissingHintMap
         collectInductive Inductive{..} =
@@ -1459,8 +1465,8 @@ renderBlock hints references (_index, block, blockId) = case block of
         renderCustomBlock blockId "definition-" "Definition" (Just marker) title (renderDefn hints defn)
     BlockAbbr _loc title marker abbr ->
         renderCustomBlock blockId "abbreviation-" "Abbreviation" (Just marker) title (renderAbbreviation hints abbr)
-    BlockData _loc datatype ->
-        renderCustomBlock blockId "datatype-" "Datatype" Nothing Nothing (renderDatatype hints datatype)
+    BlockData _loc title marker datatype ->
+        renderCustomBlock blockId "datatype-" "Datatype" (Just marker) title (renderDatatype hints datatype)
     BlockInductive _loc title marker ind ->
         renderCustomBlock blockId "inductive-" "Inductive" (Just marker) title (renderInductive hints ind)
     BlockSig _loc title marker asms sig ->
@@ -1552,7 +1558,7 @@ blockMarkerOf = \case
     BlockProof{} -> Nothing
     BlockDefn _ _ marker _ -> Just marker
     BlockAbbr _ _ marker _ -> Just marker
-    BlockData{} -> Nothing
+    BlockData _ _ marker _ -> Just marker
     BlockInductive _ _ marker _ -> Just marker
     BlockSig _ _ marker _ _ -> Just marker
     BlockStruct _ _ marker _ -> Just marker
@@ -1564,7 +1570,7 @@ blockTitleOf = \case
     BlockProof{} -> Nothing
     BlockDefn _ title _ _ -> title
     BlockAbbr _ title _ _ -> title
-    BlockData{} -> Nothing
+    BlockData _ title _ _ -> title
     BlockInductive _ title _ _ -> title
     BlockSig _ title _ _ _ -> title
     BlockStruct _ title _ _ -> title
@@ -1769,15 +1775,28 @@ renderAbbreviation hints = \case
             toHtml ("." :: Text)
 
 renderDatatype :: HintMap -> Datatype -> Html ()
-renderDatatype hints = \case
-    DatatypeFin noun labels -> do
-        toHtml ("Finite datatype of " :: Text)
-        renderNounInline False (renderTermInline hints) noun
-        toHtml ("." :: Text)
-        p_ do
-            toHtml ("Constructors: " :: Text)
-            toHtml (Text.intercalate ", " (toList labels))
-            toHtml ("." :: Text)
+renderDatatype hints Datatype{..} = do
+    toHtml ("Datatype of " :: Text)
+    inlineMath (renderExprMathRow hints datatypeHeadExpr)
+    toHtml ("." :: Text)
+    ul_ do
+        traverse_ renderDatatypeClause (toList datatypeClauses)
+    where
+        renderDatatypeClause :: DatatypeClause -> Html ()
+        renderDatatypeClause DatatypeClause{..} = li_ do
+            inlineMath do
+                renderRelationApplication hints Positive [datatypeClauseConstructorExpr] (Relation Nowhere ElementSymbol []) [datatypeClauseTargetExpr]
+            case datatypeClausePremises of
+                [] ->
+                    toHtml ("." :: Text)
+                premises -> do
+                    toHtml (" for " :: Text)
+                    joinHtml (toHtml (" and " :: Text)) (renderDatatypePremise <$> premises)
+                    toHtml ("." :: Text)
+
+        renderDatatypePremise :: (VarSymbol, Expr) -> Html ()
+        renderDatatypePremise (x, domain) =
+            inlineMath (renderRelationApplication hints Positive [ExprVar x] (Relation Nowhere ElementSymbol []) [domain])
 
 renderInductive :: HintMap -> Inductive -> Html ()
 renderInductive hints Inductive{..} = do
@@ -1928,7 +1947,7 @@ renderPreviewBlockBody hints = \case
         previewStatement (renderDefn hints defn)
     BlockAbbr _loc _title _marker abbr ->
         previewStatement (renderAbbreviation hints abbr)
-    BlockData _loc datatype ->
+    BlockData _loc _title _marker datatype ->
         renderDatatype hints datatype
     BlockInductive _loc _title _marker ind ->
         renderInductive hints ind
@@ -1956,7 +1975,7 @@ blockLocationOf = \case
     BlockProof start _proof _end -> start
     BlockDefn loc _title _marker _defn -> loc
     BlockAbbr loc _title _marker _abbr -> loc
-    BlockData loc _datatype -> loc
+    BlockData loc _title _marker _datatype -> loc
     BlockInductive loc _title _marker _ind -> loc
     BlockSig loc _title _marker _asms _sig -> loc
     BlockStruct loc _title _marker _structDefn -> loc

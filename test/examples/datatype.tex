@@ -1,0 +1,28 @@
+\begin{datatype}\label{propform}
+    Define $\propform$ inductively as follows.
+    \begin{enumerate}
+        \item $\propbot \in \propform$.
+        \item $\propvar{n} \in \propform$ for $n \in \{\emptyset\}$.
+        \item $(p \propto q) \in \propform$ for $p \in \propform$ and $q \in \propform$.
+    \end{enumerate}
+\end{datatype}
+
+\begin{proposition}\label{propform_bot_test}
+    $\propbot \in \propform$.
+\end{proposition}
+
+\begin{proposition}\label{propform_var_test}
+    If $\emptyset \in \{\emptyset\}$, then $\propvar{\emptyset} \in \propform$.
+\end{proposition}
+
+\begin{proposition}\label{propform_imp_test}
+    $(\propbot \propto \propbot) \in \propform$.
+\end{proposition}
+
+\begin{proposition}\label{propform_distinct_test}
+    $\propbot \neq (\propbot \propto \propbot)$.
+\end{proposition}
+
+\begin{proposition}\label{propform_injective_test}
+    If $\propvar{x} = \propvar{y}$, then $x = y$.
+\end{proposition}

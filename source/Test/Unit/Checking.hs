@@ -7,9 +7,11 @@ import Checking
 import Encoding (encodeTaskText)
 import Report.Location
 import Syntax.Internal
-import Syntax.Lexicon (_Onesorted)
+import Syntax.Lexicon (_Onesorted, pattern ApplySymbol)
 
+import Bound.Scope (toScope)
 import Control.Exception (try)
+import Data.InsOrdMap qualified as InsOrdMap
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import Test.Tasty
@@ -49,6 +51,30 @@ unitTests = testGroup "Checking"
         text <- encodedTasksText boundStructLabelBlocks
         assertContains "bound carrier label remains raw" "![XA]:elem(fx,XA)" text
         assertNotContains "bound carrier label not rewritten" "![XA]:elem(fx,s__carrier(XA))" text
+    , testCase "abbreviations reject direct self-reference" do
+        expectCheckingError "self-referential" directSelfReferentialAbbrBlocks
+    , testCase "abbreviations reject indirect self-reference after expansion" do
+        expectCheckingError "self-referential" indirectSelfReferentialAbbrBlocks
+    , testCase "datatype accepts bootstrap propositional fragment" do
+        expectChecks [goodDatatypeBlock]
+    , testCase "datatype rejects nested recursive premise" do
+        expectCheckingError "recursive premise must be direct" [badNestedRecursiveDatatypeBlock]
+    , testCase "datatype rejects missing constructor premise" do
+        expectCheckingError "missing premise" [badMissingPremiseDatatypeBlock]
+    , testCase "datatype rejects duplicate constructor patterns" do
+        expectCheckingError "constructor patterns must be distinct" [badDuplicateConstructorDatatypeBlock]
+    , testCase "datatype rejects open premise domains" do
+        expectCheckingError "closed terms" [badOpenDomainDatatypeBlock]
+    , testCase "datatype rejects application-shaped constructors" do
+        expectCheckingError "function application" [badApplyConstructorDatatypeBlock]
+    , testCase "datatype generates trusted fact markers" do
+        expectFactMarkers datatypeGeneratedMarkers [goodDatatypeBlock]
+    , testCase "datatype generated intro facts are usable by reference" do
+        expectChecks datatypeIntroReferenceBlocks
+    , testCase "datatype generated distinctness fact is usable by reference" do
+        expectChecks datatypeDistinctReferenceBlocks
+    , testCase "datatype generated injective fact is usable by reference" do
+        expectChecks datatypeInjectiveReferenceBlocks
     ]
 
 expectChecks :: [Block] -> Assertion
@@ -74,6 +100,13 @@ expectCheckingError fragment blocks = do
             assertBool ("expected error containing " <> show fragment <> ", got " <> show err) (fragment `Text.isInfixOf` msg)
         Left err ->
             assertFailure ("expected generic CheckingError, got " <> show err)
+
+expectFactMarkers :: [Marker] -> [Block] -> Assertion
+expectFactMarkers markers blocks = do
+    checkingState <- runCheckingBlocks blocks (initialCheckingState WithoutDumpPremselTraining (\_task -> pure ()))
+    let facts = checkingFacts checkingState
+    for_ markers \marker ->
+        assertBool ("expected generated fact marker " <> show marker) (isJust (InsOrdMap.lookup marker facts))
 
 assertContains :: String -> Text -> Text -> Assertion
 assertContains label needle haystack =
@@ -222,3 +255,176 @@ eq = Equals Nowhere
 
 neq :: Term -> Term -> Formula
 neq = NotEquals Nowhere
+
+directSelfReferentialAbbrBlocks :: [Block]
+directSelfReferentialAbbrBlocks =
+    [ BlockAbbr Nowhere "bad_abbr_direct" (Abbreviation abbrSymbolA (toScope (TermSymbol Nowhere abbrSymbolA [])))
+    ]
+
+indirectSelfReferentialAbbrBlocks :: [Block]
+indirectSelfReferentialAbbrBlocks =
+    [ BlockAbbr Nowhere "bad_abbr_indirect_a" (Abbreviation abbrSymbolA (toScope (TermSymbol Nowhere abbrSymbolB [])))
+    , BlockAbbr Nowhere "bad_abbr_indirect_b" (Abbreviation abbrSymbolB (toScope (TermSymbol Nowhere abbrSymbolA [])))
+    ]
+
+goodDatatypeBlock :: Block
+goodDatatypeBlock =
+    datatypeBlock "good_datatype" goodDatatypeClauses
+
+datatypeGeneratedMarkers :: [Marker]
+datatypeGeneratedMarkers =
+    [ "propform_propbot_intro"
+    , "propform_propvar_intro"
+    , "propform_propto_intro"
+    , "propform_propbot_propvar_distinct"
+    , "propform_propbot_propto_distinct"
+    , "propform_propvar_propto_distinct"
+    , "propform_propvar_injective"
+    , "propform_propto_injective"
+    , "propform_cases"
+    , "propform_induct"
+    ]
+
+datatypeIntroReferenceBlocks :: [Block]
+datatypeIntroReferenceBlocks =
+    [ goodDatatypeBlock
+    , BlockLemma Nowhere "datatype_propbot_intro_ref"
+        (Lemma [] (propbotTerm `isElementOf` propformTerm))
+    , BlockProof Nowhere Nowhere
+        (Qed (Just Nowhere) (JustificationRef ("propform_propbot_intro" :| [])))
+    , BlockLemma Nowhere "datatype_propvar_intro_ref"
+        (Lemma [Asm (var "n" `isElementOf` naturalsTerm)] (termSymbol propvarSym [var "n"] `isElementOf` propformTerm))
+    , BlockProof Nowhere Nowhere
+        (Qed (Just Nowhere) (JustificationRef ("propform_propvar_intro" :| [])))
+    , BlockLemma Nowhere "datatype_propto_intro_ref"
+        (Lemma [Asm (propbotTerm `isElementOf` propformTerm)] (proptoTerm propbotTerm propbotTerm `isElementOf` propformTerm))
+    , BlockProof Nowhere Nowhere
+        (Qed (Just Nowhere) (JustificationRef ("propform_propto_intro" :| [])))
+    ]
+
+datatypeDistinctReferenceBlocks :: [Block]
+datatypeDistinctReferenceBlocks =
+    [ goodDatatypeBlock
+    , BlockLemma Nowhere "datatype_distinct_ref"
+        (Lemma [] (propbotTerm `neq` proptoTerm propbotTerm propbotTerm))
+    , BlockProof Nowhere Nowhere
+        (Qed (Just Nowhere) (JustificationRef ("propform_propbot_propto_distinct" :| [])))
+    ]
+
+datatypeInjectiveReferenceBlocks :: [Block]
+datatypeInjectiveReferenceBlocks =
+    [ goodDatatypeBlock
+    , BlockLemma Nowhere "datatype_injective_ref"
+        (Lemma [] (makeForall ["m", "n"] ((termSymbol propvarSym [var "m"] `eq` termSymbol propvarSym [var "n"]) `Implies` (var "m" `eq` var "n"))))
+    , BlockProof Nowhere Nowhere
+        (Qed (Just Nowhere) (JustificationRef ("propform_propvar_injective" :| [])))
+    ]
+
+badNestedRecursiveDatatypeBlock :: Block
+badNestedRecursiveDatatypeBlock =
+    datatypeBlock "bad_nested_recursive_datatype"
+        (DatatypeClause (SymbolPattern proptoSym ["p", "q"]) [("p", wrapPropformTerm), ("q", propformTerm)] :| [])
+
+badMissingPremiseDatatypeBlock :: Block
+badMissingPremiseDatatypeBlock =
+    datatypeBlock "bad_missing_premise_datatype"
+        (DatatypeClause (SymbolPattern propvarSym ["n"]) [] :| [])
+
+badDuplicateConstructorDatatypeBlock :: Block
+badDuplicateConstructorDatatypeBlock =
+    datatypeBlock "bad_duplicate_constructor_datatype"
+        ( DatatypeClause (SymbolPattern propbotSym []) [] :|
+            [ DatatypeClause (SymbolPattern propbotSym []) []
+            ]
+        )
+
+badOpenDomainDatatypeBlock :: Block
+badOpenDomainDatatypeBlock =
+    datatypeBlock "bad_open_domain_datatype"
+        (DatatypeClause (SymbolPattern propvarSym ["n"]) [("n", TermVar "A")] :| [])
+
+badApplyConstructorDatatypeBlock :: Block
+badApplyConstructorDatatypeBlock =
+    datatypeBlock "bad_apply_constructor_datatype"
+        (DatatypeClause (SymbolPattern ApplySymbol ["f", "x"]) [("f", naturalsTerm), ("x", naturalsTerm)] :| [])
+
+goodDatatypeClauses :: NonEmpty DatatypeClause
+goodDatatypeClauses =
+    DatatypeClause (SymbolPattern propbotSym []) [] :|
+        [ DatatypeClause (SymbolPattern propvarSym ["n"]) [("n", naturalsTerm)]
+        , DatatypeClause (SymbolPattern proptoSym ["p", "q"]) [("p", propformTerm), ("q", propformTerm)]
+        ]
+
+datatypeBlock :: Marker -> NonEmpty DatatypeClause -> Block
+datatypeBlock marker clauses =
+    BlockData Nowhere marker (Datatype (SymbolPattern propformSym []) clauses)
+
+propformTerm :: Term
+propformTerm =
+    termSymbol propformSym []
+
+propbotTerm :: Term
+propbotTerm =
+    termSymbol propbotSym []
+
+naturalsTerm :: Term
+naturalsTerm =
+    termSymbol naturalsSym []
+
+wrapPropformTerm :: Term
+wrapPropformTerm =
+    termSymbol wrapSym [propformTerm]
+
+termSymbol :: FunctionSymbol -> [Term] -> Term
+termSymbol sym args =
+    TermSymbol Nowhere (SymbolMixfix sym) args
+
+proptoTerm :: Term -> Term -> Term
+proptoTerm left right =
+    termSymbol proptoSym [left, right]
+
+propformSym :: FunctionSymbol
+propformSym =
+    constSymbol "propform"
+
+propbotSym :: FunctionSymbol
+propbotSym =
+    constSymbol "propbot"
+
+propvarSym :: FunctionSymbol
+propvarSym =
+    unarySymbol "propvar"
+
+proptoSym :: FunctionSymbol
+proptoSym =
+    infixSymbol "propto"
+
+naturalsSym :: FunctionSymbol
+naturalsSym =
+    constSymbol "naturals"
+
+wrapSym :: FunctionSymbol
+wrapSym =
+    unarySymbol "wrap"
+
+constSymbol :: Text -> FunctionSymbol
+constSymbol name =
+    mkMixfixItem [Just (Command name)] (Marker name) NonAssoc
+
+unarySymbol :: Text -> FunctionSymbol
+unarySymbol name =
+    mkMixfixItem [Just (Command name), Just InvisibleBraceL, Nothing, Just InvisibleBraceR] (Marker name) NonAssoc
+
+infixSymbol :: Text -> FunctionSymbol
+infixSymbol name =
+    mkMixfixItem [Nothing, Just (Command name), Nothing] (Marker name) NonAssoc
+
+abbrSymbolA :: Symbol
+abbrSymbolA = abbrSymbol "unit_test_abbr_a"
+
+abbrSymbolB :: Symbol
+abbrSymbolB = abbrSymbol "unit_test_abbr_b"
+
+abbrSymbol :: Text -> Symbol
+abbrSymbol name =
+    SymbolMixfix (MixfixItem (TokenCons (Command name) End) (Marker name) NonAssoc)

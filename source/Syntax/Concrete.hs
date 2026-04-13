@@ -338,8 +338,17 @@ grammar lexicon@Lexicon{..} = mdo
     abbreviationEq    <- rule $ uncurry AbbreviationEq <$> symbolicPatternEqTerm
     abbreviation      <- rule $ (abbreviationVerb <|> abbreviationAdj <|> abbreviationNoun <|> abbreviationRel <|> abbreviationFun <|> abbreviationEq)
 
-    datatypeFin <- rule $ DatatypeFin <$> fmap fst (_an *> noun) <*> (_is *> _oneOf *> orList2 (math cmd) <* _dot)
-    datatype    <- rule datatypeFin
+    datatypePremise <- rule $ math $ (,) <$> varSymbol <* _in <*> expr
+    datatypeClause <- rule $
+        (\(constructorExpr, targetExpr) premises -> DatatypeClause
+            { datatypeClauseConstructorExpr = constructorExpr
+            , datatypeClauseTargetExpr = targetExpr
+            , datatypeClausePremises = premises ?? []
+            }) <$> math ((,) <$> expr <* _in <*> expr)
+               <*> optional (_for *> andList1_ datatypePremise)
+               <* _dot
+    datatypeHead <- rule $ _define *> math expr <* optional _inductively <* optional _asFollows <* _dot
+    datatype     <- rule $ Datatype <$> datatypeHead <*> enumerated1 datatypeClause
 
     unconditionalIntro <- rule $ IntroRule [] <$> math formula
     conditionalIntro   <- rule $ IntroRule <$> (_if *> andList1_ (math formula)) <* _comma <* _then <*> math formula
@@ -450,7 +459,7 @@ grammar lexicon@Lexicon{..} = mdo
     blockProof  <- rule $ uncurry3 BlockProof     <$> envStartEndLocation "proof" proof
     blockDefn   <- rule $ (\(p, title, m, d) -> BlockDefn p title m d) <$> envPos "definition" defn
     blockAbbr   <- rule $ (\(p, title, m, a) -> BlockAbbr p title m a) <$> envPos "abbreviation" abbreviation
-    blockData   <- rule $ uncurry  BlockData      <$> envPos_ "datatype" datatype
+    blockData   <- rule $ (\(p, title, m, d) -> BlockData p title m d) <$> envPos "datatype" datatype
     blockInd    <- rule $ (\(p, title, m, i) -> BlockInductive p title m i) <$> envPos "inductive" inductive
     blockSig    <- rule $ (\(p, title, m, (a, s)) -> BlockSig p title m a s) <$> envPos "signature" signature
     blockStruct <- rule $ (\(p, title, m, s) -> BlockStruct p title m s) <$> envPos "struct" structDefn

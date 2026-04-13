@@ -32,6 +32,8 @@ scanChunk ltoks =
             matchOrErr structRE "struct definition" pos
         Located{startPos = pos, unLocated = (BeginEnv "inductive")} :_ ->
             matchOrErr inductive "inductive definition" pos
+        Located{startPos = pos, unLocated = (BeginEnv "datatype")} :_ ->
+            scanDatatypeChunk pos toks
         _ -> []
 
 adaptChunks :: [[Located Token]] -> Lexicon -> Lexicon
@@ -151,6 +153,129 @@ inductive = do
     RE.sym (EndEnv "inductive")
     skipUntilNextLexicalEnv
     pure [ScanFunctionSymbol lexicalItem m]
+
+scanDatatypeChunk :: Location -> [Token] -> [ScannedLexicalItem]
+scanDatatypeChunk pos toks =
+    case datatypeLexicalItems toks of
+        Just items -> items
+        Nothing -> error ("could not find lexical pattern in datatype definition at " <> prettyLocation pos)
+
+
+datatypeLexicalItems :: [Token] -> Maybe [ScannedLexicalItem]
+datatypeLexicalItems toks = do
+    marker <- findDatatypeLabel toks
+    datatypeHeadToks <- findDatatypeHead toks
+    constructorToks <- findDatatypeConstructors toks
+    let datatypeItem = ScanFunctionSymbol (makeFunctionSymbol datatypeHeadToks) marker
+        constructorItems =
+            [ ScanFunctionSymbol (makeFunctionSymbol stripped) (constructorMarker stripped)
+            | raw <- constructorToks
+            , let stripped = stripOuterParens raw
+            ]
+    pure (datatypeItem : constructorItems)
+
+findDatatypeLabel :: [Token] -> Maybe Marker
+findDatatypeLabel = \case
+    [] -> Nothing
+    Label m : _ -> Just (Marker m)
+    _ : toks -> findDatatypeLabel toks
+
+findDatatypeHead :: [Token] -> Maybe [Token]
+findDatatypeHead toks = do
+    afterLabel <- tailMay =<< dropUntil isLabel toks
+    defineToks <- dropUntil (== Word "define") afterLabel
+    case defineToks of
+        Word "define" : BeginEnv "math" : rest -> takeUntilToken (EndEnv "math") rest
+        _ -> Nothing
+
+findDatatypeConstructors :: [Token] -> Maybe [[Token]]
+findDatatypeConstructors toks = do
+    afterEnumerate <- tailMay =<< dropUntil (== BeginEnv "enumerate") toks
+    enumerateBody <- takeUntilToken (EndEnv "enumerate") afterEnumerate
+    traverse itemConstructorToks (splitDatatypeItems enumerateBody)
+
+splitDatatypeItems :: [Token] -> [[Token]]
+splitDatatypeItems = go []
+    where
+        go current = \case
+            [] -> reverse (finish current)
+            Command "item" : rest -> reverse (finish current) <> go [] rest
+            tok : rest -> go (tok : current) rest
+
+        finish [] = []
+        finish xs = [reverse xs]
+
+itemConstructorToks :: [Token] -> Maybe [Token]
+itemConstructorToks toks = do
+    afterMath <- tailMay =<< dropUntil (== BeginEnv "math") toks
+    mathBody <- takeUntilToken (EndEnv "math") afterMath
+    takeUntilToken (Command "in") mathBody
+
+constructorMarker :: [Token] -> Marker
+constructorMarker = \case
+    [] -> error "Malformed datatype constructor: no symbolic head"
+    tok : toks
+        | isConstructorMarkerToken tok -> markerFromToken tok
+        | otherwise -> constructorMarker toks
+
+isConstructorMarkerToken :: Token -> Bool
+isConstructorMarkerToken = \case
+    Variable _ -> False
+    ParenL -> False
+    ParenR -> False
+    BracketL -> False
+    BracketR -> False
+    VisibleBraceL -> False
+    VisibleBraceR -> False
+    InvisibleBraceL -> False
+    InvisibleBraceR -> False
+    _ -> True
+
+stripOuterParens :: [Token] -> [Token]
+stripOuterParens toks
+    | hasOuterParens toks = case toks of
+        ParenL : rest -> case reverse rest of
+            ParenR : innerRev -> reverse innerRev
+            _ -> toks
+        _ -> toks
+    | otherwise = toks
+
+hasOuterParens :: [Token] -> Bool
+hasOuterParens = \case
+    ParenL : rest -> go (1 :: Int) rest
+    _ -> False
+    where
+        go _ [] = False
+        go depth [ParenR] = depth == 1
+        go depth (ParenL : toks) = go (depth + 1) toks
+        go depth (ParenR : toks)
+            | depth <= 0 = False
+            | otherwise = go (depth - 1) toks
+        go depth (_ : toks) = go depth toks
+
+isLabel :: Token -> Bool
+isLabel = \case
+    Label _ -> True
+    _ -> False
+
+dropUntil :: (a -> Bool) -> [a] -> Maybe [a]
+dropUntil predicate = \case
+    [] -> Nothing
+    xs@(x : rest)
+        | predicate x -> Just xs
+        | otherwise -> dropUntil predicate rest
+
+takeUntilToken :: Eq a => a -> [a] -> Maybe [a]
+takeUntilToken stop = \case
+    [] -> Nothing
+    x : xs
+        | x == stop -> Just []
+        | otherwise -> (x :) <$> takeUntilToken stop xs
+
+tailMay :: [a] -> Maybe [a]
+tailMay = \case
+    [] -> Nothing
+    _ : xs -> Just xs
 
 structRE :: RE Token [ScannedLexicalItem]
 structRE = do

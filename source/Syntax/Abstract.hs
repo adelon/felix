@@ -702,7 +702,17 @@ data Abbreviation
     deriving (Show, Eq, Ord)
 
 data Datatype
-    = DatatypeFin (NounOf Term) (NonEmpty Text)
+    = Datatype
+        { datatypeHeadExpr :: Expr
+        , datatypeClauses :: NonEmpty DatatypeClause
+        }
+    deriving (Show, Eq, Ord)
+
+data DatatypeClause = DatatypeClause
+    { datatypeClauseConstructorExpr :: Expr
+    , datatypeClauseTargetExpr :: Expr
+    , datatypeClausePremises :: [(VarSymbol, Expr)]
+    }
     deriving (Show, Eq, Ord)
 
 data Inductive = Inductive
@@ -767,7 +777,7 @@ data Block
     | BlockProof Location Proof Location -- ^ Proof start and ending location.
     | BlockDefn Location (Maybe BlockTitle) Marker Defn
     | BlockAbbr Location (Maybe BlockTitle) Marker Abbreviation
-    | BlockData Location Datatype
+    | BlockData Location (Maybe BlockTitle) Marker Datatype
     | BlockInductive Location (Maybe BlockTitle) Marker Inductive
     | BlockSig Location (Maybe BlockTitle) Marker [Asm] Signature
     | BlockStruct Location (Maybe BlockTitle) Marker StructDefn

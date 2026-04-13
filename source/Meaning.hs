@@ -44,6 +44,9 @@ data GlossError
     = GlossDefnError Location DefnError Sem.Marker
     | GlossInductionError Location
     | GlossRelationExprWithParams Location
+    | GlossDatatypeHeadError Location
+    | GlossDatatypeClauseTargetError Location
+    | GlossDatatypeConstructorError Location
     deriving (Eq, Ord)
 
 instance Exception GlossError
@@ -65,6 +68,12 @@ explainGlossError = \case
         "Error at " <> prettyLocation loc <> ": Induction over a non-variable is not supported."
     GlossRelationExprWithParams loc ->
         "Error at " <> prettyLocation loc <> ": A relation defined by an expression cannot have parameters."
+    GlossDatatypeHeadError loc ->
+        "Error at " <> prettyLocation loc <> ": A datatype head must be a constant symbolic term."
+    GlossDatatypeClauseTargetError loc ->
+        "Error at " <> prettyLocation loc <> ": Every datatype clause must target the datatype being defined."
+    GlossDatatypeConstructorError loc ->
+        "Error at " <> prettyLocation loc <> ": Datatype constructors must be symbolic terms with bare variable arguments."
 
 -- | Specialization of 'traverse' to 'Gloss'.
 each :: (Traversable t) => (a -> Gloss b) -> t a -> Gloss (t b)
@@ -774,6 +783,50 @@ glossInductive (Raw.Inductive (Raw.SymbolPattern symbol args) domain rules) =
     where
         glossRule (Raw.IntroRule phis psi) = Sem.IntroRule <$> (glossFormula `each` phis) <*> glossFormula psi
 
+glossDatatype :: Raw.Datatype -> Gloss Sem.Datatype
+glossDatatype rawDatatype = do
+    let datatypeHeadExpr = Raw.datatypeHeadExpr rawDatatype
+        rawClauses = Raw.datatypeClauses rawDatatype
+    datatypeHead <- glossDatatypeHead datatypeHeadExpr
+    datatypeClauses <- glossDatatypeClause datatypeHead `each` rawClauses
+    pure (Sem.Datatype datatypeHead datatypeClauses)
+    where
+        glossDatatypeHead :: Raw.Expr -> Gloss Sem.SymbolPattern
+        glossDatatypeHead expr = case expr of
+            Raw.ExprOp _loc item [] ->
+                pure (Sem.SymbolPattern item [])
+            _ ->
+                throwError (GlossDatatypeHeadError (locate expr))
+
+        glossDatatypeClause :: Sem.SymbolPattern -> Raw.DatatypeClause -> Gloss Sem.DatatypeClause
+        glossDatatypeClause datatypeHead rawClause = do
+            let constructorExpr = Raw.datatypeClauseConstructorExpr rawClause
+                targetExpr = Raw.datatypeClauseTargetExpr rawClause
+                rawPremises = Raw.datatypeClausePremises rawClause
+            datatypeTarget <- glossDatatypeHead targetExpr
+            unless (datatypeTarget == datatypeHead) do
+                throwError (GlossDatatypeClauseTargetError (locate targetExpr))
+            datatypeClauseConstructor <- glossDatatypeConstructor constructorExpr
+            datatypeClausePremises <- traverse glossDatatypePremise rawPremises
+            pure (Sem.DatatypeClause datatypeClauseConstructor datatypeClausePremises)
+
+        glossDatatypeConstructor :: Raw.Expr -> Gloss Sem.SymbolPattern
+        glossDatatypeConstructor expr = case expr of
+            Raw.ExprOp _loc item args -> do
+                vars <- traverse glossConstructorArg args
+                pure (Sem.SymbolPattern item vars)
+            _ ->
+                throwError (GlossDatatypeConstructorError (locate expr))
+
+        glossConstructorArg :: Raw.Expr -> Gloss VarSymbol
+        glossConstructorArg = \case
+            Raw.ExprVar x -> pure x
+            expr -> throwError (GlossDatatypeConstructorError (locate expr))
+
+        glossDatatypePremise :: (VarSymbol, Raw.Expr) -> Gloss (VarSymbol, Sem.Expr)
+        glossDatatypePremise (x, domain) =
+            (x,) <$> glossExpr domain
+
 glossBlock :: Raw.Block -> Gloss Sem.Block
 glossBlock = \case
     Raw.BlockAxiom loc _title marker axiom ->
@@ -792,8 +845,8 @@ glossBlock = \case
         Sem.BlockSig loc marker <$> glossAsms asms <*> glossSignature sig
     Raw.BlockStruct loc _title m structDefn ->
         Sem.BlockStruct loc m <$> glossStructDefn structDefn
-    Raw.BlockData _pos _ ->
-        _TODO "glossBlock datatype definitions"
+    Raw.BlockData loc _title marker datatype ->
+        Sem.BlockData loc marker <$> glossDatatype datatype
     Raw.BlockInductive loc _title marker ind ->
         Sem.BlockInductive loc marker <$> glossInductive ind
 

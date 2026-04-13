@@ -1,0 +1,154 @@
+[
+    [ BeginEnv "datatype"
+    , Label "propform"
+    , Word "define"
+    , BeginEnv "math"
+    , Command "propform"
+    , EndEnv "math"
+    , Word "inductively"
+    , Word "as"
+    , Word "follows"
+    , Symbol "."
+    , BeginEnv "enumerate"
+    , Command "item"
+    , BeginEnv "math"
+    , Command "propbot"
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Symbol "."
+    , Command "item"
+    , BeginEnv "math"
+    , Command "propvar"
+    , InvisibleBraceL
+    , Variable "n"
+    , InvisibleBraceR
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Word "for"
+    , BeginEnv "math"
+    , Variable "n"
+    , Command "in"
+    , VisibleBraceL
+    , Command "emptyset"
+    , VisibleBraceR
+    , EndEnv "math"
+    , Symbol "."
+    , Command "item"
+    , BeginEnv "math"
+    , ParenL
+    , Variable "p"
+    , Command "propto"
+    , Variable "q"
+    , ParenR
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Word "for"
+    , BeginEnv "math"
+    , Variable "p"
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Word "and"
+    , BeginEnv "math"
+    , Variable "q"
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Symbol "."
+    , EndEnv "enumerate"
+    , EndEnv "datatype"
+    ]
+,
+    [ BeginEnv "proposition"
+    , Label "propform_bot_test"
+    , BeginEnv "math"
+    , Command "propbot"
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Symbol "."
+    , EndEnv "proposition"
+    ]
+,
+    [ BeginEnv "proposition"
+    , Label "propform_var_test"
+    , Word "if"
+    , BeginEnv "math"
+    , Command "emptyset"
+    , Command "in"
+    , VisibleBraceL
+    , Command "emptyset"
+    , VisibleBraceR
+    , EndEnv "math"
+    , Symbol ","
+    , Word "then"
+    , BeginEnv "math"
+    , Command "propvar"
+    , InvisibleBraceL
+    , Command "emptyset"
+    , InvisibleBraceR
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Symbol "."
+    , EndEnv "proposition"
+    ]
+,
+    [ BeginEnv "proposition"
+    , Label "propform_imp_test"
+    , BeginEnv "math"
+    , ParenL
+    , Command "propbot"
+    , Command "propto"
+    , Command "propbot"
+    , ParenR
+    , Command "in"
+    , Command "propform"
+    , EndEnv "math"
+    , Symbol "."
+    , EndEnv "proposition"
+    ]
+,
+    [ BeginEnv "proposition"
+    , Label "propform_distinct_test"
+    , BeginEnv "math"
+    , Command "propbot"
+    , Command "neq"
+    , ParenL
+    , Command "propbot"
+    , Command "propto"
+    , Command "propbot"
+    , ParenR
+    , EndEnv "math"
+    , Symbol "."
+    , EndEnv "proposition"
+    ]
+,
+    [ BeginEnv "proposition"
+    , Label "propform_injective_test"
+    , Word "if"
+    , BeginEnv "math"
+    , Command "propvar"
+    , InvisibleBraceL
+    , Variable "x"
+    , InvisibleBraceR
+    , Symbol "="
+    , Command "propvar"
+    , InvisibleBraceL
+    , Variable "y"
+    , InvisibleBraceR
+    , EndEnv "math"
+    , Symbol ","
+    , Word "then"
+    , BeginEnv "math"
+    , Variable "x"
+    , Symbol "="
+    , Variable "y"
+    , EndEnv "math"
+    , Symbol "."
+    , EndEnv "proposition"
+    ]
+]

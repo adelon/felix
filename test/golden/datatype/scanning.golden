@@ -1,0 +1,26 @@
+[ ScanFunctionSymbol
+    ( TokenCons
+        ( Command "propform" ) End
+    )
+    ( Marker "propform" )
+, ScanFunctionSymbol
+    ( TokenCons
+        ( Command "propbot" ) End
+    )
+    ( Marker "propbot" )
+, ScanFunctionSymbol
+    ( TokenCons
+        ( Command "propvar" )
+        ( TokenCons InvisibleBraceL
+            ( HoleCons ( TokenCons InvisibleBraceR End ) )
+        )
+    )
+    ( Marker "propvar" )
+, ScanFunctionSymbol
+    ( HoleCons
+        ( TokenCons
+            ( Command "propto" ) ( HoleCons End )
+        )
+    )
+    ( Marker "propto" )
+]

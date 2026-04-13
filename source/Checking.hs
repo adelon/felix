@@ -369,6 +369,277 @@ formatVar = \case
     NamedVar x -> x
     FreshVar n -> "_" <> Text.pack (show n)
 
+checkDatatype :: Datatype -> Checking
+checkDatatype datatype@Datatype{datatypeHead = SymbolPattern datatypeSymbol datatypeArgs, datatypeClauses} = do
+    unless (null datatypeArgs) do
+        throwCheckingError "datatype head must be nullary"
+    let constructorSymbols =
+            [ constructorSymbol
+            | DatatypeClause
+                { datatypeClauseConstructor = SymbolPattern constructorSymbol _
+                } <- NonEmpty.toList datatypeClauses
+            ]
+        duplicateConstructors = duplicateDatatypeConstructorSymbols constructorSymbols
+    unless (Set.null duplicateConstructors) do
+        throwCheckingError ("datatype constructor patterns must be distinct: " <> formatDatatypeConstructors duplicateConstructors)
+    traverse_ (checkDatatypeClause datatypeSymbol) datatypeClauses
+    addFacts (InsOrdMap.fromList (datatypeFacts datatype))
+
+checkDatatypeClause :: FunctionSymbol -> DatatypeClause -> Checking
+checkDatatypeClause datatypeSymbol DatatypeClause
+    { datatypeClauseConstructor = SymbolPattern constructorSymbol constructorArgs
+    , datatypeClausePremises
+    } = do
+        when (constructorSymbol == ApplySymbol) do
+            throwCheckingError "datatype constructor cannot be function application"
+        when (constructorSymbol == datatypeSymbol) do
+            throwCheckingError "datatype constructor cannot reuse the datatype symbol"
+        let duplicateConstructorArgs = duplicateVars constructorArgs
+        unless (Set.null duplicateConstructorArgs) do
+            throwCheckingError ("datatype constructor arguments must be linear: " <> formatVars duplicateConstructorArgs)
+        let premiseVars = fst <$> datatypeClausePremises
+            duplicatePremiseVars = duplicateVars premiseVars
+        unless (Set.null duplicatePremiseVars) do
+            throwCheckingError ("datatype premise variables must be linear: " <> formatVars duplicatePremiseVars)
+        let missingPremises = Set.fromList constructorArgs `Set.difference` Set.fromList premiseVars
+        unless (Set.null missingPremises) do
+            throwCheckingError ("datatype constructor argument(s) missing premise: " <> formatVars missingPremises)
+        traverse_ (checkDatatypePremise datatypeSymbol) datatypeClausePremises
+
+checkDatatypePremise :: FunctionSymbol -> (VarSymbol, Expr) -> Checking
+checkDatatypePremise datatypeSymbol (_x, domain) = do
+    let domainFreeVars = freeVars domain
+    unless (Set.null domainFreeVars) do
+        throwCheckingError ("datatype premise domains must be closed terms: " <> formatVars domainFreeVars)
+    let datatypeExpr = TermSymbol Nowhere (SymbolMixfix datatypeSymbol) []
+    when (mentionsSymbol (SymbolMixfix datatypeSymbol) domain && not (equivalent domain datatypeExpr)) do
+        throwCheckingError "datatype recursive premise must be direct"
+
+duplicateDatatypeConstructorSymbols :: [FunctionSymbol] -> Set FunctionSymbol
+duplicateDatatypeConstructorSymbols =
+    snd . foldl' step (Set.empty, Set.empty)
+    where
+        step (seen, duplicates) sym
+            | sym `Set.member` seen = (seen, Set.insert sym duplicates)
+            | otherwise = (Set.insert sym seen, duplicates)
+
+formatDatatypeConstructors :: Set FunctionSymbol -> Text
+formatDatatypeConstructors syms =
+    Text.intercalate ", " (showConstructor <$> Set.toList syms)
+    where
+        showConstructor sym = case mixfixMarker sym of
+            Marker name -> name
+
+datatypeFacts :: Datatype -> [(Marker, Formula)]
+datatypeFacts datatype =
+    datatypeIntroFacts datatype
+        <> datatypeDistinctFacts datatype
+        <> datatypeInjectiveFacts datatype
+        <> [ (datatypeCasesMarker datatype, datatypeCasesFormula datatype)
+           , (datatypeInductMarker datatype, datatypeInductFormula datatype)
+           ]
+
+datatypeIntroFacts :: Datatype -> [(Marker, Formula)]
+datatypeIntroFacts datatype =
+    [ (datatypeIntroMarker datatype clause, datatypeIntroFormula datatype clause)
+    | clause <- NonEmpty.toList (datatypeClauses datatype)
+    ]
+
+datatypeDistinctFacts :: Datatype -> [(Marker, Formula)]
+datatypeDistinctFacts datatype =
+    [ (datatypeDistinctMarker datatype leftClause rightClause, datatypeDistinctFormula leftClause rightClause)
+    | (leftClause, rightClause) <- unorderedPairs (NonEmpty.toList (datatypeClauses datatype))
+    ]
+
+datatypeInjectiveFacts :: Datatype -> [(Marker, Formula)]
+datatypeInjectiveFacts datatype =
+    [ (datatypeInjectiveMarker datatype clause, datatypeInjectiveFormula clause)
+    | clause <- NonEmpty.toList (datatypeClauses datatype)
+    , not (null (datatypeClauseConstructorArgs clause))
+    ]
+
+datatypeIntroMarker :: Datatype -> DatatypeClause -> Marker
+datatypeIntroMarker datatype clause =
+    Marker (datatypeFactBase datatype <> "_" <> datatypeClauseSymbolText clause <> "_intro")
+
+datatypeDistinctMarker :: Datatype -> DatatypeClause -> DatatypeClause -> Marker
+datatypeDistinctMarker datatype leftClause rightClause =
+    Marker
+        ( datatypeFactBase datatype
+            <> "_"
+            <> datatypeClauseSymbolText leftClause
+            <> "_"
+            <> datatypeClauseSymbolText rightClause
+            <> "_distinct"
+        )
+
+datatypeInjectiveMarker :: Datatype -> DatatypeClause -> Marker
+datatypeInjectiveMarker datatype clause =
+    Marker (datatypeFactBase datatype <> "_" <> datatypeClauseSymbolText clause <> "_injective")
+
+datatypeCasesMarker :: Datatype -> Marker
+datatypeCasesMarker datatype =
+    Marker (datatypeFactBase datatype <> "_cases")
+
+datatypeInductMarker :: Datatype -> Marker
+datatypeInductMarker datatype =
+    Marker (datatypeFactBase datatype <> "_induct")
+
+datatypeFactBase :: Datatype -> Text
+datatypeFactBase Datatype{datatypeHead = SymbolPattern datatypeSymbol _} =
+    functionSymbolText datatypeSymbol
+
+datatypeIntroFormula :: Datatype -> DatatypeClause -> Formula
+datatypeIntroFormula datatype clause =
+    forallIfNeeded premiseVars (impliesFrom premises conclusion)
+    where
+        premiseVars = datatypeClausePremiseVars clause
+        premises = datatypeClausePremiseFormulas clause
+        conclusion = datatypeClauseResultFormula datatype clause
+
+datatypeDistinctFormula :: DatatypeClause -> DatatypeClause -> Formula
+datatypeDistinctFormula leftClause rightClause =
+    forallIfNeeded (leftVars <> rightVars) (NotEquals Nowhere leftTerm rightTerm)
+    where
+        leftVars = datatypeClauseConstructorArgs leftClause
+        rightVars = renameDatatypeVars (Set.fromList leftVars) (datatypeClauseConstructorArgs rightClause)
+        leftTerm = datatypeClauseTerm leftClause (TermVar <$> leftVars)
+        rightTerm = datatypeClauseTerm rightClause (TermVar <$> rightVars)
+
+datatypeInjectiveFormula :: DatatypeClause -> Formula
+datatypeInjectiveFormula clause =
+    forallIfNeeded (leftVars <> rightVars) (Equals Nowhere leftTerm rightTerm `Implies` makeConjunction equalities)
+    where
+        leftVars = datatypeClauseConstructorArgs clause
+        rightVars = renameDatatypeVars (Set.fromList leftVars) leftVars
+        leftTerm = datatypeClauseTerm clause (TermVar <$> leftVars)
+        rightTerm = datatypeClauseTerm clause (TermVar <$> rightVars)
+        equalities = zipWith (\leftVar rightVar -> Equals Nowhere (TermVar leftVar) (TermVar rightVar)) leftVars rightVars
+
+datatypeCasesFormula :: Datatype -> Formula
+datatypeCasesFormula datatype =
+    makeForall [witnessVar] (isElementOf (TermVar witnessVar) datatypeCarrier `Implies` makeDisjunction disjuncts)
+    where
+        usedVars = datatypeUsedVars datatype
+        witnessVar = freshDatatypeVar usedVars "x"
+        datatypeCarrier = datatypeCarrierTerm datatype
+        disjuncts = datatypeCaseDisjunct witnessVar <$> NonEmpty.toList (datatypeClauses datatype)
+        datatypeCaseDisjunct x clause =
+            existsIfNeeded premiseVars (makeConjunction (premises <> [Equals Nowhere (TermVar x) constructorTerm]))
+            where
+                premiseVars = datatypeClausePremiseVars clause
+                premises = datatypeClausePremiseFormulas clause
+                constructorTerm = datatypeClauseTerm clause (TermVar <$> datatypeClauseConstructorArgs clause)
+
+datatypeInductFormula :: Datatype -> Formula
+datatypeInductFormula datatype =
+    makeForall [subsetVar] (impliesFrom closureAssumptions conclusion)
+    where
+        usedVars = datatypeUsedVars datatype
+        subsetVar = freshDatatypeVar usedVars "S"
+        witnessVar = freshDatatypeVar (Set.insert subsetVar usedVars) "x"
+        datatypeCarrier = datatypeCarrierTerm datatype
+        conclusion =
+            makeForall [witnessVar] (isElementOf (TermVar witnessVar) datatypeCarrier `Implies` isElementOf (TermVar witnessVar) (TermVar subsetVar))
+        closureAssumptions = datatypeInductionClosure datatype subsetVar <$> NonEmpty.toList (datatypeClauses datatype)
+
+datatypeInductionClosure :: Datatype -> VarSymbol -> DatatypeClause -> Formula
+datatypeInductionClosure datatype subsetVar clause =
+    forallIfNeeded premiseVars (impliesFrom inductionPremises conclusion)
+    where
+        premiseVars = datatypeClausePremiseVars clause
+        inductionPremises = datatypeInductionPremise datatype subsetVar <$> datatypeClausePremises clause
+        conclusion = isElementOf (datatypeClauseTerm clause (TermVar <$> datatypeClauseConstructorArgs clause)) (TermVar subsetVar)
+
+datatypeInductionPremise :: Datatype -> VarSymbol -> (VarSymbol, Expr) -> Formula
+datatypeInductionPremise datatype subsetVar (x, domain)
+    | equivalent domain (datatypeCarrierTerm datatype) =
+        isElementOf (TermVar x) (TermVar subsetVar)
+    | otherwise =
+        isElementOf (TermVar x) domain
+
+datatypeCarrierTerm :: Datatype -> Expr
+datatypeCarrierTerm Datatype{datatypeHead = SymbolPattern datatypeSymbol _} =
+    TermOp Nowhere datatypeSymbol []
+
+datatypeClauseResultFormula :: Datatype -> DatatypeClause -> Formula
+datatypeClauseResultFormula datatype clause =
+    isElementOf (datatypeClauseTerm clause (TermVar <$> datatypeClauseConstructorArgs clause)) (datatypeCarrierTerm datatype)
+
+datatypeClauseTerm :: DatatypeClause -> [Expr] -> Expr
+datatypeClauseTerm DatatypeClause{datatypeClauseConstructor = SymbolPattern constructorSymbol _} args =
+    TermOp Nowhere constructorSymbol args
+
+datatypeClauseConstructorArgs :: DatatypeClause -> [VarSymbol]
+datatypeClauseConstructorArgs DatatypeClause{datatypeClauseConstructor = SymbolPattern _ constructorArgs} =
+    constructorArgs
+
+datatypeClausePremiseVars :: DatatypeClause -> [VarSymbol]
+datatypeClausePremiseVars DatatypeClause{datatypeClausePremises} =
+    fst <$> datatypeClausePremises
+
+datatypeClausePremiseFormulas :: DatatypeClause -> [Formula]
+datatypeClausePremiseFormulas DatatypeClause{datatypeClausePremises} =
+    datatypePremiseFormula <$> datatypeClausePremises
+
+datatypePremiseFormula :: (VarSymbol, Expr) -> Formula
+datatypePremiseFormula (x, domain) =
+    isElementOf (TermVar x) domain
+
+datatypeClauseSymbolText :: DatatypeClause -> Text
+datatypeClauseSymbolText DatatypeClause{datatypeClauseConstructor = SymbolPattern constructorSymbol _} =
+    functionSymbolText constructorSymbol
+
+functionSymbolText :: FunctionSymbol -> Text
+functionSymbolText symbol = case mixfixMarker symbol of
+    Marker name -> name
+
+datatypeUsedVars :: Datatype -> Set VarSymbol
+datatypeUsedVars Datatype{datatypeClauses} =
+    Set.fromList
+        [ var
+        | clause <- NonEmpty.toList datatypeClauses
+        , var <- datatypeClausePremiseVars clause
+        ]
+
+renameDatatypeVars :: Set VarSymbol -> [VarSymbol] -> [VarSymbol]
+renameDatatypeVars _ [] = []
+renameDatatypeVars used (x:xs) =
+    let x' = freshDatatypeLikeVar used x
+    in x' : renameDatatypeVars (Set.insert x' used) xs
+
+freshDatatypeLikeVar :: Set VarSymbol -> VarSymbol -> VarSymbol
+freshDatatypeLikeVar used = \case
+    NamedVar name ->
+        freshDatatypeVar used (name <> "_rhs")
+    FreshVar n ->
+        freshDatatypeVar used ("_" <> Text.pack (show n) <> "_rhs")
+
+freshDatatypeVar :: Set VarSymbol -> Text -> VarSymbol
+freshDatatypeVar used base =
+    List.head
+        [ NamedVar candidate
+        | candidate <- base : [base <> Text.pack (show n) | n <- [(1 :: Int)..]]
+        , NamedVar candidate `Set.notMember` used
+        ]
+
+forallIfNeeded :: [VarSymbol] -> Formula -> Formula
+forallIfNeeded [] phi = phi
+forallIfNeeded xs phi = makeForall xs phi
+
+existsIfNeeded :: [VarSymbol] -> Formula -> Formula
+existsIfNeeded [] phi = phi
+existsIfNeeded xs phi = makeExists xs phi
+
+impliesFrom :: [Formula] -> Formula -> Formula
+impliesFrom [] conclusion = conclusion
+impliesFrom premises conclusion = makeConjunction premises `Implies` conclusion
+
+unorderedPairs :: [a] -> [(a, a)]
+unorderedPairs = \case
+    [] -> []
+    x:xs -> [(x, y) | y <- xs] <> unorderedPairs xs
+
 
 -- | Create (and add) tasks based on facts, local assumptions, and goals.
 tellTasks :: Checking
@@ -459,6 +730,35 @@ unabbreviateWith abbrs = unabbr
             TermSymbolStruct symb e ->
                 TermSymbolStruct symb (unabbr <$> e)
 
+mentionsSymbol :: Symbol -> ExprOf a -> Bool
+mentionsSymbol target = \case
+    TermVar{} ->
+        False
+    TermSymbol _loc sym es ->
+        sym == target || any (mentionsSymbol target) es
+    TermSymbolStruct _symb e ->
+        maybe False (mentionsSymbol target) e
+    Apply e es ->
+        mentionsSymbol target e || any (mentionsSymbol target) es
+    TermSep _x bound scope ->
+        mentionsSymbol target bound || mentionsSymbol target (fromScope scope)
+    ReplacePred _y _x bound scope ->
+        mentionsSymbol target bound || mentionsSymbol target (fromScope scope)
+    ReplaceFun bounds lhs cond ->
+        any (mentionsSymbol target . snd) bounds
+            || mentionsSymbol target (fromScope lhs)
+            || mentionsSymbol target (fromScope cond)
+    Connected _conn e1 e2 ->
+        mentionsSymbol target e1 || mentionsSymbol target e2
+    Lambda scope ->
+        mentionsSymbol target (fromScope scope)
+    Quantified _quant scope ->
+        mentionsSymbol target (fromScope scope)
+    PropositionalConstant{} ->
+        False
+    Not _loc e ->
+        mentionsSymbol target e
+
 -- | Unroll supported comprehensions in equations and reject leftover ones.
 -- E.g. /@B = \\{f(a) | a\\in A \\}@/ turns into
 -- /@\\forall b. b\\in B \\iff \\exists a\\in A. b = f(a)@/.
@@ -538,6 +838,9 @@ checkBlocks = \case
         throwWithMarker (ProofWithoutPrecedingTheorem startLoc)
     BlockSig loc marker asms sig : blocks -> do
         withLabel loc marker (checkSig asms sig)
+        checkBlocks blocks
+    BlockData loc marker datatype : blocks -> do
+        withLabel loc marker (checkDatatype datatype)
         checkBlocks blocks
     BlockInductive loc marker inductiveDefn : blocks -> do
         withLabel loc marker (checkInductive inductiveDefn)
@@ -1267,4 +1570,6 @@ syntacticMatch asm = \case
 checkAbbr :: Abbreviation -> Checking
 checkAbbr (Abbreviation symbol scope) = do
     scope' <- transverseScope unabbreviate scope
+    when (mentionsSymbol symbol (fromScope scope')) do
+        throwCheckingError "abbreviation is self-referential"
     modify (\st -> st{checkingAbbreviations = HM.insert symbol scope' (checkingAbbreviations st)})
