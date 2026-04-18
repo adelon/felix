@@ -1538,11 +1538,13 @@ fixing xs = do
                 case xs of
                     x :| [] -> return (instantiate (\_bv -> TermVar x) body)
                     _ -> throwWithLocationAndMarker (CheckingError "Couldn't use \"fix\" step: only one bound variable but multiple variables to be fixed")
-            Forall body | toList xs `List.intersect` nubOrd (bindings body) == toList xs ->
-                return (Forall (instantiateSome xs body))
             Forall body ->
-                throwWithLocationAndMarker (CheckingError ("You can only use a \"fix\" step if all specified variables occur in the outermost quantifier. Variables to be fixed were: "
-                    <> Text.pack (show xs) <> " but only the following are bound: " <> Text.pack (show (nubOrd (bindings body)))))
+                let lxs = toList xs in
+                let nbs = nubOrd (bindings body)
+                in if lxs `List.intersect` nbs == lxs
+                   then return $ instantiateSome (length lxs == length nbs) xs body
+                   else throwWithLocationAndMarker (CheckingError ("You can only use a \"fix\" step if all specified variables occur in the outermost quantifier. Variables to be fixed were: "
+                          <> Text.pack (show xs) <> " but only the following are bound: " <> Text.pack (show (nubOrd (bindings body)))))
             _ ->
                 throwWithLocationAndMarker (CheckingError "You can only use a \"fix\" step if the goal is universal.")
     setGoals (goal' : goals')
