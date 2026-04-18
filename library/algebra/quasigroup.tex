@@ -2,35 +2,52 @@
 
 \section{Quasigroups}
 
+\newcommand{\ldiv}[1][]{\operatorname{ldiv}_{#1}}
+\newcommand{\rdiv}[1][]{\operatorname{rdiv}_{#1}}
+
 \begin{struct}\label{quasigroup}
-    A quasigroup $A$ is a magma equipped with
-    \begin{enumerate}
-        \item $\ldiv$
-        \item $\rdiv$
-    \end{enumerate}
-    such that
-    \begin{enumerate}
-        \item for all $a, b\in A$ we have $\ldiv (a,b)\in A$.
-        \item for all $a, b\in A$ we have $\rdiv (a,b)\in A$.
-        \item for all $a,b \in A$ we have $b = \mul(a,\ldiv (a,b))$.
-        \item for all $a,b \in A$ we have $b = \ldiv(a,\mul (a,b))$.
-        \item for all $a,b \in A$ we have $b = \mul(\rdiv (b,a),a)$.
-        \item for all $a,b \in A$ we have $b = \rdiv(\mul (b,a),a)$.
-    \end{enumerate}
+  A quasigroup $A$ is a magma equipped with
+  \begin{enumerate}
+      \item $\ldiv$
+      \item $\rdiv$
+  \end{enumerate}
+  such that
+  \begin{enumerate}
+      \item\label{quasigroup_ldiv} for all $a, b\in \carrier[A]$ we have $\ldiv[A](a, b) \in \carrier[A]$.
+      \item\label{quasigroup_rdiv} for all $a, b\in \carrier[A]$ we have $\rdiv[A](a, b) \in \carrier[A]$.
+      \item\label{quasigroup_mul_ldiv} for all $a,b \in \carrier[A]$ we have $b = \mul[A](a, \ldiv[A](a, b))$.
+      \item\label{quasigroup_ldiv_mul} for all $a,b \in \carrier[A]$ we have $b = \ldiv[A](a, \mul[A](a, b))$.
+      \item\label{quasigroup_mul_rdiv} for all $a,b \in \carrier[A]$ we have $b = \mul[A](\rdiv[A](b, a), a)$.
+      \item\label{quasigroup_rdiv_mul} for all $a,b \in \carrier[A]$ we have $b = \rdiv[A](\mul[A](b, a), a)$.
+  \end{enumerate}
 \end{struct}
+
+\begin{abbreviation}\label{qdivl_abbr}
+    $a \qdivl b = \ldiv(a,b)$.
+\end{abbreviation}
+
+\begin{abbreviation}\label{qdivr_abbr}
+    $a \qdivr b = \rdiv(a,b)$.
+\end{abbreviation}
 
 % Cancelling an element on the left.
 \begin{lemma}\label{quasigroup_cancel_left}
     Let $A$ be a quasigroup.
-    Let $a,b,c \in A$.
-    Suppose $\mul(a,b) = \mul(a,c)$.
+    Let $a,b,c \in \carrier[A]$.
+    Suppose $a \cdot b = a \cdot c$.
     Then $b = c$.
 \end{lemma}
+\begin{proof}
+  Omitted.
+\end{proof}
 
 % Cancelling an element on the right.
 \begin{lemma}\label{quasigroup_cancel_right}
     Let $A$ be a quasigroup.
-    Let $a,b,c \in A$.
-    Suppose $\mul(a,c) = \mul(b,c)$.
+    Let $a,b,c \in \carrier[A]$.
+    Suppose $a \cdot c = b \cdot c$.
     Then $a = b$.
 \end{lemma}
+\begin{proof}
+  Omitted.
+\end{proof}

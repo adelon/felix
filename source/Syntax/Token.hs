@@ -346,7 +346,7 @@ beginToplevelEnvironment = lexeme do
 -- | Parses tokens, switching tokenizing frames when encountering math and text environments.
 environment :: Lexer [Located Token]
 environment = do
-    env <- skipManyTill anySingle beginToplevelEnvironment
+    env <- skipManyTill (comment <|> void anySingle) beginToplevelEnvironment
     lts <- go (unLocated env) id
     pure ((BeginEnv <$> env) : lts)
     where
